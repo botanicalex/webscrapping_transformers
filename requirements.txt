@@ -1,0 +1,38 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# requirements.txt — scrappers.py (Proyecto FNCE — UPB)
+# Python 3.14 / Windows — lxml 5.x no tiene wheel para cp314, se usa 6.x
+#
+# INSTALACIÓN:
+#   pip install -r requirements.txt
+#   pip install newspaper4k==0.9.5 --no-deps
+#   python -m playwright install chromium
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Web scraping ──────────────────────────────────────────────────────────────
+requests==2.33.0
+beautifulsoup4==4.14.3
+lxml==6.0.2              # única versión con wheel para Python 3.14 (cp314-win_amd64)
+lxml-html-clean==0.4.4   # requerido por newspaper4k en runtime
+
+# ── Dependencias runtime de newspaper4k (instalado con --no-deps) ─────────────
+# newspaper4k==0.9.5 requiere lxml<6.0.0 pero esa restricción es sólo metadata;
+# en runtime funciona con 6.x. Se instala con --no-deps para bypassear el check.
+feedparser==6.0.12
+tldextract==5.3.1
+sgmllib3k==1.0.0
+brotli==1.2.0
+PyYAML==6.0.3
+w3lib==2.4.1
+pillow==12.2.0           # requerido por newspaper4k cuando python_version >= "3.14"
+
+# ── HTTP asíncrono ────────────────────────────────────────────────────────────
+aiohttp==3.13.5
+
+# ── Playwright ────────────────────────────────────────────────────────────────
+playwright==1.58.0
+
+# ── Compatibilidad asyncio en notebooks / Windows ────────────────────────────
+nest-asyncio==1.6.0
+
+# ── Datos ─────────────────────────────────────────────────────────────────────
+pandas==2.3.3
