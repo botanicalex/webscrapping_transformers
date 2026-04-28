@@ -1,0 +1,29 @@
+# ── Corpus / datos de salida ────────────────────────────────────────────────
+# Los .pkl pueden pesar varios GB — no versionar, compartir por Drive/Colab
+*.pkl
+resultados/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# ── Entornos virtuales ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+.env
+
+# ── Logs y outputs de pruebas ────────────────────────────────────────────────
+# Excluir todos los .txt EXCEPTO requirements.txt
+*.txt
+!requirements.txt
+
+# ── Jupyter ──────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
