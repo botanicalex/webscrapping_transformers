@@ -249,11 +249,20 @@ def scrape_periodicos_v2(termino: str, fecha_desde: str, fecha_hasta: str,
 
 def _buscar_multi_termino_v2(territorio: str, fecha_desde: str, fecha_hasta: str,
                               periodicos: List[str], min_menciones: int,
-                              temas: List[str]) -> pd.DataFrame:
-    """Multi-término con GestorScrapingV2."""
+                              temas: List[str],
+                              max_workers_temas: int = None) -> pd.DataFrame:
+    """
+    Multi-término con GestorScrapingV2.
+
+    max_workers_temas: número de términos en paralelo. Default=len(temas).
+    Usar max_workers_temas=1 para scrapers rate-limited (ElTiempo) donde
+    la concurrencia de términos provoca queue en el semáforo global → timeout.
+    """
+    n_workers = max_workers_temas if max_workers_temas is not None else len(temas)
+    modo = "secuencial" if n_workers == 1 else f"{n_workers} en paralelo"
     print(f"\n{'='*60}")
     print(f"[V2] BUSQUEDA MULTI-TERMINO: {territorio} | {fecha_desde} -> {fecha_hasta}")
-    print(f"Terminos ({len(temas)} en paralelo): {[f'{territorio} {t}' for t in temas]}")
+    print(f"Terminos ({modo}): {[f'{territorio} {t}' for t in temas]}")
     print(f"{'='*60}")
 
     def _buscar_tema(tema: str) -> tuple:
@@ -280,7 +289,7 @@ def _buscar_multi_termino_v2(territorio: str, fecha_desde: str, fecha_hasta: str
         return tema, df_tema
 
     resultados_por_termino: Dict[str, pd.DataFrame] = {}
-    with ThreadPoolExecutor(max_workers=len(temas), thread_name_prefix="tema_v2") as pool:
+    with ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="tema_v2") as pool:
         futures = {pool.submit(_buscar_tema, tema): tema for tema in temas}
         for future in as_completed(futures):
             tema, df_tema = future.result()
@@ -409,10 +418,15 @@ def scrape_departamento_v2(departamento: str,
         if central_disponible:
             print(f"  [V2] Total actual {total_actual} < {_V2_MIN_COMPLEMENTO} "
                   f"— complementando con: {central_disponible}")
+            # max_workers_temas=1: ElTiempo es rate-limited con semáforo global(1).
+            # Correr los 5 términos en paralelo provoca que 4 hagan queue y
+            # superen el timeout de 480s de _run_one. Secuencial garantiza que
+            # todos los términos obtengan resultados.
             df_central = _buscar_multi_termino_v2(
                 departamento, fecha_desde, fecha_hasta,
                 central_disponible, 1,   # umbral=1 para nacionales
-                _temas
+                _temas,
+                max_workers_temas=1,     # secuencial para evitar queue en semáforo
             )
             if not df_central.empty:
                 df_base = (
