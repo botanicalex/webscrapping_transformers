@@ -37,6 +37,13 @@ import sys
 # creados en threads de ThreadPoolExecutor— usen ProactorEventLoop.
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+# Parche global de nest_asyncio — se aplica UNA SOLA VEZ aquí, a nivel de módulo.
+# nest_asyncio.apply() modifica asyncio.BaseEventLoop a nivel de CLASE (no de instancia),
+# por lo que llamarlo desde múltiples threads simultáneamente causa race condition →
+# RuntimeError. Aplicarlo aquí garantiza que la clase ya esté parchada antes de que
+# cualquier ThreadPoolExecutor o ProactorEventLoop secundario la use.
+nest_asyncio.apply()
 import pandas as pd
 import urllib.parse
 from urllib.parse import urlparse
@@ -656,7 +663,7 @@ class ScraperElQuindiano(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -1237,7 +1244,7 @@ class ScraperDiarioDelCauca(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -1606,7 +1613,7 @@ class ScraperLlanoAlMundo(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=30) as response:
+            async with session.get(link, timeout=60) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -1943,7 +1950,7 @@ class ScraperLaVozDelCinaruco(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=30) as response:
+            async with session.get(link, timeout=60) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -2112,7 +2119,7 @@ class ScraperElMorichal(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -2415,9 +2422,7 @@ class ScraperLaRepublica(ScraperPeriodico):
         super().__init__(termino, fecha_desde, fecha_hasta)
         self.max_cargas = max_cargas
 
-        # Permitir event loops anidados en Colab
-        nest_asyncio.apply()
-
+        # nest_asyncio ya se aplica a nivel de módulo al importar scrappers.py
     @property
     def nombre_periodico(self) -> str:
         return "La República"
@@ -2782,7 +2787,7 @@ class ScraperPortafolio(ScraperPeriodico):
     ) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -2954,8 +2959,7 @@ class ScraperPublimetro(ScraperPeriodico):
     # ── Playwright: búsqueda + paginación por clics ─────────────────────────
 
     def _get_links_con_playwright(self) -> List[str]:
-        import nest_asyncio
-        nest_asyncio.apply()
+        # nest_asyncio ya aplicado a nivel de módulo — no repetir aquí
 
         async def _fetch():
             todos_links  = []
@@ -3068,7 +3072,7 @@ class ScraperPublimetro(ScraperPeriodico):
     ) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -3390,7 +3394,7 @@ class ScraperLas2Orillas(ScraperPeriodico):
     ) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -3471,8 +3475,7 @@ class ScraperElHeraldo(ScraperPeriodico):
         self.inicio_rango = datetime.strptime(fecha_desde, '%Y-%m-%d')
         self.fin_rango = datetime.strptime(fecha_hasta, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
 
-        # Permitir event loops anidados en Colab
-        nest_asyncio.apply()
+        # nest_asyncio ya se aplica a nivel de módulo al importar scrappers.py
 
     @property
     def nombre_periodico(self) -> str:
@@ -4045,7 +4048,7 @@ class ScraperElPilon(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -4299,7 +4302,7 @@ class ScraperElMeridiano(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -4558,7 +4561,7 @@ class ScraperVanguardia(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -4865,7 +4868,7 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -5047,8 +5050,7 @@ class ScraperEnlaceTelevision(ScraperPeriodico):
     # ── Playwright: scroll infinito con "More Posts" ────────────────────────
 
     def _get_links_con_playwright(self) -> List[str]:
-        import nest_asyncio
-        nest_asyncio.apply()
+        # nest_asyncio ya aplicado a nivel de módulo — no repetir aquí
 
         async def _fetch():
             todos_links   = []
@@ -5167,7 +5169,7 @@ class ScraperEnlaceTelevision(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -5503,7 +5505,7 @@ class ScraperCorrillos(ScraperPeriodico):
     ) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            async with session.get(link, timeout=45) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -5978,9 +5980,9 @@ def _buscar_multi_termino(territorio: str, fecha_desde: str, fecha_hasta: str,
 
 
 # Periódicos centrales de respaldo cuando el corpus local es insuficiente
-# Las2Orillas excluido del respaldo: rate-limita cada página individualmente
-# y multiplica el tiempo cuando se usa como fallback para muchos departamentos.
-_PERIODICOS_RESPALDO = ['eltiempo']
+# Respaldo activado para departamentos con < MIN_ARTICULOS artículos en scrapers locales.
+# Las2Orillas tiene rate limiting moderado pero sirve bien como segundo respaldo secuencial.
+_PERIODICOS_RESPALDO = ['eltiempo', 'las2orillas']
 
 # Umbral mínimo de artículos antes de activar el respaldo
 _MIN_ARTICULOS_RESPALDO = 50
@@ -5993,9 +5995,9 @@ _playwright_lock = threading.Lock()
 # Máximo 1 instancia simultánea a nivel global (términos + departamentos).
 _las2orillas_semaphore = threading.Semaphore(1)
 
-# Semáforo global para El Tiempo: servidor lento que se satura con >2 queries
-# simultáneas. Limita a 2 instancias concurrentes a nivel global.
-_eltiempo_semaphore    = threading.Semaphore(2)
+# Semáforo global para El Tiempo: servidor lento que se satura con >1 query
+# simultánea. Limita a 1 instancia concurrente a nivel global.
+_eltiempo_semaphore    = threading.Semaphore(1)
 
 # ── REGISTRO DE ERRORES (reporte al final de scrape_multiples_departamentos) ──
 _errores_run: list = []          # lista de dicts {periodico, tipo}
@@ -6212,8 +6214,8 @@ def scrape_multiples_departamentos(departamentos: List[str],
 
     # ── Banner de inicio ──────────────────────────────────────────────────────
     simultaneos = min(max_paralelos, len(departamentos))
-    print(f"\n{'▶'*3} CORRIENDO {len(departamentos)} DEPARTAMENTOS "
-          f"({simultaneos} EN PARALELO) {'◀'*3}")
+    print(f"\n{'>>>'} CORRIENDO {len(departamentos)} DEPARTAMENTOS "
+          f"({simultaneos} EN PARALELO) {'<<<'}")
     print(f"    Periodo : {fecha_desde}  →  {fecha_hasta}")
     print(f"    Deptos  : {' | '.join(departamentos)}")
     print(f"{'─'*60}")
@@ -6227,9 +6229,9 @@ def scrape_multiples_departamentos(departamentos: List[str],
 
     def _procesar_dep(dep: str) -> None:
         t0 = time.time()
-        print(f"\n{'━'*60}"
-              f"\n▶ INICIO  [{dep}]"
-              f"\n{'━'*60}")
+        print(f"\n{'='*60}"
+              f"\n>> INICIO  [{dep}]"
+              f"\n{'='*60}")
         try:
             df_dep = scrape_departamento(
                 departamento=dep,

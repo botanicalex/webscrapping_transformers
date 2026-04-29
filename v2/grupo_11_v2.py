@@ -7,6 +7,8 @@
   con Amazonas (también ET) en el grupo anterior. Con solo 2 dptos aquí, si ambos
   usan ET en algún momento la competencia es tolerable (sin un 3er ET user).
 """
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from scrappers_v2 import *
 import os
 import time
@@ -20,7 +22,7 @@ FECHA_HASTA = "2023-12-31"
 #   TEMAS = ["conflicto", "comunidades", "social"]
 TEMAS = None
 
-DIRECTORIO_SALIDA = "resultados"
+DIRECTORIO_SALIDA = os.path.join(os.path.dirname(__file__), "..", "resultados")
 os.makedirs(DIRECTORIO_SALIDA, exist_ok=True)
 
 inicio = time.time()

@@ -1,9 +1,11 @@
 """
-[V2] Grupo 8 — 3 departamentos simultáneos
-  Cundinamarca : eltiempo + portafolio + publimetro + larepublica  (Playwright)
-  La Guajira   : elpilon  (3/3 — separado de Cesar G6 y Magdalena G7)
-  Cauca        : diariodelcauca  (1/2 — separado de Huila G10)
+[V2] Grupo 1 — 3 departamentos simultáneos
+  Antioquia  : elcolombiano  (rápido)
+  Chocó      : choco7dias    (LENTO — ~35 % éxito, timeout 600 s)
+  Vichada    : [] → El Tiempo (respaldo)
 """
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from scrappers_v2 import *
 import os
 import time
@@ -17,19 +19,19 @@ FECHA_HASTA = "2023-12-31"
 #   TEMAS = ["conflicto", "comunidades", "social"]
 TEMAS = None
 
-DIRECTORIO_SALIDA = "resultados"
+DIRECTORIO_SALIDA = os.path.join(os.path.dirname(__file__), "..", "resultados")
 os.makedirs(DIRECTORIO_SALIDA, exist_ok=True)
 
 inicio = time.time()
 
 scrape_multiples_departamentos_v2(
-    departamentos=["Cundinamarca", "La Guajira", "Cauca"],
+    departamentos=["Antioquia", "Chocó", "Vichada"],
     fecha_desde=FECHA_DESDE,
     fecha_hasta=FECHA_HASTA,
-    min_menciones=None,
+    min_menciones=None,        # usa DEPARTAMENTO_MIN_MENCIONES por dpto
     directorio_salida=DIRECTORIO_SALIDA,
-    temas=TEMAS,
+    temas=TEMAS,               # None = usa TEMAS_BUSQUEDA global de scrappers.py
 )
 
 duracion = (time.time() - inicio) / 60
-print(f"\n[V2] Grupo 8 completado en {duracion:.1f} minutos")
+print(f"\n[V2] Grupo 1 completado en {duracion:.1f} minutos")

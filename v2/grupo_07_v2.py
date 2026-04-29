@@ -4,6 +4,8 @@
   Magdalena          : elpilon  (2/3 — separado de Cesar G6 y La Guajira G8)
   Guainía            : [] → El Tiempo  (respaldo; elmorichal caído)
 """
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from scrappers_v2 import *
 import os
 import time
@@ -17,7 +19,7 @@ FECHA_HASTA = "2023-12-31"
 #   TEMAS = ["conflicto", "comunidades", "social"]
 TEMAS = None
 
-DIRECTORIO_SALIDA = "resultados"
+DIRECTORIO_SALIDA = os.path.join(os.path.dirname(__file__), "..", "resultados")
 os.makedirs(DIRECTORIO_SALIDA, exist_ok=True)
 
 inicio = time.time()
