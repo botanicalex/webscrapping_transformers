@@ -1,0 +1,3 @@
+departamento,n_articulos,bloque_A,bloque_B,bloque_C,bloque_D,bloque_E,corrupcion_score,vulneracion_score,radar_propio,categoria_riesgo
+Cundinamarca,1,100.0,100.0,0.0,100.0,0.0,100.0,50.0,100.0,alto
+Antioquia,1,0.0,0.0,100.0,0.0,100.0,0.0,50.0,0.0,bajo

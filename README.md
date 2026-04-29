@@ -1,152 +1,96 @@
-# Webscrapping Transformers — Corpus de Noticias Regionales Colombia
+# Radar de prensa por departamento (versión actual basada en código)
 
-Sistema de scraping de noticias para los **32 departamentos de Colombia**, orientado a la construcción de un corpus de texto para análisis con modelos Transformer (dimensiones de gobernanza, conflicto, capacidad institucional, etc.).
+Este repositorio ejecuta un pipeline de 3 etapas:
 
----
+1. Scraping por departamento con scrapers de periódicos (`scrappers.py`)
+2. Procesamiento NLP con Transformers y cálculo de radar (`Transformer_optimo.py`)
+3. Evaluación de métricas frente a radar oficial cargado desde Excel (`metricas_y_calculo_de_error.py`)
 
-## Estructura del proyecto
+## Estructura real del proyecto
 
-```
-scrappers.py              # Motor principal: 27 scrapers + funciones de orquestación
-grupo_01.py … grupo_11.py # Scripts de ejecución por grupos de departamentos
-monitor.py                # Monitor de progreso (departamentos completados/pendientes)
-colab_carga_corpus.py     # Celda de carga del corpus consolidado en Google Colab
-requirements.txt          # Dependencias Python
-resultados/               # Carpeta de salida — archivos .pkl por departamento (no versionada)
-```
-
----
+- `scrappers.py`: motor principal de scraping
+- `grupo_01.py` ... `grupo_11.py`: ejecución por grupos de departamentos
+- `monitor.py`: monitor de avance de archivos `df_corpus_*.pkl`
+- `colab_carga_corpus.py`: carga y validación de corpus en Colab
+- `Transformer_optimo.py`: pipeline NLP + cálculo de radar departamental
+- `metricas_y_calculo_de_error.py`: cálculo de métricas y gráficas desde `comparacion_radares.xlsx`
+- `prueba_rapida.py`: prueba de scraping de un departamento
+- `docs/*.md`: documentación técnica de esta versión
+- `resultados/`: salida de scraping (`df_corpus_*.pkl`)
+- `resultados_pipeline/`: salida de pipeline NLP/radar
+- `graficos_metricas/`: salida de gráficas de métricas
 
 ## Requisitos
 
-- Python 3.11–3.14
-- Chromium instalado vía Playwright (solo para scrapers de Santander, Norte de Santander y Cundinamarca)
-
----
-
-## Instalación
-
-> **Nota para Python 3.14**: `newspaper4k` requiere `lxml < 6.0` pero solo existe wheel precompilado de `lxml 6.x` para Python 3.14. La instalación en dos pasos resuelve el conflicto:
+- Python 3.10+
+- Dependencias en `requirements.txt`
+- Para scrapers Playwright: instalar Chromium
 
 ```bash
-# Paso 1: instalar todas las dependencias (incluye lxml 6.x)
 pip install -r requirements.txt
-
-# Paso 2: instalar newspaper4k sin sus dependencias declaradas
-pip install newspaper4k==0.9.5 --no-deps
-
-# Paso 3: instalar navegador Chromium para Playwright
 python -m playwright install chromium
 ```
 
----
+## Configuración de scraping
 
-## Configuración
+En `scrappers.py` se define:
 
-Editar la sección **CONFIG** al inicio de `scrappers.py`:
+- `FECHA_DESDE = "2023-01-01"`
+- `FECHA_HASTA = "2023-12-31"`
+- `TEMAS_BUSQUEDA = ["conflicto", "comunidades", "institucional", "derechos", "social"]`
+- `GRUPOS_DEPARTAMENTOS` con 11 grupos
 
-```python
-# Rango de fechas
-FECHA_DESDE = "2023-01-01"
-FECHA_HASTA = "2023-12-31"
-
-# Palabras clave — se combinan con el nombre del departamento
-# Ejemplo: "Antioquia conflicto", "Antioquia comunidades", etc.
-TEMAS_BUSQUEDA = [
-    "conflicto",       # DIM5: derechos humanos, grupos armados
-    "comunidades",     # DIM3: grupos étnicos, vulneración socioeconómica
-    "institucional",   # DIM1/DIM2: gobernanza, capacidad institucional
-    "derechos",        # DIM5/DIM1: DDHH, gobernanza
-    "social",          # DIM3: protesta, movimientos sociales
-]
-```
-
-Para personalizar los términos de **un solo grupo** sin tocar el global, editar `TEMAS` al inicio del `grupo_XX.py` correspondiente:
-
-```python
-# grupo_06.py
-TEMAS = ["conflicto", "social"]   # reemplazar None con una lista propia
-```
-
----
+La búsqueda se arma con `"{departamento} {tema}"` para todos los scrapers dentro del flujo principal.
 
 ## Ejecución
 
-### Opción A — Por grupos (recomendado para el corpus completo)
+### 1) Scraping por grupos
 
 ```bash
-# Crear carpeta de salida
-mkdir resultados
-
-# Correr cada grupo (pueden lanzarse en ventanas separadas en paralelo)
-python grupo_01.py   # Antioquia · Chocó · Vichada
-python grupo_02.py   # Valle del Cauca · Arauca · Atlántico
-python grupo_03.py   # Caldas · Meta · Bolívar
-python grupo_04.py   # Risaralda · Caquetá · Putumayo
-python grupo_05.py   # Quindío · Guaviare · Amazonas
-python grupo_06.py   # Santander · Cesar · Boyacá
-python grupo_07.py   # Norte de Santander · Magdalena · Guainía
-python grupo_08.py   # Cundinamarca · La Guajira · Cauca
-python grupo_09.py   # Córdoba · Nariño · Vaupés
-python grupo_10.py   # Sucre · Huila · San Andrés y Providencia
-python grupo_11.py   # Casanare · Tolima
+python grupo_01.py
+python grupo_02.py
+python grupo_03.py
+python grupo_04.py
+python grupo_05.py
+python grupo_06.py
+python grupo_07.py
+python grupo_08.py
+python grupo_09.py
+python grupo_10.py
+python grupo_11.py
 ```
 
-Cada script guarda un `.pkl` por departamento en `resultados/` tan pronto termina, sin esperar a los demás del grupo.
-
-### Opción B — Departamento individual (desarrollo / pruebas)
-
-```python
-from scrappers import *
-
-df = scrape_departamento('Antioquia', '2023-01-01', '2023-12-31')
-print(df[['periodico', 'titulo', 'fecha']].head())
-```
-
-### Ver progreso
+### 2) Monitorear avance
 
 ```bash
 python monitor.py
 ```
 
-Muestra el estado de cada departamento (✓ completado / ▶ en curso / ○ pendiente) con tamaño del `.pkl` y hora de última modificación.
+### 3) Pipeline completo (opcionalmente saltando scraping)
 
----
+```bash
+python Transformer_optimo.py
+python Transformer_optimo.py --skip-scraping --ruta-pkl resultados --salida resultados_pipeline
+```
 
-## Grupos de departamentos
+### 4) Métricas contra radar oficial
 
-| Grupo | Departamentos | Scrapers principales |
-|-------|---------------|----------------------|
-| G1  | Antioquia · Chocó · Vichada | elcolombiano · choco7dias *(lento)* · El Tiempo |
-| G2  | Valle del Cauca · Arauca · Atlántico | elpais · lavozdelcinaruco *(lento)* · El Tiempo |
-| G3  | Caldas · Meta · Bolívar | bcnoticias · llanoalmundo · El Tiempo |
-| G4  | Risaralda · Caquetá · Putumayo | eldiario · llanoalmundo · El Tiempo |
-| G5  | Quindío · Guaviare · Amazonas | elquindiano · llanoalmundo · El Tiempo |
-| G6  | Santander · Cesar · Boyacá | enlacetelevision · corrillos · El Tiempo · elpilon |
-| G7  | Norte de Santander · Magdalena · Guainía | enlacetelevision · corrillos · El Tiempo · elpilon |
-| G8  | Cundinamarca · La Guajira · Cauca | El Tiempo · portafolio · publimetro · elpilon · diariodelcauca |
-| G9  | Córdoba · Nariño · Vaupés | elmeridiano · diariodelsur · El Tiempo |
-| G10 | Sucre · Huila · San Andrés y Providencia | elmeridiano · diariodelcauca · diariodelsur · El Tiempo |
-| G11 | Casanare · Tolima | diariodecasanare · bcnoticias · El Tiempo |
+```bash
+python metricas_y_calculo_de_error.py
+```
 
----
+## Archivos de salida
 
-## Cargar el corpus en Google Colab
+- Scraping: `resultados/df_corpus_<departamento>.pkl`
+- NLP: `resultados_pipeline/df_procesado.pkl` y `.csv`
+- Radar: `resultados_pipeline/radar_departamentos.pkl` y `.csv`
+- Métricas: `resultado_comparacion_radares_<timestamp>.xlsx`
+- Gráficas: `graficos_metricas/corrida_<timestamp>/`
 
-Copiar el contenido de `colab_carga_corpus.py` en una celda de Colab. El script ofrece dos opciones:
-- **Opción A**: montar Google Drive y leer los `.pkl` desde `resultados/`
-- **Opción B**: subir los archivos manualmente
+## Notas operativas reales
 
-Columnas del DataFrame consolidado: `periodico`, `titulo`, `fecha`, `texto`, `url`, `departamento`, `terminos_encontrado`.
-
----
-
-## Notas técnicas
-
-| Tema | Detalle |
-|------|---------|
-| **TimeoutError masivos** (>200) | LlanoAlMundo, LaVozDelCinaruco, ElQuindiano, DiarioDelCauca tienen throttling severo. Son normales — los artículos que sí pasan son válidos. |
-| **Python 3.14 + lxml** | Requiere instalación en dos pasos (ver arriba). En Python ≤ 3.13 basta `pip install -r requirements.txt`. |
-| **Playwright serializado** | Todos los scrapers Playwright comparten un lock global (`_playwright_lock`) — nunca hay dos navegadores simultáneos aunque varios grupos estén corriendo a la vez. |
-| **Respaldo automático** | Si un departamento obtiene menos de 50 artículos de sus scrapers locales, activa búsqueda de respaldo en El Tiempo automáticamente. |
-| **Archivos de salida** | Nombrados `df_corpus_<departamento>.pkl` en `resultados/`. No se versionan en git (pueden superar 100 MB). |
+- `scrappers.py` usa dos fases: paralelo (requests/aiohttp/rate-limited) y secuencial para Playwright.
+- Lock global `_playwright_lock` serializa scrapers Playwright.
+- Semáforos globales para `eltiempo` y `las2orillas`.
+- Si un departamento queda con pocos artículos, se activa respaldo con El Tiempo (`min_articulos`, por defecto 50 en `scrape_departamento`).
+- La columna de términos en el corpus se llama `terminos_encontrado`.
