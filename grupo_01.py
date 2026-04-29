@@ -5,30 +5,27 @@ Grupo 1 — 3 departamentos simultáneos
   Vichada    : [] → El Tiempo (respaldo)
 """
 from scrappers import *
+import config_pipeline as cfg
 import os
 import time
 
-FECHA_DESDE = "2023-01-01"
-FECHA_HASTA = "2023-12-31"
+FECHA_DESDE = cfg.FECHA_DESDE
+FECHA_HASTA = cfg.FECHA_HASTA
 
-# ── Términos de búsqueda ──────────────────────────────────────────────────────
-# None = usa TEMAS_BUSQUEDA definido en scrappers.py (sección CONFIG).
-# Para personalizar solo este grupo, reemplaza None con una lista, por ejemplo:
-#   TEMAS = ["conflicto", "comunidades", "social"]
 TEMAS = None
 
-DIRECTORIO_SALIDA = "resultados"
+DIRECTORIO_SALIDA = cfg.RUTA_CORPUS_PKL
 os.makedirs(DIRECTORIO_SALIDA, exist_ok=True)
 
 inicio = time.time()
 
 scrape_multiples_departamentos(
-    departamentos=["Antioquia", "Chocó", "Vichada"],
+    departamentos=cfg.GRUPOS_DEPARTAMENTOS[0],
     fecha_desde=FECHA_DESDE,
     fecha_hasta=FECHA_HASTA,
-    min_menciones=None,        # usa DEPARTAMENTO_MIN_MENCIONES por dpto
+    min_menciones=None,
     directorio_salida=DIRECTORIO_SALIDA,
-    temas=TEMAS,               # None = usa TEMAS_BUSQUEDA global de scrappers.py
+    temas=TEMAS,
 )
 
 duracion = (time.time() - inicio) / 60

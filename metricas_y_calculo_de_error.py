@@ -8,11 +8,13 @@ import seaborn as sns
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from scipy.stats import pearsonr
 
-archivo = "comparacion_radares.xlsx"
+import config_pipeline as cfg
+
+archivo = cfg.ARCHIVO_COMPARACION_EXCEL
 df = pd.read_excel(archivo)
 timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-graficos_dir = os.path.join("graficos_metricas", f"corrida_{timestamp}")
-excel_salida = f"resultado_comparacion_radares_{timestamp}.xlsx"
+graficos_dir = os.path.join(cfg.DIRECTORIO_GRAFICOS_METRICAS, f"corrida_{timestamp}")
+excel_salida = f"{cfg.PREFIJO_RESULTADO_COMPARACION}_{timestamp}.xlsx"
 
 columnas_base = ["departamento", "radar_oficial_promedio"]
 for c in columnas_base:

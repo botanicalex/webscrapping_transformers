@@ -94,3 +94,4 @@ python metricas_y_calculo_de_error.py
 - Semáforos globales para `eltiempo` y `las2orillas`.
 - Si un departamento queda con pocos artículos, se activa respaldo con El Tiempo (`min_articulos`, por defecto 50 en `scrape_departamento`).
 - La columna de términos en el corpus se llama `terminos_encontrado`.
+- **REQUISITO DE HARDWARE:** El procesamiento de `Transformer_optimo.py` requiere GPU con CUDA. Ejecutarlo en CPU es inviable (tiempo estimado > 24h). Priorizar instancias con aceleración de hardware (GPU local RTX 4050 o Colab con GPU).

@@ -5,25 +5,22 @@ Grupo 2 — 3 departamentos simultáneos
   Atlántico       : [] → El Tiempo (respaldo)
 """
 from scrappers import *
+import config_pipeline as cfg
 import os
 import time
 
-FECHA_DESDE = "2023-01-01"
-FECHA_HASTA = "2023-12-31"
+FECHA_DESDE = cfg.FECHA_DESDE
+FECHA_HASTA = cfg.FECHA_HASTA
 
-# ── Términos de búsqueda ──────────────────────────────────────────────────────
-# None = usa TEMAS_BUSQUEDA definido en scrappers.py (sección CONFIG).
-# Para personalizar solo este grupo, reemplaza None con una lista, por ejemplo:
-#   TEMAS = ["conflicto", "comunidades", "social"]
 TEMAS = None
 
-DIRECTORIO_SALIDA = "resultados"
+DIRECTORIO_SALIDA = cfg.RUTA_CORPUS_PKL
 os.makedirs(DIRECTORIO_SALIDA, exist_ok=True)
 
 inicio = time.time()
 
 scrape_multiples_departamentos(
-    departamentos=["Valle del Cauca", "Arauca", "Atlántico"],
+    departamentos=cfg.GRUPOS_DEPARTAMENTOS[1],
     fecha_desde=FECHA_DESDE,
     fecha_hasta=FECHA_HASTA,
     min_menciones=None,

@@ -25,6 +25,7 @@ La optimización se realiza como ciclo manual/repetible:
 
 - script: `Transformer_optimo.py`
 - salida:
+
   - `resultados_pipeline/df_procesado.pkl`
   - `resultados_pipeline/radar_departamentos.csv`
 
@@ -54,3 +55,29 @@ La optimización se realiza como ciclo manual/repetible:
 - nombrar cada corrida como `experimento_n` en el Excel
 - conservar salida timestamp de métricas
 - comparar MAE/RMSE/MAPE/Pearson del ranking y elegir siguiente ajuste
+
+## Prioridades de iteración — Semana actual (Weekly 2026-04-28)
+
+El orden de experimentos a ejecutar esta semana es:
+
+1. **Expansión de keywords para departamentos periféricos**
+   - Reemplazar el set genérico por las keywords específicas definidas en `04_scraping.md`
+   - Departamentos prioritarios: Amazonas, Vaupés, Guainía, Putumayo, Caquetá, La Guajira, Chocó
+   - Registrar volumen de artículos antes y después del cambio
+
+2. **Análisis de outliers de error**
+   - Identificar departamentos con error individual > 30 puntos
+   - Revisar manualmente si el scraper falló o si las keywords no generaron artículos relevantes
+   - Usar la gráfica `<experimento>_error_departamento.png` como punto de partida
+
+3. **Validación de hipótesis fuentes–error**
+   - Cruzar el número de artículos por departamento con el error individual
+   - Confirmar o descartar si a mayor cobertura el error disminuye
+   - Registrar conclusión en `experimentos.md`
+
+## Criterio de parada
+
+El ciclo de experimentación se detiene cuando se cumpla alguna de estas condiciones:
+
+- **MAPE global < 23%**
+- Ningún departamento con error individual > 40 puntos (exceptuando los que tienen 0 artículos)

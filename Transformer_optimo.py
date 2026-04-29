@@ -11,9 +11,10 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import scrappers as sc
+import config_pipeline as cfg
 
 class CargadorCorpus:
-    def __init__(self, ruta_pkl: str = "resultados"):
+    def __init__(self, ruta_pkl: str = cfg.RUTA_CORPUS_PKL):
         self.ruta_pkl = ruta_pkl
 
     def cargar(self) -> pd.DataFrame:
@@ -351,8 +352,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--fecha-desde", default=sc.FECHA_DESDE)
     parser.add_argument("--fecha-hasta", default=sc.FECHA_HASTA)
-    parser.add_argument("--ruta-pkl", default="resultados")
-    parser.add_argument("--salida", default="resultados_pipeline")
+    parser.add_argument("--ruta-pkl", default=cfg.RUTA_CORPUS_PKL)
+    parser.add_argument("--salida", default=cfg.RUTA_SALIDA_PIPELINE)
     parser.add_argument("--skip-scraping", action="store_true")
     args = parser.parse_args()
 

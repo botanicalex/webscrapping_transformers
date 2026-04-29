@@ -46,90 +46,12 @@ from urllib.parse import urlparse
 # CONFIGURACIÓN — editar estos valores antes de correr el script
 # ══════════════════════════════════════════════════════════════════════════════
 
-FECHA_DESDE = "2023-01-01"
-FECHA_HASTA = "2023-12-31"
+import config_pipeline as cfg
 
-# Palabras clave de búsqueda — se combinan con el nombre del departamento.
-# Ejemplo: "Antioquia conflicto", "Antioquia comunidades", etc.
-# Agregar o quitar términos según las dimensiones que se quieran cubrir.
-# Mínimo recomendado: 3 términos. Sin límite máximo.
-TEMAS_BUSQUEDA = [
-    "conflicto",       # DIM5: derechos humanos, grupos armados
-    "comunidades",     # DIM3: vulneración socioeconómica, grupos étnicos
-    "institucional",   # DIM1: gobernanza, DIM2: capacidad institucional
-    "derechos",        # DIM5: DDHH, DIM1: gobernanza
-    "social",          # DIM3: protesta, movimientos sociales
-    # "energia",       # descomentar para búsquedas de proyectos FNCE
-    # "mineria",       # descomentar para búsquedas minero-energéticas
-    # "ambiental",     # descomentar para DIM4: impactos ambientales
-    # "territorio",    # descomentar para DIM4: conflictos territoriales
-]
-
-DEPARTAMENTOS = [
-    # ("NombreDepto", min_menciones),  # min_menciones: número mínimo de veces que
-    #                                  # el depto. debe aparecer en el texto del artículo
-    #                                  # para considerarlo relevante (default: 3)
-    ("Antioquia",          3),
-    ("Valle del Cauca",    3),
-    ("Cauca",              2),
-    # Añadir o quitar departamentos según el alcance del proyecto.
-    # Lista completa disponible en DEPARTAMENTO_PERIODICOS al final del archivo.
-]
-
-# ── GRUPOS DE EJECUCIÓN — 32 departamentos, 3 simultáneos por grupo ───────────
-#
-# Criterios de agrupación:
-#   1. Sin scrapers compartidos en el mismo grupo (evita competencia por servidor).
-#   2. Máx 1 dpto con El Tiempo (directo o como respaldo de lista vacía) por grupo.
-#   3. Máx 1 scraper lento (choco7dias, lavozdelcinaruco) por grupo.
-#   4. Scrapers Playwright (enlacetelevision, corrillos, portafolio, publimetro,
-#      larepublica) pueden convivir con rápidos: _playwright_lock los serializa.
-#
-# Scrapers lentos: G1 → choco7dias (Chocó), G2 → lavozdelcinaruco (Arauca)
-# Scrapers compartidos resueltos:
-#   elpilon      → Cesar(G6), Magdalena(G7), La Guajira(G8)
-#   llanoalmundo → Meta(G3), Caquetá(G4), Guaviare(G5)
-#   elmeridiano  → Córdoba(G9), Sucre(G10)
-#   enlacetelevision/corrillos → Santander(G6), Norte de Santander(G7)
-#   diariodelcauca → Cauca(G8), Huila(G10)
-#   diariodelsur   → Nariño(G9), Huila(G10)   ← Huila va sola sin ninguno de los dos
-#   bcnoticias     → Caldas(G3), Tolima(G11)
-
-GRUPOS_DEPARTAMENTOS = [
-    # ── G1: elcolombiano | choco7dias (LENTO) | [] → El Tiempo ────────────────
-    ["Antioquia", "Chocó", "Vichada"],
-
-    # ── G2: elpais+diariooccidente | lavozdelcinaruco (LENTO) | [] → El Tiempo ─
-    ["Valle del Cauca", "Arauca", "Atlántico"],
-
-    # ── G3: bcnoticias | llanoalmundo (1/3) | [] → El Tiempo ──────────────────
-    ["Caldas", "Meta", "Bolívar"],
-
-    # ── G4: eldiario | llanoalmundo (2/3) | [] → El Tiempo ───────────────────
-    ["Risaralda", "Caquetá", "Putumayo"],
-
-    # ── G5: elquindiano | llanoalmundo (3/3) | [] → El Tiempo ──────────────────
-    ["Quindío", "Guaviare", "Amazonas"],
-
-    # ── G6: Playwright(enlacetelevision) | elpilon (1/3) | El Tiempo directo ──
-    ["Santander", "Cesar", "Boyacá"],
-
-    # ── G7: Playwright(enlacetelevision) | elpilon (2/3) | [] → El Tiempo ─────
-    ["Norte de Santander", "Magdalena", "Guainía"],
-
-    # ── G8: Playwright(portafolio…) | elpilon (3/3) | diariodelcauca (1/2) ────
-    ["Cundinamarca", "La Guajira", "Cauca"],
-
-    # ── G9: elmeridiano (1/2) | diariodelsur (1/2) | El Tiempo directo ────────
-    ["Córdoba", "Nariño", "Vaupés"],
-
-    # ── G10: elmeridiano (2/2) | diariodelcauca+diariodelsur (2/2) | ET directo
-    #         Huila separada de Cauca(G8) y Nariño(G9) — doble conflicto resuelto
-    ["Sucre", "Huila", "San Andrés y Providencia"],
-
-    # ── G11: diariodecasanare+ET | bcnoticias+El Tiempo — grupo de 2 ───────────
-    ["Casanare", "Tolima"],
-]
+FECHA_DESDE = cfg.FECHA_DESDE
+FECHA_HASTA = cfg.FECHA_HASTA
+TEMAS_BUSQUEDA = cfg.TEMAS_BUSQUEDA
+GRUPOS_DEPARTAMENTOS = cfg.GRUPOS_DEPARTAMENTOS
 
 # ── BUCLE DE EJECUCIÓN ────────────────────────────────────────────────────────
 # Descomenta y ejecuta este bloque para correr todos los departamentos:
@@ -5983,7 +5905,7 @@ def _buscar_multi_termino(territorio: str, fecha_desde: str, fecha_hasta: str,
 _PERIODICOS_RESPALDO = ['eltiempo']
 
 # Umbral mínimo de artículos antes de activar el respaldo
-_MIN_ARTICULOS_RESPALDO = 50
+_MIN_ARTICULOS_RESPALDO = cfg.MIN_ARTICULOS_RESPALDO
 
 # Lock global: garantiza que solo un scraper Playwright (Chromium) corra a la vez,
 # incluso cuando múltiples términos se buscan en paralelo.
@@ -6070,6 +5992,9 @@ DEPARTAMENTO_PERIODICOS = {
     'Vaupés':                 ['eltiempo'],  # las2orillas: rate-limiting severo
     'San Andrés y Providencia': ['eltiempo'],  # las2orillas: rate-limiting severo
 }
+
+
+
 
 
 def scrape_departamento(departamento: str,
@@ -6175,10 +6100,10 @@ def scrape_multiples_departamentos(departamentos: List[str],
                                    fecha_desde: str,
                                    fecha_hasta: str,
                                    min_menciones: int = 3,
-                                   min_articulos: int = _MIN_ARTICULOS_RESPALDO,
+                                   min_articulos: int = cfg.MIN_ARTICULOS_RESPALDO,
                                    usar_respaldo: bool = True,
                                    max_paralelos: int = 3,
-                                   directorio_salida: str = ".",
+                                   directorio_salida: str = cfg.RUTA_CORPUS_PKL,
                                    temas: List[str] = None) -> pd.DataFrame:
     """
     Corre scrape_departamento() para hasta max_paralelos departamentos en simultáneo.

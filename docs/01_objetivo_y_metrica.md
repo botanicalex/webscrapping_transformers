@@ -10,6 +10,14 @@ El objetivo implementado es:
 
 No existe un loop automático de optimización en un solo script; la optimización se ejecuta por corridas sucesivas.
 
+## Umbral de éxito y criterio de aceptación
+
+Para considerar una corrida como exitosa, el **MAPE** debe situarse en:
+
+- **Ideal:** < 10%
+- **Aceptable (meta actual):** 10% – 23%
+- **Crítico:** > 25% → requiere revisión de keywords o fuentes
+
 ## Métricas calculadas en el proyecto
 
 En `metricas_y_calculo_de_error.py` se calculan por cada columna `experimento_*` (o `radar_prensa_calculado`):
@@ -25,6 +33,11 @@ En `metricas_y_calculo_de_error.py` se calculan por cada columna `experimento_*`
 Además, se calcula un ranking compuesto:
 
 - `score_ranking = 0.35*rank_MAE + 0.30*rank_RMSE + 0.20*rank_MAPE + 0.15*rank_Pearson`
+
+## Hipótesis de optimización (Weekly 2026-04-28)
+
+1. **Correlación fuentes–error:** El error (MAE/MAPE) es inversamente proporcional al número de fuentes y artículos procesados por departamento. Departamentos con mayor volumen de artículos tienden a mostrar errores menores.
+2. **Sesgo por keywords agresivas:** La sobreestimación sistemática (bias positivo) puede deberse a un exceso de noticias negativas capturadas por keywords muy amplias, sin suficiente contraste de artículos neutrales.
 
 ## Entradas requeridas para métricas
 
