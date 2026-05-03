@@ -24,6 +24,7 @@ import aiohttp
 import asyncio
 import pandas as pd
 from bs4 import BeautifulSoup
+from selectolax.parser import HTMLParser as SLParser   # parser C puro — ~9x más rápido que BS4
 from newspaper import Article
 import json
 
@@ -4677,23 +4678,27 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
             return f"{self.BASE_URL}/?s={termino_encoded}"
         return f"{self.BASE_URL}/page/{pagina}/?s={termino_encoded}"
 
-    def _obtener_total_paginas(self, soup: BeautifulSoup) -> int:
+    def _obtener_total_paginas(self, html: str) -> int:  # type: ignore[override]
         """
         Extrae el total de páginas desde <a class="last" title="N">.
+        Usa selectolax (~9x más rápido que BS4).
         Limita según max_articulos (10 artículos por página).
         """
         try:
-            a_last = soup.find("a", class_="last")
-            if a_last and a_last.get("title", "").isdigit():
-                total_paginas_sitio = int(a_last["title"])
+            tree = SLParser(html)
+            total_paginas_sitio = 1
+
+            for a in tree.css("a.last"):
+                t = a.attributes.get("title", "")
+                if t and t.isdigit():
+                    total_paginas_sitio = int(t)
+                    break
             else:
-                # Fallback: buscar el número más alto en page-numbers
-                nums = []
-                for a in soup.find_all("a", class_="page"):
-                    t = a.get_text(strip=True)
-                    if t.isdigit():
-                        nums.append(int(t))
-                total_paginas_sitio = max(nums) if nums else 1
+                nums = [int(a.text(strip=True))
+                        for a in tree.css("a.page")
+                        if (a.text(strip=True) or "").isdigit()]
+                if nums:
+                    total_paginas_sitio = max(nums)
 
             max_paginas_por_limite = math.ceil(self.max_articulos / 10)
             total_paginas = min(total_paginas_sitio, max_paginas_por_limite)
@@ -4713,45 +4718,41 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
         except Exception:
             return None
 
-    def _extraer_links_pagina(self, soup: BeautifulSoup) -> List[str]:
+    def _extraer_links_pagina(self, html: str) -> List[str]:  # type: ignore[override]
         """
-        Extrae links SOLO desde la columna principal (tdi_96),
-        ignorando el sidebar (tdi_99).
+        Extrae links SOLO desde la columna principal (tdi_96), ignorando sidebar.
         Cachea fecha desde el atributo datetime del <time>.
+        Usa selectolax (~9x más rápido que BS4).
         """
+        tree = SLParser(html)
         links = []
 
-        # Buscar la columna principal por clase parcial 'tdi_96'
-        columna_principal = soup.find(
-            "div",
-            class_=lambda c: c and "tdi_96" in c
-        )
+        # Columna principal: div cuya clase incluye 'tdi_96'
+        scope = tree
+        for div in tree.css("div[class]"):
+            cls = div.attributes.get("class", "")
+            if cls and "tdi_96" in cls:
+                scope = div
+                break
 
-        if not columna_principal:
-            # Fallback: usar todo el soup si no se encuentra la columna
-            columna_principal = soup
-
-        modulos = columna_principal.find_all("div", class_="td-module-container")
-
-        for modulo in modulos:
-            # Link desde el título
-            h3 = modulo.find("h3", class_="td-module-title")
+        for modulo in scope.css("div.td-module-container"):
+            h3 = modulo.css_first("h3.td-module-title")
             if not h3:
                 continue
-
-            a = h3.find("a")
+            a = h3.css_first("a")
             if not a:
                 continue
-
-            href = a.get("href", "").strip()
+            href = (a.attributes.get("href") or "").strip()
             if not href or self.DOMINIO not in href:
                 continue
 
             # Fecha desde datetime="YYYY-MM-DDTHH:MM:SS-05:00"
             fecha = None
-            time_tag = modulo.find("time", class_="td-module-date")
-            if time_tag and time_tag.get("datetime"):
-                fecha = self._parsear_fecha_trochando(time_tag["datetime"])
+            time_tag = modulo.css_first("time.td-module-date")
+            if time_tag:
+                dt_str = time_tag.attributes.get("datetime", "")
+                if dt_str:
+                    fecha = self._parsear_fecha_trochando(dt_str)
 
             self._fechas_cache[href] = fecha
             links.append(href)
@@ -4766,13 +4767,13 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
         print(f"  Límite de artículos: {self.max_articulos}")
 
         # Retry primera página — SSL drops intermitentes
-        soup_p1 = None
+        html_p1 = None
         for intento in range(3):
             try:
                 url_p1 = self._construir_url_busqueda(pagina=1)
                 r = self.session.get(url_p1, timeout=20)
                 r.raise_for_status()
-                soup_p1 = BeautifulSoup(r.text, "html.parser")
+                html_p1 = r.text   # selectolax — sin crear BeautifulSoup
                 break
             except Exception as e:
                 if intento < 2:
@@ -4784,7 +4785,7 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
                     _registrar_error(self.nombre_periodico, 'PrimeraPagina')
                     return pd.DataFrame()
 
-        total_paginas = self._obtener_total_paginas(soup_p1)
+        total_paginas = self._obtener_total_paginas(html_p1)
         links_en_rango = []
         errores_consecutivos = 0
         paginas_vacias_consecutivas = 0   # parada anticipada por fecha
@@ -4792,23 +4793,23 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
         for pagina in range(1, total_paginas + 1):
             try:
                 if pagina == 1:
-                    soup = soup_p1
+                    html = html_p1
                 else:
                     url = self._construir_url_busqueda(pagina=pagina)
 
-                    respuesta = None
+                    html = None
                     for intento in range(3):
                         try:
                             r = self.session.get(url, timeout=25)
                             r.raise_for_status()
-                            respuesta = r
+                            html = r.text
                             break
                         except Exception:
                             espera = 5 * (intento + 1)
                             print(f"  Intento {intento+1}/3 fallido en página {pagina} — esperando {espera}s...")
                             time.sleep(espera)
 
-                    if respuesta is None:
+                    if html is None:
                         errores_consecutivos += 1
                         print(f"  Página {pagina} descartada tras 3 intentos.")
                         if errores_consecutivos >= 5:
@@ -4817,9 +4818,8 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
                         continue
 
                     errores_consecutivos = 0
-                    soup = BeautifulSoup(respuesta.text, "html.parser")
 
-                links_pagina = self._extraer_links_pagina(soup)
+                links_pagina = self._extraer_links_pagina(html)
                 print(f"  Página {pagina}/{total_paginas}: {len(links_pagina)} artículos")
 
                 n_antes = len(links_en_rango)

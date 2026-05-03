@@ -11,6 +11,7 @@
 # ── Web scraping ──────────────────────────────────────────────────────────────
 requests==2.33.0
 beautifulsoup4==4.14.3
+selectolax==0.4.7            # Parser HTML C puro — ~9x más rápido que BS4 (benchmark v3)
 lxml==6.0.2              # única versión con wheel para Python 3.14 (cp314-win_amd64)
 lxml-html-clean==0.4.4   # requerido por newspaper4k en runtime
 
