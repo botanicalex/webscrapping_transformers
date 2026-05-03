@@ -11,6 +11,9 @@
 # ── Web scraping ──────────────────────────────────────────────────────────────
 requests==2.33.0
 beautifulsoup4==4.14.3
+# ── V3: mejoras tecnológicas (opcionales, solo requeridas por scrappers_v3.py) ─
+curl_cffi==0.15.0            # TLS fingerprint Chrome/Safari — evita 403 en WAF modernos
+selectolax==0.4.7            # Parser HTML C puro, ~9x más rápido que BeautifulSoup
 lxml==6.0.2              # única versión con wheel para Python 3.14 (cp314-win_amd64)
 lxml-html-clean==0.4.4   # requerido por newspaper4k en runtime
 
