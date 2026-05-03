@@ -25,6 +25,7 @@ import asyncio
 import pandas as pd
 from bs4 import BeautifulSoup
 from selectolax.parser import HTMLParser as SLParser   # parser C puro — ~9x más rápido que BS4
+from curl_cffi.requests import AsyncSession as CfAsyncSession  # TLS fingerprint Chrome — evita 403/timeouts
 from newspaper import Article
 import json
 
@@ -32,15 +33,18 @@ from playwright.async_api import async_playwright, TimeoutError as PlaywrightTim
 import asyncio
 import nest_asyncio
 import sys
-
-# En Windows, SelectorEventLoop no soporta subprocess (necesario para Playwright).
-# ProactorEventLoopPolicy garantiza que todos los event loops nuevos —incluidos los
-# creados en threads de ThreadPoolExecutor— usen ProactorEventLoop.
-if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 import pandas as pd
 import urllib.parse
 from urllib.parse import urlparse
+
+# En Windows, ProactorEventLoopPolicy garantiza que todos los event loops nuevos
+# (incluidos los de ThreadPoolExecutor) usen ProactorEventLoop — necesario para Playwright.
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+# Parche nest_asyncio aplicado UNA VEZ a nivel de módulo.
+# Evita race condition cuando múltiples threads llaman apply() simultáneamente.
+nest_asyncio.apply()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -657,8 +661,8 @@ class ScraperElQuindiano(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -676,20 +680,26 @@ class ScraperElQuindiano(ScraperPeriodico):
                 "fecha": self._fechas.get(link, article.publish_date) if hasattr(self, '_fechas') else article.publish_date,
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -697,7 +707,8 @@ class ScraperElQuindiano(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -1238,8 +1249,8 @@ class ScraperDiarioDelCauca(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -1257,20 +1268,26 @@ class ScraperDiarioDelCauca(ScraperPeriodico):
                 "fecha": self._fechas.get(link, article.publish_date) if hasattr(self, '_fechas') else article.publish_date,
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -1278,7 +1295,8 @@ class ScraperDiarioDelCauca(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -1406,8 +1424,8 @@ class ScraperChoco7Dias(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=30) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=30, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -1425,21 +1443,27 @@ class ScraperChoco7Dias(ScraperPeriodico):
                 "fecha": self._fechas.get(link, article.publish_date) if hasattr(self, '_fechas') else article.publish_date,
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
         # choco7dias.com es lento — 5 conexiones evitan timeouts masivos con limit=50
-        connector = aiohttp.TCPConnector(limit=5)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(5)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -1447,7 +1471,8 @@ class ScraperChoco7Dias(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -1607,8 +1632,8 @@ class ScraperLlanoAlMundo(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=30) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=60, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -1626,21 +1651,27 @@ class ScraperLlanoAlMundo(ScraperPeriodico):
                 "fecha": self._fechas.get(link, article.publish_date) if hasattr(self, '_fechas') else article.publish_date,
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
         # llanoalmundo.com responde con "Database Error" cuando se satura — limit=5 evita rate limiting
-        connector = aiohttp.TCPConnector(limit=5)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(5)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -1648,7 +1679,8 @@ class ScraperLlanoAlMundo(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -1775,8 +1807,8 @@ class ScraperDiarioDeCasanare(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=30) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=30, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -1794,22 +1826,28 @@ class ScraperDiarioDeCasanare(ScraperPeriodico):
                 "fecha": self._fechas.get(link, article.publish_date) if hasattr(self, '_fechas') else article.publish_date,
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
         # diariodecasanare.com es un servidor lento — 5 conexiones concurrentes
         # reducen los TimeoutError que ocurrían con limit=50
-        connector = aiohttp.TCPConnector(limit=5)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(5)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -1817,7 +1855,8 @@ class ScraperDiarioDeCasanare(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -1944,8 +1983,8 @@ class ScraperLaVozDelCinaruco(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=30) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=60, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -1963,22 +2002,28 @@ class ScraperLaVozDelCinaruco(ScraperPeriodico):
                 "fecha": self._fechas.get(link, article.publish_date) if hasattr(self, '_fechas') else article.publish_date,
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
         # lavozdelcinaruco.com es un servidor lento — 5 conexiones concurrentes
         # evitan el 93 % de TimeoutError que ocurría con limit=50
-        connector = aiohttp.TCPConnector(limit=5)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(5)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -1986,7 +2031,8 @@ class ScraperLaVozDelCinaruco(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -2113,8 +2159,8 @@ class ScraperElMorichal(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -2132,20 +2178,26 @@ class ScraperElMorichal(ScraperPeriodico):
                 "fecha": self._fechas.get(link, article.publish_date) if hasattr(self, '_fechas') else article.publish_date,
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -2153,7 +2205,8 @@ class ScraperElMorichal(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -2281,8 +2334,8 @@ class ScraperMiPutumayo(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=30) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=30, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -2300,21 +2353,27 @@ class ScraperMiPutumayo(ScraperPeriodico):
                 "fecha": self._fechas.get(link, article.publish_date) if hasattr(self, '_fechas') else article.publish_date,
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
         # miputumayo.com.co es lento — 5 conexiones reducen el 86% de TimeoutError con limit=50
-        connector = aiohttp.TCPConnector(limit=5)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(5)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -2322,7 +2381,8 @@ class ScraperMiPutumayo(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -2416,8 +2476,7 @@ class ScraperLaRepublica(ScraperPeriodico):
         super().__init__(termino, fecha_desde, fecha_hasta)
         self.max_cargas = max_cargas
 
-        # Permitir event loops anidados en Colab
-        nest_asyncio.apply()
+        # nest_asyncio ya aplicado a nivel de módulo al importar scrappers.py
 
     @property
     def nombre_periodico(self) -> str:
@@ -2783,8 +2842,8 @@ class ScraperPortafolio(ScraperPeriodico):
     ) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -2803,23 +2862,26 @@ class ScraperPortafolio(ScraperPeriodico):
                 "fecha": self._fechas_cache.get(link, article.publish_date),
                 "texto": article.text,
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [
-                self._descargar_articulo_async(session, info)
-                for info in links_enumerados
-            ]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -2827,7 +2889,8 @@ class ScraperPortafolio(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -2955,8 +3018,7 @@ class ScraperPublimetro(ScraperPeriodico):
     # ── Playwright: búsqueda + paginación por clics ─────────────────────────
 
     def _get_links_con_playwright(self) -> List[str]:
-        import nest_asyncio
-        nest_asyncio.apply()
+        # nest_asyncio ya aplicado a nivel de módulo al importar scrappers.py
 
         async def _fetch():
             todos_links  = []
@@ -3069,8 +3131,8 @@ class ScraperPublimetro(ScraperPeriodico):
     ) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -3089,23 +3151,26 @@ class ScraperPublimetro(ScraperPeriodico):
                 "fecha": self._fechas_cache.get(link, article.publish_date),
                 "texto": article.text,
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [
-                self._descargar_articulo_async(session, info)
-                for info in links_enumerados
-            ]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -3113,7 +3178,8 @@ class ScraperPublimetro(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -3391,8 +3457,8 @@ class ScraperLas2Orillas(ScraperPeriodico):
     ) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -3411,23 +3477,26 @@ class ScraperLas2Orillas(ScraperPeriodico):
                 "fecha": self._fechas_cache.get(link, article.publish_date),
                 "texto": article.text,
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [
-                self._descargar_articulo_async(session, info)
-                for info in links_enumerados
-            ]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -3435,7 +3504,8 @@ class ScraperLas2Orillas(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -3472,8 +3542,7 @@ class ScraperElHeraldo(ScraperPeriodico):
         self.inicio_rango = datetime.strptime(fecha_desde, '%Y-%m-%d')
         self.fin_rango = datetime.strptime(fecha_hasta, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
 
-        # Permitir event loops anidados en Colab
-        nest_asyncio.apply()
+        # nest_asyncio ya aplicado a nivel de módulo al importar scrappers.py
 
     @property
     def nombre_periodico(self) -> str:
@@ -4046,8 +4115,8 @@ class ScraperElPilon(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -4072,10 +4141,12 @@ class ScraperElPilon(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -4083,7 +4154,8 @@ class ScraperElPilon(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -4300,8 +4372,8 @@ class ScraperElMeridiano(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -4326,10 +4398,12 @@ class ScraperElMeridiano(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -4337,7 +4411,8 @@ class ScraperElMeridiano(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -4559,8 +4634,8 @@ class ScraperVanguardia(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -4579,20 +4654,26 @@ class ScraperVanguardia(ScraperPeriodico):
                 "fecha": self._fechas_cache.get(link, article.publish_date),
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -4600,7 +4681,8 @@ class ScraperVanguardia(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -4865,8 +4947,8 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -4885,20 +4967,26 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
                 "fecha": self._fechas_cache.get(link, article.publish_date),
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -4906,7 +4994,8 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -5047,8 +5136,7 @@ class ScraperEnlaceTelevision(ScraperPeriodico):
     # ── Playwright: scroll infinito con "More Posts" ────────────────────────
 
     def _get_links_con_playwright(self) -> List[str]:
-        import nest_asyncio
-        nest_asyncio.apply()
+        # nest_asyncio ya aplicado a nivel de módulo al importar scrappers.py
 
         async def _fetch():
             todos_links   = []
@@ -5167,8 +5255,8 @@ class ScraperEnlaceTelevision(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -5186,20 +5274,26 @@ class ScraperEnlaceTelevision(ScraperPeriodico):
                 "fecha": self._fechas_cache.get(link, article.publish_date),
                 "texto": article.text
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -5207,7 +5301,8 @@ class ScraperEnlaceTelevision(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -5503,8 +5598,8 @@ class ScraperCorrillos(ScraperPeriodico):
     ) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
 
             from newspaper import Article
             article = Article(link)
@@ -5523,23 +5618,26 @@ class ScraperCorrillos(ScraperPeriodico):
                 "fecha": self._fechas_cache.get(link, article.publish_date),
                 "texto": article.text,
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
-            return None
         except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
+            # curl_cffi: errno 28 = CURLE_OPERATION_TIMEDOUT
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [
-                self._descargar_articulo_async(session, info)
-                for info in links_enumerados
-            ]
-            resultados = await asyncio.gather(*tareas)
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
         return resultados
 
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
@@ -5547,7 +5645,8 @@ class ScraperCorrillos(ScraperPeriodico):
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        # curl_cffi AsyncSession necesita SelectorEventLoop en Windows
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
@@ -5980,7 +6079,7 @@ def _buscar_multi_termino(territorio: str, fecha_desde: str, fecha_hasta: str,
 # Periódicos centrales de respaldo cuando el corpus local es insuficiente
 # Las2Orillas excluido del respaldo: rate-limita cada página individualmente
 # y multiplica el tiempo cuando se usa como fallback para muchos departamentos.
-_PERIODICOS_RESPALDO = ['eltiempo']
+_PERIODICOS_RESPALDO = ['eltiempo', 'las2orillas']
 
 # Umbral mínimo de artículos antes de activar el respaldo
 _MIN_ARTICULOS_RESPALDO = 50
@@ -5995,7 +6094,7 @@ _las2orillas_semaphore = threading.Semaphore(1)
 
 # Semáforo global para El Tiempo: servidor lento que se satura con >2 queries
 # simultáneas. Limita a 2 instancias concurrentes a nivel global.
-_eltiempo_semaphore    = threading.Semaphore(2)
+_eltiempo_semaphore    = threading.Semaphore(1)
 
 # ── REGISTRO DE ERRORES (reporte al final de scrape_multiples_departamentos) ──
 _errores_run: list = []          # lista de dicts {periodico, tipo}
