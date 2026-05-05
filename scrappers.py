@@ -308,6 +308,7 @@ class ScraperPeriodico(ABC):
 
 class ScraperElDiario(ScraperPeriodico):
     REGION = "eje_cafetero_antioquia"
+    TIPO   = "html_static"
     """Scraper específico para El Diario (Pereira)"""
 
     BASE_URL = "https://www.eldiario.com.co"
@@ -422,6 +423,7 @@ class ScraperElDiario(ScraperPeriodico):
 
 class ScraperElColombiano(ScraperPeriodico):
     REGION = "eje_cafetero_antioquia"
+    TIPO   = "html_static"
     """Scraper específico para El Colombiano"""
 
     @property
@@ -465,6 +467,7 @@ class ScraperElColombiano(ScraperPeriodico):
 
 class ScraperBCNoticias(ScraperPeriodico):
     REGION = "eje_cafetero_antioquia"
+    TIPO   = "html_static"
     BASE_URL = "https://www.bcnoticias.com.co"
 
     def __init__(self, termino, fecha_desde, fecha_hasta):
@@ -562,8 +565,83 @@ class ScraperBCNoticias(ScraperPeriodico):
         print(f"Total de links únicos: {len(links)}")
         return links
 
+# ── Helper compartido: WP REST API síncrono ──────────────────────────────────
+#
+# aiohttp 3.13 + nest_asyncio + Python 3.14 rompe asyncio.timeout() dentro de
+# loop.run_until_complete():  "Timeout context manager should be used inside
+# a task".  La solución es usar requests síncrono para la fase de recolección
+# de links (que es I/O ligero: pocas páginas WP API de <1 MB).
+# La fase de descarga de artículos sigue usando curl_cffi async (ya estable).
+#
+def _wp_api_recolectar_links(scraper) -> List[str]:
+    """
+    Recolecta links de una WP REST API (/wp-json/wp/v2/posts) usando
+    requests síncrono (self.session).
+
+    Requiere que el scraper tenga:
+      - API_URL   : str  (URL del endpoint WP REST)
+      - PER_PAGE  : int  (posts por página, normalmente 100)
+      - termino, fecha_desde, fecha_hasta : str
+      - _fechas   : dict  (cache url→datetime, inicializado en __init__)
+      - session   : requests.Session
+    """
+    links_todas: List[str] = []
+    params: dict = {
+        "search":   scraper.termino,
+        "per_page": scraper.PER_PAGE,
+        "page":     1,
+        "orderby":  "date",
+        "order":    "desc",
+        "after":    f"{scraper.fecha_desde}T00:00:00",
+        "before":   f"{scraper.fecha_hasta}T23:59:59",
+    }
+    try:
+        r = scraper.session.get(scraper.API_URL, params=params, timeout=30)
+        if r.status_code != 200:
+            print(f"  HTTP {r.status_code} en página 1 ({scraper.API_URL})")
+            return []
+        total_pags = int(r.headers.get('X-WP-TotalPages', 1))
+        data = r.json()
+        for post in data:
+            if post.get('link'):
+                links_todas.append(post['link'])
+                if post.get('date'):
+                    try:
+                        scraper._fechas[post['link']] = datetime.fromisoformat(post['date'])
+                    except Exception:
+                        pass
+
+        if total_pags > 1:
+            print(f"  Recolectando links de {total_pags} páginas (WP REST API)...")
+            for p in range(2, total_pags + 1):
+                try:
+                    p_params = {**params, "page": p}
+                    rp = scraper.session.get(scraper.API_URL, params=p_params, timeout=30)
+                    if rp.status_code == 200:
+                        p_data = rp.json()
+                        for post in p_data:
+                            if post.get('link'):
+                                links_todas.append(post['link'])
+                                if post.get('date'):
+                                    try:
+                                        scraper._fechas[post['link']] = datetime.fromisoformat(post['date'])
+                                    except Exception:
+                                        pass
+                except Exception as page_err:
+                    print(f"  ⚠ Página {p}: {page_err}")
+
+    except Exception as e:
+        print(f"  Error WP API ({scraper.API_URL}): {e}")
+        return []
+
+    links_todas = list(dict.fromkeys(links_todas))
+    print(f"Total de links únicos: {len(links_todas)}")
+    return links_todas
+
+
 class ScraperElQuindiano(ScraperPeriodico):
     REGION = "eje_cafetero_antioquia"
+    TIPO   = "wp_api"
 
     BASE_URL = "https://elquindiano.com"
     API_URL = "https://elquindiano.com/wp-json/wp/v2/posts"
@@ -588,75 +666,7 @@ class ScraperElQuindiano(ScraperPeriodico):
         return []
 
     def _recolectar_links(self, total_paginas: int) -> List[str]:
-        links = []
-
-        # Concurrencia con asyncio y aiohttp
-        async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
-                # Primera página para obtener X-WP-TotalPages
-                try:
-                    params = {
-                        "search": self.termino, "per_page": self.PER_PAGE, "page": 1,
-                        "orderby": "date", "order": "desc",
-                        "after": f"{self.fecha_desde}T00:00:00", "before": f"{self.fecha_hasta}T23:59:59"
-                    }
-                    async with session.get(self.API_URL, params=params, timeout=15) as r:
-                        if r.status != 200:
-                            return []
-                        total_pags = int(r.headers.get('X-WP-TotalPages', 1))
-                        data = await r.json()
-                        links_pagina = [post.get('link') for post in data if post.get('link')]
-                        # Cache fechas
-                        for post in data:
-                            if post.get('link') and post.get('date'):
-                                try:
-                                    self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                except Exception:
-                                    pass
-                        links_todas = []
-                        links_todas.extend(links_pagina)
-
-                        if total_pags > 1:
-                            print(f"Recolectando links de {total_pags} páginas concurrentemente...")
-
-                            async def fetch_page(p):
-                                try:
-                                    p_params = params.copy()
-                                    p_params["page"] = p
-                                    async with session.get(self.API_URL, params=p_params, timeout=15) as rp:
-                                        if rp.status == 200:
-                                            p_data = await rp.json()
-                                            for post in p_data:
-                                                if post.get('link') and post.get('date'):
-                                                    try:
-                                                        self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                                    except:
-                                                        pass
-                                            return [post.get('link') for post in p_data if post.get('link')]
-                                except Exception:
-                                    pass
-                                return []
-
-                            tareas = [fetch_page(p) for p in range(2, total_pags + 1)]
-                            res = await asyncio.gather(*tareas)
-                            for r_pag in res:
-                                links_todas.extend(r_pag)
-
-                        return links_todas
-                except Exception as e:
-                    print(f"Error inicial: {e}")
-                    return []
-
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            links = loop.run_until_complete(fetch_wp_pages())
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-        links = list(dict.fromkeys(links))
-        print(f"Total de links únicos: {len(links)}")
-        return links
+        return _wp_api_recolectar_links(self)
 
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
@@ -742,6 +752,7 @@ class ScraperElQuindiano(ScraperPeriodico):
 
 class ScraperElPaisCali(ScraperPeriodico):
     REGION = "suroccidente"
+    TIPO   = "queryly_api"
     """Scraper específico para El País (Cali)"""
 
     BASE_URL = "https://www.elpais.com.co"
@@ -868,6 +879,7 @@ class ScraperElPaisCali(ScraperPeriodico):
 
 class ScraperDiarioOccidente(ScraperPeriodico):
     REGION = "suroccidente"
+    TIPO   = "html_static"
     """Scraper específico para Diario Occidente (Cali)"""
 
     BASE_URL = "https://occidente.co"
@@ -1028,6 +1040,7 @@ except ImportError:
 
 class ScraperDiarioDelSur(ScraperPeriodico):
     REGION = "suroccidente"
+    TIPO   = "html_static"
     BASE_URL = "https://www.diariodelsur.com.co"
 
     def __init__(self, termino, fecha_desde, fecha_hasta):
@@ -1148,6 +1161,7 @@ class ScraperDiarioDelSur(ScraperPeriodico):
 
 class ScraperDiarioDelCauca(ScraperPeriodico):
     REGION = "suroccidente"
+    TIPO   = "wp_api"
     BASE_URL = "https://diariodelcauca.com.co"
     API_URL = "https://diariodelcauca.com.co/wp-json/wp/v2/posts"
     PER_PAGE = 100
@@ -1176,75 +1190,7 @@ class ScraperDiarioDelCauca(ScraperPeriodico):
         return []
 
     def _recolectar_links(self, total_paginas: int) -> List[str]:
-        links = []
-
-        # Concurrencia con asyncio y aiohttp
-        async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
-                # Primera página para obtener X-WP-TotalPages
-                try:
-                    params = {
-                        "search": self.termino, "per_page": self.PER_PAGE, "page": 1,
-                        "orderby": "date", "order": "desc",
-                        "after": f"{self.fecha_desde}T00:00:00", "before": f"{self.fecha_hasta}T23:59:59"
-                    }
-                    async with session.get(self.API_URL, params=params, timeout=15) as r:
-                        if r.status != 200:
-                            return []
-                        total_pags = int(r.headers.get('X-WP-TotalPages', 1))
-                        data = await r.json()
-                        links_pagina = [post.get('link') for post in data if post.get('link')]
-                        # Cache fechas
-                        for post in data:
-                            if post.get('link') and post.get('date'):
-                                try:
-                                    self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                except Exception:
-                                    pass
-                        links_todas = []
-                        links_todas.extend(links_pagina)
-
-                        if total_pags > 1:
-                            print(f"Recolectando links de {total_pags} páginas concurrentemente...")
-
-                            async def fetch_page(p):
-                                try:
-                                    p_params = params.copy()
-                                    p_params["page"] = p
-                                    async with session.get(self.API_URL, params=p_params, timeout=15) as rp:
-                                        if rp.status == 200:
-                                            p_data = await rp.json()
-                                            for post in p_data:
-                                                if post.get('link') and post.get('date'):
-                                                    try:
-                                                        self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                                    except:
-                                                        pass
-                                            return [post.get('link') for post in p_data if post.get('link')]
-                                except Exception:
-                                    pass
-                                return []
-
-                            tareas = [fetch_page(p) for p in range(2, total_pags + 1)]
-                            res = await asyncio.gather(*tareas)
-                            for r_pag in res:
-                                links_todas.extend(r_pag)
-
-                        return links_todas
-                except Exception as e:
-                    print(f"Error inicial: {e}")
-                    return []
-
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            links = loop.run_until_complete(fetch_wp_pages())
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-        links = list(dict.fromkeys(links))
-        print(f"Total de links únicos: {len(links)}")
-        return links
+        return _wp_api_recolectar_links(self)
 
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
@@ -1327,6 +1273,7 @@ class ScraperDiarioDelCauca(ScraperPeriodico):
 
 class ScraperChoco7Dias(ScraperPeriodico):
     REGION = "suroccidente"
+    TIPO   = "wp_api"
 
     BASE_URL = "https://choco7dias.com"
     API_URL = "https://choco7dias.com/wp-json/wp/v2/posts"
@@ -1351,75 +1298,7 @@ class ScraperChoco7Dias(ScraperPeriodico):
         return []
 
     def _recolectar_links(self, total_paginas: int) -> List[str]:
-        links = []
-
-        # Concurrencia con asyncio y aiohttp
-        async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
-                # Primera página para obtener X-WP-TotalPages
-                try:
-                    params = {
-                        "search": self.termino, "per_page": self.PER_PAGE, "page": 1,
-                        "orderby": "date", "order": "desc",
-                        "after": f"{self.fecha_desde}T00:00:00", "before": f"{self.fecha_hasta}T23:59:59"
-                    }
-                    async with session.get(self.API_URL, params=params, timeout=15) as r:
-                        if r.status != 200:
-                            return []
-                        total_pags = int(r.headers.get('X-WP-TotalPages', 1))
-                        data = await r.json()
-                        links_pagina = [post.get('link') for post in data if post.get('link')]
-                        # Cache fechas
-                        for post in data:
-                            if post.get('link') and post.get('date'):
-                                try:
-                                    self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                except Exception:
-                                    pass
-                        links_todas = []
-                        links_todas.extend(links_pagina)
-
-                        if total_pags > 1:
-                            print(f"Recolectando links de {total_pags} páginas concurrentemente...")
-
-                            async def fetch_page(p):
-                                try:
-                                    p_params = params.copy()
-                                    p_params["page"] = p
-                                    async with session.get(self.API_URL, params=p_params, timeout=15) as rp:
-                                        if rp.status == 200:
-                                            p_data = await rp.json()
-                                            for post in p_data:
-                                                if post.get('link') and post.get('date'):
-                                                    try:
-                                                        self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                                    except:
-                                                        pass
-                                            return [post.get('link') for post in p_data if post.get('link')]
-                                except Exception:
-                                    pass
-                                return []
-
-                            tareas = [fetch_page(p) for p in range(2, total_pags + 1)]
-                            res = await asyncio.gather(*tareas)
-                            for r_pag in res:
-                                links_todas.extend(r_pag)
-
-                        return links_todas
-                except Exception as e:
-                    print(f"Error inicial: {e}")
-                    return []
-
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            links = loop.run_until_complete(fetch_wp_pages())
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-        links = list(dict.fromkeys(links))
-        print(f"Total de links únicos: {len(links)}")
-        return links
+        return _wp_api_recolectar_links(self)
 
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
@@ -1506,6 +1385,7 @@ class ScraperChoco7Dias(ScraperPeriodico):
 
 class ScraperLlanoAlMundo(ScraperPeriodico):
     REGION = "orinoquia_amazonia"
+    TIPO   = "wp_api"
     BASE_URL = "https://llanoalmundo.com"
     API_URL = "https://llanoalmundo.com/wp-json/wp/v2/posts"
     PER_PAGE = 100
@@ -1559,75 +1439,7 @@ class ScraperLlanoAlMundo(ScraperPeriodico):
         return df
 
     def _recolectar_links(self, total_paginas: int) -> List[str]:
-        links = []
-
-        # Concurrencia con asyncio y aiohttp
-        async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
-                # Primera página para obtener X-WP-TotalPages
-                try:
-                    params = {
-                        "search": self.termino, "per_page": self.PER_PAGE, "page": 1,
-                        "orderby": "date", "order": "desc",
-                        "after": f"{self.fecha_desde}T00:00:00", "before": f"{self.fecha_hasta}T23:59:59"
-                    }
-                    async with session.get(self.API_URL, params=params, timeout=15) as r:
-                        if r.status != 200:
-                            return []
-                        total_pags = int(r.headers.get('X-WP-TotalPages', 1))
-                        data = await r.json()
-                        links_pagina = [post.get('link') for post in data if post.get('link')]
-                        # Cache fechas
-                        for post in data:
-                            if post.get('link') and post.get('date'):
-                                try:
-                                    self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                except Exception:
-                                    pass
-                        links_todas = []
-                        links_todas.extend(links_pagina)
-
-                        if total_pags > 1:
-                            print(f"Recolectando links de {total_pags} páginas concurrentemente...")
-
-                            async def fetch_page(p):
-                                try:
-                                    p_params = params.copy()
-                                    p_params["page"] = p
-                                    async with session.get(self.API_URL, params=p_params, timeout=15) as rp:
-                                        if rp.status == 200:
-                                            p_data = await rp.json()
-                                            for post in p_data:
-                                                if post.get('link') and post.get('date'):
-                                                    try:
-                                                        self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                                    except:
-                                                        pass
-                                            return [post.get('link') for post in p_data if post.get('link')]
-                                except Exception:
-                                    pass
-                                return []
-
-                            tareas = [fetch_page(p) for p in range(2, total_pags + 1)]
-                            res = await asyncio.gather(*tareas)
-                            for r_pag in res:
-                                links_todas.extend(r_pag)
-
-                        return links_todas
-                except Exception as e:
-                    print(f"Error inicial: {e}")
-                    return []
-
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            links = loop.run_until_complete(fetch_wp_pages())
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-        links = list(dict.fromkeys(links))
-        print(f"Total de links únicos: {len(links)}")
-        return links
+        return _wp_api_recolectar_links(self)
 
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
@@ -1711,6 +1523,7 @@ class ScraperLlanoAlMundo(ScraperPeriodico):
 
 class ScraperDiarioDeCasanare(ScraperPeriodico):
     REGION = "orinoquia_amazonia"
+    TIPO   = "wp_api"
     BASE_URL = "https://www.diariodecasanare.com"
     API_URL = "https://www.diariodecasanare.com/wp-json/wp/v2/posts"
     PER_PAGE = 100
@@ -1734,75 +1547,7 @@ class ScraperDiarioDeCasanare(ScraperPeriodico):
         return []
 
     def _recolectar_links(self, total_paginas: int) -> List[str]:
-        links = []
-
-        # Concurrencia con asyncio y aiohttp
-        async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
-                # Primera página para obtener X-WP-TotalPages
-                try:
-                    params = {
-                        "search": self.termino, "per_page": self.PER_PAGE, "page": 1,
-                        "orderby": "date", "order": "desc",
-                        "after": f"{self.fecha_desde}T00:00:00", "before": f"{self.fecha_hasta}T23:59:59"
-                    }
-                    async with session.get(self.API_URL, params=params, timeout=15) as r:
-                        if r.status != 200:
-                            return []
-                        total_pags = int(r.headers.get('X-WP-TotalPages', 1))
-                        data = await r.json()
-                        links_pagina = [post.get('link') for post in data if post.get('link')]
-                        # Cache fechas
-                        for post in data:
-                            if post.get('link') and post.get('date'):
-                                try:
-                                    self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                except Exception:
-                                    pass
-                        links_todas = []
-                        links_todas.extend(links_pagina)
-
-                        if total_pags > 1:
-                            print(f"Recolectando links de {total_pags} páginas concurrentemente...")
-
-                            async def fetch_page(p):
-                                try:
-                                    p_params = params.copy()
-                                    p_params["page"] = p
-                                    async with session.get(self.API_URL, params=p_params, timeout=15) as rp:
-                                        if rp.status == 200:
-                                            p_data = await rp.json()
-                                            for post in p_data:
-                                                if post.get('link') and post.get('date'):
-                                                    try:
-                                                        self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                                    except:
-                                                        pass
-                                            return [post.get('link') for post in p_data if post.get('link')]
-                                except Exception:
-                                    pass
-                                return []
-
-                            tareas = [fetch_page(p) for p in range(2, total_pags + 1)]
-                            res = await asyncio.gather(*tareas)
-                            for r_pag in res:
-                                links_todas.extend(r_pag)
-
-                        return links_todas
-                except Exception as e:
-                    print(f"Error inicial: {e}")
-                    return []
-
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            links = loop.run_until_complete(fetch_wp_pages())
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-        links = list(dict.fromkeys(links))
-        print(f"Total de links únicos: {len(links)}")
-        return links
+        return _wp_api_recolectar_links(self)
 
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
@@ -1887,6 +1632,7 @@ class ScraperDiarioDeCasanare(ScraperPeriodico):
 
 class ScraperLaVozDelCinaruco(ScraperPeriodico):
     REGION = "orinoquia_amazonia"
+    TIPO   = "wp_api"
     BASE_URL = "https://lavozdelcinaruco.com"
     API_URL = "https://lavozdelcinaruco.com/wp-json/wp/v2/posts"
     PER_PAGE = 100
@@ -1910,75 +1656,7 @@ class ScraperLaVozDelCinaruco(ScraperPeriodico):
         return []
 
     def _recolectar_links(self, total_paginas: int) -> List[str]:
-        links = []
-
-        # Concurrencia con asyncio y aiohttp
-        async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
-                # Primera página para obtener X-WP-TotalPages
-                try:
-                    params = {
-                        "search": self.termino, "per_page": self.PER_PAGE, "page": 1,
-                        "orderby": "date", "order": "desc",
-                        "after": f"{self.fecha_desde}T00:00:00", "before": f"{self.fecha_hasta}T23:59:59"
-                    }
-                    async with session.get(self.API_URL, params=params, timeout=15) as r:
-                        if r.status != 200:
-                            return []
-                        total_pags = int(r.headers.get('X-WP-TotalPages', 1))
-                        data = await r.json()
-                        links_pagina = [post.get('link') for post in data if post.get('link')]
-                        # Cache fechas
-                        for post in data:
-                            if post.get('link') and post.get('date'):
-                                try:
-                                    self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                except Exception:
-                                    pass
-                        links_todas = []
-                        links_todas.extend(links_pagina)
-
-                        if total_pags > 1:
-                            print(f"Recolectando links de {total_pags} páginas concurrentemente...")
-
-                            async def fetch_page(p):
-                                try:
-                                    p_params = params.copy()
-                                    p_params["page"] = p
-                                    async with session.get(self.API_URL, params=p_params, timeout=15) as rp:
-                                        if rp.status == 200:
-                                            p_data = await rp.json()
-                                            for post in p_data:
-                                                if post.get('link') and post.get('date'):
-                                                    try:
-                                                        self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                                    except:
-                                                        pass
-                                            return [post.get('link') for post in p_data if post.get('link')]
-                                except Exception:
-                                    pass
-                                return []
-
-                            tareas = [fetch_page(p) for p in range(2, total_pags + 1)]
-                            res = await asyncio.gather(*tareas)
-                            for r_pag in res:
-                                links_todas.extend(r_pag)
-
-                        return links_todas
-                except Exception as e:
-                    print(f"Error inicial: {e}")
-                    return []
-
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            links = loop.run_until_complete(fetch_wp_pages())
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-        links = list(dict.fromkeys(links))
-        print(f"Total de links únicos: {len(links)}")
-        return links
+        return _wp_api_recolectar_links(self)
 
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
@@ -2063,6 +1741,7 @@ class ScraperLaVozDelCinaruco(ScraperPeriodico):
 
 class ScraperElMorichal(ScraperPeriodico):
     REGION = "orinoquia_amazonia"
+    TIPO   = "wp_api"
     BASE_URL = "https://elmorichal.com"
     API_URL = "https://elmorichal.com/wp-json/wp/v2/posts"
     PER_PAGE = 100
@@ -2086,75 +1765,7 @@ class ScraperElMorichal(ScraperPeriodico):
         return []
 
     def _recolectar_links(self, total_paginas: int) -> List[str]:
-        links = []
-
-        # Concurrencia con asyncio y aiohttp
-        async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
-                # Primera página para obtener X-WP-TotalPages
-                try:
-                    params = {
-                        "search": self.termino, "per_page": self.PER_PAGE, "page": 1,
-                        "orderby": "date", "order": "desc",
-                        "after": f"{self.fecha_desde}T00:00:00", "before": f"{self.fecha_hasta}T23:59:59"
-                    }
-                    async with session.get(self.API_URL, params=params, timeout=15) as r:
-                        if r.status != 200:
-                            return []
-                        total_pags = int(r.headers.get('X-WP-TotalPages', 1))
-                        data = await r.json()
-                        links_pagina = [post.get('link') for post in data if post.get('link')]
-                        # Cache fechas
-                        for post in data:
-                            if post.get('link') and post.get('date'):
-                                try:
-                                    self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                except Exception:
-                                    pass
-                        links_todas = []
-                        links_todas.extend(links_pagina)
-
-                        if total_pags > 1:
-                            print(f"Recolectando links de {total_pags} páginas concurrentemente...")
-
-                            async def fetch_page(p):
-                                try:
-                                    p_params = params.copy()
-                                    p_params["page"] = p
-                                    async with session.get(self.API_URL, params=p_params, timeout=15) as rp:
-                                        if rp.status == 200:
-                                            p_data = await rp.json()
-                                            for post in p_data:
-                                                if post.get('link') and post.get('date'):
-                                                    try:
-                                                        self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                                    except:
-                                                        pass
-                                            return [post.get('link') for post in p_data if post.get('link')]
-                                except Exception:
-                                    pass
-                                return []
-
-                            tareas = [fetch_page(p) for p in range(2, total_pags + 1)]
-                            res = await asyncio.gather(*tareas)
-                            for r_pag in res:
-                                links_todas.extend(r_pag)
-
-                        return links_todas
-                except Exception as e:
-                    print(f"Error inicial: {e}")
-                    return []
-
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            links = loop.run_until_complete(fetch_wp_pages())
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-        links = list(dict.fromkeys(links))
-        print(f"Total de links únicos: {len(links)}")
-        return links
+        return _wp_api_recolectar_links(self)
 
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
@@ -2237,6 +1848,7 @@ class ScraperElMorichal(ScraperPeriodico):
 
 class ScraperMiPutumayo(ScraperPeriodico):
     REGION = "orinoquia_amazonia"
+    TIPO   = "wp_api"
 
     BASE_URL = "https://miputumayo.com.co"
     API_URL = "https://miputumayo.com.co/wp-json/wp/v2/posts"
@@ -2261,75 +1873,7 @@ class ScraperMiPutumayo(ScraperPeriodico):
         return []
 
     def _recolectar_links(self, total_paginas: int) -> List[str]:
-        links = []
-
-        # Concurrencia con asyncio y aiohttp
-        async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
-                # Primera página para obtener X-WP-TotalPages
-                try:
-                    params = {
-                        "search": self.termino, "per_page": self.PER_PAGE, "page": 1,
-                        "orderby": "date", "order": "desc",
-                        "after": f"{self.fecha_desde}T00:00:00", "before": f"{self.fecha_hasta}T23:59:59"
-                    }
-                    async with session.get(self.API_URL, params=params, timeout=15) as r:
-                        if r.status != 200:
-                            return []
-                        total_pags = int(r.headers.get('X-WP-TotalPages', 1))
-                        data = await r.json()
-                        links_pagina = [post.get('link') for post in data if post.get('link')]
-                        # Cache fechas
-                        for post in data:
-                            if post.get('link') and post.get('date'):
-                                try:
-                                    self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                except Exception:
-                                    pass
-                        links_todas = []
-                        links_todas.extend(links_pagina)
-
-                        if total_pags > 1:
-                            print(f"Recolectando links de {total_pags} páginas concurrentemente...")
-
-                            async def fetch_page(p):
-                                try:
-                                    p_params = params.copy()
-                                    p_params["page"] = p
-                                    async with session.get(self.API_URL, params=p_params, timeout=15) as rp:
-                                        if rp.status == 200:
-                                            p_data = await rp.json()
-                                            for post in p_data:
-                                                if post.get('link') and post.get('date'):
-                                                    try:
-                                                        self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                                    except:
-                                                        pass
-                                            return [post.get('link') for post in p_data if post.get('link')]
-                                except Exception:
-                                    pass
-                                return []
-
-                            tareas = [fetch_page(p) for p in range(2, total_pags + 1)]
-                            res = await asyncio.gather(*tareas)
-                            for r_pag in res:
-                                links_todas.extend(r_pag)
-
-                        return links_todas
-                except Exception as e:
-                    print(f"Error inicial: {e}")
-                    return []
-
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            links = loop.run_until_complete(fetch_wp_pages())
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-        links = list(dict.fromkeys(links))
-        print(f"Total de links únicos: {len(links)}")
-        return links
+        return _wp_api_recolectar_links(self)
 
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
@@ -2416,7 +1960,28 @@ class ScraperMiPutumayo(ScraperPeriodico):
 
 class ScraperElTiempo(ScraperPeriodico):
     REGION = "central"
-    """Scraper específico para El Tiempo"""
+    TIPO   = "html_static"
+    """
+    Scraper para El Tiempo (eltiempo.com).
+
+    Búsqueda HTML estática paginada. La descarga de artículos usa curl_cffi
+    con impersonación Chrome 120 — necesario porque newspaper.Article.download()
+    (la implementación base) tarda 5-17s/artículo en eltiempo.com por throttling
+    de TLS fingerprint, mientras curl_cffi impersonando Chrome consigue 0.3-2.5s.
+    """
+
+    def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str):
+        super().__init__(termino, fecha_desde, fecha_hasta)
+        # Aumentar timeout de sesión: páginas de ElTiempo pueden tardar 5-10s
+        self.session.headers.update({
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "es-CO,es;q=0.9,en;q=0.8",
+            "Referer": "https://www.eltiempo.com/",
+        })
 
     @property
     def nombre_periodico(self) -> str:
@@ -2461,8 +2026,87 @@ class ScraperElTiempo(ScraperPeriodico):
 
         return links
 
+    # ── Descarga con curl_cffi (reemplaza newspaper base) ────────────────────
+    # newspaper.Article.download() tarda 5-17s/art en eltiempo.com por throttling
+    # TLS. curl_cffi chrome120 consigue 0.3-2.5s con impersonación de navegador.
+
+    async def _descargar_articulo_async(self, session, info: tuple) -> Optional[Dict]:
+        i, link = info
+        try:
+            r = await session.get(link, timeout=45, impersonate="chrome120")
+            html = r.text
+
+            from newspaper import Article
+            article = Article(link)
+            article.html = html
+            article.download_state = 2
+            article.parse()
+
+            if i % 50 == 0:
+                print(f"  Descargados: {i} artículos")
+
+            return {
+                "periodico": self.nombre_periodico,
+                "url":       link,
+                "titulo":    article.title,
+                "fecha":     article.publish_date,
+                "texto":     article.text,
+            }
+        except Exception as e:
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
+            return None
+
+    async def _ejecutar_descargas_async(self, links: List[str]):
+        links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
+        _sem = asyncio.Semaphore(5)   # 5 concurrentes: óptimo para ElTiempo (10 da throttling)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
+        return resultados
+
+    def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
+        print(f"\nDescargando {len(links)} artículos [ElTiempo curl_cffi chrome120]...")
+        if not links:
+            return pd.DataFrame()
+
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
+
+        data = [r for r in resultados if r is not None]
+        fallos = len(links) - len(data)
+        nota_t = f" ({fallos} timeouts)" if fallos else ""
+        print(f"{len(data)} artículos descargados exitosamente "
+              f"({len(data)/len(links)*100:.1f}%){nota_t}")
+
+        df = pd.DataFrame(data)
+        if not df.empty and 'fecha' in df.columns:
+            df['fecha'] = pd.to_datetime(df['fecha'], errors='coerce', utc=True).dt.tz_convert(None)
+            fd = pd.Timestamp(self.fecha_desde)
+            fh = pd.Timestamp(self.fecha_hasta) + pd.Timedelta(hours=23, minutes=59, seconds=59)
+            mask = df['fecha'].isna() | ((df['fecha'] >= fd) & (df['fecha'] <= fh))
+            fuera = (~mask).sum()
+            if fuera > 0:
+                print(f"  Filtro fecha: {fuera} artículos fuera de rango eliminados")
+                df = df[mask].reset_index(drop=True)
+        return df
+
 class ScraperLaRepublica(ScraperPeriodico):
     REGION = "central"
+    TIPO   = "playwright"
     """Scraper específico para La República (usa Playwright Async)"""
 
     def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str, max_cargas: int = 30):
@@ -2621,6 +2265,7 @@ class ScraperLaRepublica(ScraperPeriodico):
 
 class ScraperPortafolio(ScraperPeriodico):
     REGION = "central"
+    TIPO   = "html_static"   # requests+BS4 puro — no usa Playwright
     """
     Scraper para Portafolio (portafolio.co).
 
@@ -2764,11 +2409,12 @@ class ScraperPortafolio(ScraperPeriodico):
         print(f"  Límite de artículos: {self.max_articulos}")
 
         # Retry primera página (SSL drops o timeouts intermitentes)
+        # Timeout 30s: portafolio.co tarda ~10s/página (CDN lento).
         soup_p1 = None
         for intento in range(3):
             try:
                 url_p1 = self._construir_url_busqueda(pagina=1)
-                r = self.session.get(url_p1, timeout=15)
+                r = self.session.get(url_p1, timeout=30)
                 r.raise_for_status()
                 soup_p1 = BeautifulSoup(r.text, "html.parser")
                 break
@@ -2791,7 +2437,7 @@ class ScraperPortafolio(ScraperPeriodico):
                     soup = soup_p1
                 else:
                     url = self._construir_url_busqueda(pagina=pagina)
-                    r = self.session.get(url, timeout=15)
+                    r = self.session.get(url, timeout=30)
                     r.raise_for_status()
                     soup = BeautifulSoup(r.text, "html.parser")
 
@@ -2929,6 +2575,7 @@ class ScraperPublimetro(ScraperPeriodico):
     - max_articulos para limitar resultados (default: 300)
     """
     REGION = "central"
+    TIPO   = "playwright"
     BASE_URL     = "https://www.publimetro.co"
     SEARCH_URL   = "https://www.publimetro.co/buscador/"
     DOMINIO      = "publimetro.co"
@@ -3218,6 +2865,7 @@ class ScraperLas2Orillas(ScraperPeriodico):
     - max_articulos para limitar resultados (default: 300)
     """
     REGION = "central"
+    TIPO   = "html_static"
     BASE_URL   = "https://www.las2orillas.co"
     DOMINIO    = "las2orillas.co"
 
@@ -3530,11 +3178,128 @@ class ScraperLas2Orillas(ScraperPeriodico):
         return df
 
 
+
+# ── SCRAPERS: NACIONALES ──────────────────────────────────────────────────────
+
+class ScraperVerdadAbierta(ScraperPeriodico):
+    """
+    Scraper para Verdad Abierta (verdadabierta.com).
+
+    Cobertura: conflicto armado, DDHH, paramilitarismo, guerrillas, paz —
+    todos los departamentos. Fundado en 2008, ~4 300 artículos, activo en 2023+.
+
+    Usa WP REST API con filtros after/before para fechas exactas.
+    Patrón idéntico a ScraperElQuindiano: aiohttp para recolección de links,
+    curl_cffi chrome120 para descarga de artículos.
+    """
+    REGION   = "nacional"
+    TIPO   = "wp_api"
+    BASE_URL = "https://verdadabierta.com"
+    API_URL  = "https://verdadabierta.com/wp-json/wp/v2/posts"
+    PER_PAGE = 100
+
+    def __init__(self, termino, fecha_desde, fecha_hasta):
+        super().__init__(termino, fecha_desde, fecha_hasta)
+        self._fechas = {}  # url → datetime
+
+    @property
+    def nombre_periodico(self) -> str:
+        return "Verdad Abierta"
+
+    def _construir_url_busqueda(self, pagina: int = 1) -> str:
+        return f"{self.BASE_URL}/?s={self.termino}"
+
+    def _obtener_total_paginas(self, soup: BeautifulSoup) -> int:
+        return 999  # no aplica — lógica en _recolectar_links
+
+    def _extraer_links_pagina(self, soup: BeautifulSoup) -> List[str]:
+        return []   # no aplica — lógica en _recolectar_links
+
+    def _recolectar_links(self, total_paginas: int) -> List[str]:
+        return _wp_api_recolectar_links(self)
+
+    async def _descargar_articulo_async(self, session, info: tuple) -> Optional[Dict]:
+        i, link = info
+        try:
+            r = await session.get(link, timeout=60, impersonate="chrome120")
+            html = r.text
+
+            from newspaper import Article
+            article = Article(link)
+            article.html = html
+            article.download_state = 2
+            article.parse()
+
+            if i % 50 == 0:
+                print(f"  Descargados: {i} artículos")
+
+            return {
+                "periodico": self.nombre_periodico,
+                "url":       link,
+                "titulo":    article.title,
+                "fecha":     (self._fechas.get(link, article.publish_date)
+                              if hasattr(self, '_fechas') else article.publish_date),
+                "texto":     article.text,
+            }
+        except Exception as e:
+            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
+                      or "28" in str(e) or "timeout" in str(e).lower()
+                      or "timed out" in str(e).lower())
+            if _es_to:
+                _registrar_error(self.nombre_periodico, "TimeoutError")
+            else:
+                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
+                _registrar_error(self.nombre_periodico, type(e).__name__)
+            return None
+
+    async def _ejecutar_descargas_async(self, links: List[str]):
+        links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
+        _sem = asyncio.Semaphore(10)
+        async with CfAsyncSession(impersonate="chrome120") as session:
+            async def _dl(info):
+                async with _sem:
+                    return await self._descargar_articulo_async(session, info)
+            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
+        return resultados
+
+    def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
+        print(f"\nDescargando {len(links)} artículos [VerdadAbierta curl_cffi]...")
+        if not links:
+            return pd.DataFrame()
+
+        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
+
+        data = [r for r in resultados if r is not None]
+        fallos = len(links) - len(data)
+        nota_t = f" ({fallos} timeouts)" if fallos else ""
+        print(f"{len(data)} artículos descargados exitosamente ({len(data)/len(links)*100:.1f}%){nota_t}")
+
+        df = pd.DataFrame(data)
+        if not df.empty and 'fecha' in df.columns:
+            df['fecha'] = pd.to_datetime(df['fecha'], errors='coerce', utc=True).dt.tz_convert(None)
+            fecha_desde_dt = pd.Timestamp(self.fecha_desde)
+            fecha_hasta_dt = pd.Timestamp(self.fecha_hasta) + pd.Timedelta(hours=23, minutes=59, seconds=59)
+            mask = (df['fecha'].isna() |
+                    ((df['fecha'] >= fecha_desde_dt) & (df['fecha'] <= fecha_hasta_dt)))
+            fuera_rango = (~mask).sum()
+            if fuera_rango > 0:
+                print(f"  Filtro fecha: {fuera_rango} artículos fuera de rango eliminados")
+                df = df[mask].reset_index(drop=True)
+        return df
+
+
 # ── SCRAPERS: CARIBE ─────────────────────────────────────────────────────────
 
 class ScraperElHeraldo(ScraperPeriodico):
     """Scraper específico para El Heraldo (usa Playwright Async)"""
     REGION = "caribe"
+    TIPO   = "playwright"
 
     def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str, max_paginas: int = 30):
         super().__init__(termino, fecha_desde, fecha_hasta)
@@ -3716,6 +3481,7 @@ class ScraperElUniversal(ScraperPeriodico):
     QUERYLY_KEY = "83abeafa666b4fc1"
     BATCH_SIZE = 20
     REGION = "caribe"
+    TIPO   = "queryly_api"
 
     HEADERS = {
         "User-Agent": (
@@ -3978,6 +3744,7 @@ class ScraperElPilon(ScraperPeriodico):
         "Referer": "https://elpilon.com.co/",
     }
     REGION = "caribe"
+    TIPO   = "playwright"
 
     def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str):
         super().__init__(termino, fecha_desde, fecha_hasta)
@@ -4196,6 +3963,7 @@ class ScraperElMeridiano(ScraperPeriodico):
     BASE_URL = "https://elmeridiano.co"
     REGIONES = ["cordoba", "sucre"]
     REGION = "caribe"
+    TIPO   = "playwright"
 
     def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str, max_paginas: int = 30):
         super().__init__(termino, fecha_desde, fecha_hasta)
@@ -4467,6 +4235,7 @@ class ScraperVanguardia(ScraperPeriodico):
     }
 
     REGION = "nororiente"
+    TIPO   = "queryly_api"
 
     def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str):
         super().__init__(termino, fecha_desde, fecha_hasta)
@@ -4733,6 +4502,7 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
     }
 
     REGION = "nororiente"
+    TIPO   = "html_static"
 
     def __init__(
         self,
@@ -4740,9 +4510,11 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
         fecha_desde: str,
         fecha_hasta: str,
         max_articulos: int = 300,
+        parada_anticipada: int = 3,
     ):
         super().__init__(termino, fecha_desde, fecha_hasta)
         self.max_articulos = max_articulos
+        self.parada_anticipada = parada_anticipada  # páginas vacías consecutivas antes de parar
         self.session.headers.update(self.HEADERS)
         self._fecha_desde_dt = datetime.strptime(fecha_desde, "%Y-%m-%d")
         self._fecha_hasta_dt = datetime.strptime(fecha_hasta, "%Y-%m-%d")
@@ -4913,12 +4685,14 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
                     if self._fecha_desde_dt <= fecha <= self._fecha_hasta_dt:
                         links_en_rango.append(link)
 
-                # Parada anticipada: 3 páginas seguidas sin artículos en rango
+                # Parada anticipada: N páginas seguidas sin artículos en rango
+                # N = self.parada_anticipada (3 normal, 10 en modo_historico)
                 nuevos = len(links_en_rango) - n_antes
                 if nuevos == 0 and links_pagina:
                     paginas_vacias_consecutivas += 1
-                    if paginas_vacias_consecutivas >= 3:
-                        print(f"  3 páginas consecutivas sin artículos en rango — deteniendo.")
+                    if paginas_vacias_consecutivas >= self.parada_anticipada:
+                        print(f"  {self.parada_anticipada} páginas consecutivas sin artículos "
+                              f"en rango — deteniendo.")
                         break
                 else:
                     paginas_vacias_consecutivas = 0
@@ -5037,6 +4811,7 @@ class ScraperEnlaceTelevision(ScraperPeriodico):
     SEARCH_URL = "https://enlacetelevision.com/?s={termino}"
     DOMINIO    = "enlacetelevision.com"
     REGION = "nororiente"
+    TIPO   = "playwright"
 
     def __init__(
         self,
@@ -5363,16 +5138,19 @@ class ScraperCorrillos(ScraperPeriodico):
     }
 
     REGION = "nororiente"
+    TIPO   = "html_static"
 
     def __init__(
         self,
         termino: str,
         fecha_desde: str,
         fecha_hasta: str,
-        max_articulos: int = 2000,  # 300 → 2000: necesario para alcanzar datos históricos 2023
+        max_articulos: int = 2000,  # 2000 para alcanzar datos históricos 2023
+        parada_anticipada: int = 3,
     ):
         super().__init__(termino, fecha_desde, fecha_hasta)
         self.max_articulos = max_articulos
+        self.parada_anticipada = parada_anticipada  # páginas vacías consecutivas antes de parar
         self.session.headers.update(self.HEADERS)
         self._fechas_cache: Dict[str, Optional[str]] = {}
 
@@ -5562,12 +5340,14 @@ class ScraperCorrillos(ScraperPeriodico):
                     elif fecha < self.fecha_desde:
                         pass  # artículo antiguo, no incluir
 
-                # Parada anticipada: 3 páginas seguidas sin artículos en rango
+                # Parada anticipada: N páginas seguidas sin artículos en rango
+                # N = self.parada_anticipada (3 normal, 10 en modo_historico)
                 nuevos = len(links_en_rango) - n_antes
                 if nuevos == 0 and links_pagina and not hay_mas_recientes:
                     paginas_vacias_consecutivas += 1
-                    if paginas_vacias_consecutivas >= 3:
-                        print(f"  3 páginas consecutivas sin artículos en rango — deteniendo.")
+                    if paginas_vacias_consecutivas >= self.parada_anticipada:
+                        print(f"  {self.parada_anticipada} páginas consecutivas sin artículos "
+                              f"en rango — deteniendo.")
                         break
                 else:
                     paginas_vacias_consecutivas = 0
@@ -5699,7 +5479,7 @@ class GestorScraping:
         'larepublica': ScraperLaRepublica,
         'portafolio': ScraperPortafolio,
         'publimetro': ScraperPublimetro,
-        'las2orillas': ScraperLas2Orillas,
+        'verdadabierta': ScraperVerdadAbierta,
         # Caribe
         'elheraldo': ScraperElHeraldo,
         'eluniversal': ScraperElUniversal,
@@ -5714,16 +5494,19 @@ class GestorScraping:
 
     # Scrapers que usan Playwright (cada uno lanza un Chromium completo).
     # No paralelizar entre sí — en Windows se agota la memoria con 2+ instancias.
-    # Las2Orillas usa requests+BS4 (sin Playwright) → no va aquí.
+    # Excluidos aunque estuvieron aquí históricamente:
+    #   portafolio        → requests+BS4 puro (sin Playwright), va al pool rápido
+    #   tronchandosinfronteras → requests+selectolax (sin Playwright)
+    #   corrillos         → requests+BS4 (sin Playwright)
     SCRAPERS_PLAYWRIGHT: frozenset = frozenset({
-        'larepublica', 'portafolio', 'publimetro',
+        'larepublica', 'publimetro',
         'elheraldo', 'elpilon', 'elmeridiano',
-        'tronchandosinfronteras', 'enlacetelevision', 'corrillos',
+        'enlacetelevision',
     })
 
     # Scrapers con rate limiting estricto en el servidor.
-    # Las2Orillas: concurrencia global controlada por _las2orillas_semaphore(2).
-    SCRAPERS_RATE_LIMITED: frozenset = frozenset({'eltiempo', 'las2orillas'})
+    # VerdadAbierta usa WP REST API rápida → no necesita rate limiting.
+    SCRAPERS_RATE_LIMITED: frozenset = frozenset({'eltiempo'})
 
     # Máximo de workers para cada grupo en scrape_multiples()
     _MAX_WORKERS_FAST = 8
@@ -5737,6 +5520,22 @@ class GestorScraping:
     @classmethod
     def periodicos_disponibles(cls) -> List[str]:
         return list(cls.SCRAPERS.keys())
+
+    @classmethod
+    def scrapers_por_tipo(cls, tipo: str) -> List[str]:
+        """
+        Devuelve los IDs de scrapers cuyo TIPO coincide con el argumento.
+
+        Args:
+            tipo: "wp_api" | "html_static" | "playwright" | "queryly_api"
+
+        Returns:
+            Lista de IDs (ej: GestorScraping.scrapers_por_tipo('wp_api'))
+        """
+        return [
+            pid for pid, scraper_cls in cls.SCRAPERS.items()
+            if getattr(scraper_cls, 'TIPO', None) == tipo
+        ]
 
     # ── FILTRO DE RELEVANCIA ──────────────────────────────────────────────────
 
@@ -5773,7 +5572,8 @@ class GestorScraping:
 
     def scrape_multiples(self, periodicos: List[str],
                          callback=None,
-                         min_menciones: int = 3) -> pd.DataFrame:
+                         min_menciones: int = 3,
+                         modo_historico: bool = False) -> pd.DataFrame:
         """
         Ejecuta scrapers en dos fases:
 
@@ -5815,19 +5615,18 @@ class GestorScraping:
         # Periódicos nacionales: umbral de relevancia reducido a 1 porque la
         # búsqueda por término ya garantiza pertinencia temática y el artículo
         # no siempre repite el nombre del departamento en el cuerpo.
-        _NACIONALES = frozenset({'eltiempo', 'las2orillas'})
+        _NACIONALES = frozenset({'eltiempo', 'verdadabierta'})
 
         # Scrapers en servidores muy lentos que necesitan más tiempo que el
-        # default de 300s. Confirmado por auditoría abril 2026: MiPutumayo
-        # y LaVozDelCinaruco tienen tasas de éxito <20% con 300s.
-        _LENTOS = frozenset({'miputumayo', 'lavozdelcinaruco'})
+        # default de 300s. Confirmado por auditoría mayo 2026:
+        #   MiPutumayo, LaVozDelCinaruco: <20% éxito con 300s
+        #   DiarioDelSur: timeout confirmado con 120s en health_check
+        _LENTOS = frozenset({'miputumayo', 'lavozdelcinaruco', 'diariodelsur'})
 
         def _run_one(periodico_id: str) -> tuple:
             scraper_class = self.SCRAPERS[periodico_id]
             # Semáforos globales para scrapers con rate limiting severo.
-            if periodico_id == 'las2orillas':
-                ctx = _las2orillas_semaphore
-            elif periodico_id == 'eltiempo':
+            if periodico_id == 'eltiempo':
                 ctx = _eltiempo_semaphore
             else:
                 ctx = contextlib.nullcontext()
@@ -5836,17 +5635,34 @@ class GestorScraping:
             # garantiza relevancia sin necesitar menciones adicionales del depto.
             _min_rel = 1 if periodico_id in _NACIONALES else min_menciones
 
-            # Timeouts por categoría de scraper:
-            #   480s → nacionales (El Tiempo, Las2Orillas): rate limiting
-            #   600s → servidores lentos (MiPutumayo, LaVozDelCinaruco): ~14% éxito con 300s
-            #   300s → resto
-            _timeout = (480 if periodico_id in _NACIONALES
-                        else 600 if periodico_id in _LENTOS
-                        else 300)
+            # Timeouts por categoría de scraper.
+            # modo_historico → 900s para todos (contenido 2023 puede estar en
+            # página 20+; hay que darle tiempo al paginador para llegar ahí).
+            if modo_historico:
+                _timeout = 900
+            else:
+                # Normal: 480s nacionales, 600s lentos, 300s resto
+                _timeout = (480 if periodico_id in _NACIONALES
+                            else 600 if periodico_id in _LENTOS
+                            else 300)
 
             def _ejecutar():
                 with ctx:
-                    scraper = scraper_class(self.termino, self.fecha_desde, self.fecha_hasta)
+                    # modo_historico: max_articulos=500 si el scraper lo soporta
+                    import inspect as _ins
+                    _sig = _ins.signature(scraper_class.__init__)
+                    if modo_historico and 'max_articulos' in _sig.parameters:
+                        scraper = scraper_class(
+                            self.termino, self.fecha_desde, self.fecha_hasta,
+                            max_articulos=500,
+                        )
+                    else:
+                        scraper = scraper_class(
+                            self.termino, self.fecha_desde, self.fecha_hasta,
+                        )
+                    # modo_historico: parada_anticipada 3 → 10 para scrapers HTML
+                    if modo_historico and hasattr(scraper, 'parada_anticipada'):
+                        scraper.parada_anticipada = 10
                     df = scraper.scrape()
                     if not df.empty and _min_rel > 0:
                         df = self._filtrar_relevancia(df, _min_rel)
@@ -5869,12 +5685,23 @@ class GestorScraping:
                     _registrar_error(periodico_id, type(e).__name__)
                     return periodico_id, pd.DataFrame()
 
-        def _collect(future_map: dict):
+        # Rastrear scrapers no-nacionales que devuelven 0 artículos
+        # (sin error, sin timeout — simplemente sin contenido para este rango).
+        # Si hay al menos uno, y ElTiempo no estaba ya en la lista, se activa
+        # el fallback: una búsqueda extra de ElTiempo con el mismo término.
+        _fallback_eltiempo_needed = False
+
+        def _collect(future_map: dict, track_zeros: bool = False):
             """Recoge resultados de un pool a medida que terminan."""
+            nonlocal _fallback_eltiempo_needed
             for future in as_completed(future_map):
                 pid, df = future.result()
                 if not df.empty:
                     dataframes.append(df)
+                elif track_zeros and pid not in _NACIONALES:
+                    # Scraper local sin resultados → candidato a fallback
+                    _fallback_eltiempo_needed = True
+                    print(f"  ↩ {pid}: 0 artículos — marcado para fallback ElTiempo")
                 if callback:
                     callback(pid, df)
 
@@ -5883,25 +5710,47 @@ class GestorScraping:
             w = min(len(fast_ids), self._MAX_WORKERS_FAST)
             with ThreadPoolExecutor(max_workers=w, thread_name_prefix="scraper_fast") as pool:
                 futures = {pool.submit(_run_one, pid): pid for pid in fast_ids}
-                _collect(futures)
+                _collect(futures, track_zeros=True)
 
         # ── FASE 1B: scrapers con rate limiting en paralelo (pool propio) ─────
         if rate_limited_ids:
             w = min(len(rate_limited_ids), self._MAX_WORKERS_RATE_LIMITED)
             with ThreadPoolExecutor(max_workers=w, thread_name_prefix="scraper_rl") as pool:
                 futures = {pool.submit(_run_one, pid): pid for pid in rate_limited_ids}
-                _collect(futures)
+                _collect(futures, track_zeros=False)  # ya son nacionales
+
+        # ── FASE 1C (opcional): fallback ElTiempo ─────────────────────────────
+        # Activa si algún scraper local devolvió 0 y ElTiempo no estaba en el pool.
+        if _fallback_eltiempo_needed and 'eltiempo' not in validos:
+            print(f"  🔄 Fallback ElTiempo para '{self.termino}' (scrapers locales sin resultados)")
+            _, df_et = _run_one('eltiempo')
+            if not df_et.empty:
+                dataframes.append(df_et)
+                if callback:
+                    callback('eltiempo', df_et)
 
         # ── FASE 2: scrapers Playwright — serializados globalmente ──────────────
         # _playwright_lock impide que dos Chromium corran al mismo tiempo aunque
         # este método sea llamado concurrentemente (ej: términos en paralelo).
+        _fallback_ya_ejecutado = ('eltiempo' in validos)  # no repetir si ya estaba
         for pid in playwright_ids:
             with _playwright_lock:
                 _, df = _run_one(pid)
             if not df.empty:
                 dataframes.append(df)
+            elif pid not in _NACIONALES and not _fallback_ya_ejecutado:
+                _fallback_eltiempo_needed = True
             if callback:
                 callback(pid, df)
+
+        # Fallback post-Playwright: si Playwright también falló y aún no corrió
+        if _fallback_eltiempo_needed and not _fallback_ya_ejecutado and 'eltiempo' in self.SCRAPERS:
+            print(f"  🔄 Fallback ElTiempo (Playwright sin resultados) para '{self.termino}'")
+            _, df_et = _run_one('eltiempo')
+            if not df_et.empty:
+                dataframes.append(df_et)
+                if callback:
+                    callback('eltiempo', df_et)
 
         if dataframes:
             df_final = self._unificar_dataframes(dataframes)
@@ -5961,7 +5810,8 @@ class GestorScraping:
 def scrape_periodicos(termino: str, fecha_desde: str, fecha_hasta: str,
                       periodicos: List[str] = None,
                       region: str = None,
-                      min_menciones: int = 3) -> pd.DataFrame:
+                      min_menciones: int = 3,
+                      modo_historico: bool = False) -> pd.DataFrame:
     """Función base para webscraping con filtro de relevancia integrado."""
     gestor = GestorScraping(termino, fecha_desde, fecha_hasta)
     if periodicos is not None:
@@ -5974,12 +5824,14 @@ def scrape_periodicos(termino: str, fecha_desde: str, fecha_hasta: str,
         print(f"Región '{region}': {len(lista_final)} periódicos → {lista_final}")
     else:
         lista_final = gestor.periodicos_disponibles()
-    return gestor.scrape_multiples(lista_final, min_menciones=min_menciones)
+    return gestor.scrape_multiples(lista_final, min_menciones=min_menciones,
+                                   modo_historico=modo_historico)
 
 
 def _buscar_multi_termino(territorio: str, fecha_desde: str, fecha_hasta: str,
                           periodicos: List[str], min_menciones: int,
-                          temas: List[str]) -> pd.DataFrame:
+                          temas: List[str],
+                          modo_historico: bool = False) -> pd.DataFrame:
     """
     Función interna compartida por scrape_municipio y scrape_departamento.
 
@@ -6007,6 +5859,7 @@ def _buscar_multi_termino(territorio: str, fecha_desde: str, fecha_hasta: str,
                 fecha_hasta=fecha_hasta,
                 periodicos=periodicos,
                 min_menciones=min_menciones,
+                modo_historico=modo_historico,
             )
         except Exception as e:
             print(f"  ✗ Error en '{termino}': {e}")
@@ -6076,10 +5929,10 @@ def _buscar_multi_termino(territorio: str, fecha_desde: str, fecha_hasta: str,
     return df_dedup
 
 
-# Periódicos centrales de respaldo cuando el corpus local es insuficiente
-# Las2Orillas excluido del respaldo: rate-limita cada página individualmente
-# y multiplica el tiempo cuando se usa como fallback para muchos departamentos.
-_PERIODICOS_RESPALDO = ['eltiempo', 'las2orillas']
+# Periódicos nacionales de respaldo cuando el corpus local es insuficiente.
+# VerdadAbierta reemplaza Las2Orillas: WP REST API rápida, cobertura temática
+# de conflicto/DDHH para todos los departamentos, sin rate limiting.
+_PERIODICOS_RESPALDO = ['eltiempo', 'verdadabierta']
 
 # Umbral mínimo de artículos antes de activar el respaldo
 _MIN_ARTICULOS_RESPALDO = 50
@@ -6178,7 +6031,8 @@ def scrape_departamento(departamento: str,
                         min_menciones: int = None,
                         min_articulos: int = _MIN_ARTICULOS_RESPALDO,
                         usar_respaldo: bool = True,
-                        temas: List[str] = None) -> pd.DataFrame:
+                        temas: List[str] = None,
+                        modo_historico: bool = False) -> pd.DataFrame:
     """
     Busca artículos de un departamento usando los términos temáticos definidos
     en TEMAS_BUSQUEDA (o los que se pasen en `temas`) y deduplica por URL.
@@ -6189,23 +6043,27 @@ def scrape_departamento(departamento: str,
     2 para pequeños), pero puede sobreescribirse con min_menciones.
 
     Si el corpus resultante tiene menos de `min_articulos`, activa búsqueda
-    de respaldo en El Tiempo y Las2Orillas (cobertura nacional).
+    de respaldo en El Tiempo y VerdadAbierta (cobertura nacional).
 
     Args:
-        departamento:  Nombre del departamento (ej: 'Antioquia')
-        fecha_desde:   Fecha inicio (YYYY-MM-DD)
-        fecha_hasta:   Fecha fin (YYYY-MM-DD)
-        periodicos:    Lista de claves de scrapers. Si es None, usa los del
-                       mapeo DEPARTAMENTO_PERIODICOS.
-        min_menciones: Mínimo de menciones del departamento en el texto.
-                       Si es None, usa el valor de DEPARTAMENTO_MIN_MENCIONES.
-                       Default: None (automático).
-        min_articulos: Umbral mínimo. Si el corpus queda por debajo,
-                       se activa el respaldo. Default: 50.
-        usar_respaldo: Activar búsqueda en periódicos centrales si el
-                       corpus local es insuficiente. Default: True.
-        temas:         Lista de palabras clave de búsqueda (ej: ["conflicto",
-                       "social"]). Si es None, usa TEMAS_BUSQUEDA global.
+        departamento:    Nombre del departamento (ej: 'Antioquia')
+        fecha_desde:     Fecha inicio (YYYY-MM-DD)
+        fecha_hasta:     Fecha fin (YYYY-MM-DD)
+        periodicos:      Lista de claves de scrapers. Si es None, usa los del
+                         mapeo DEPARTAMENTO_PERIODICOS.
+        min_menciones:   Mínimo de menciones del departamento en el texto.
+                         Si es None, usa el valor de DEPARTAMENTO_MIN_MENCIONES.
+                         Default: None (automático).
+        min_articulos:   Umbral mínimo. Si el corpus queda por debajo,
+                         se activa el respaldo. Default: 50.
+        usar_respaldo:   Activar búsqueda en periódicos centrales si el
+                         corpus local es insuficiente. Default: True.
+        temas:           Lista de palabras clave de búsqueda (ej: ["conflicto",
+                         "social"]). Si es None, usa TEMAS_BUSQUEDA global.
+        modo_historico:  Si True, ajusta scrapers para datos históricos:
+                         parada_anticipada 3→10, timeout 300→900s,
+                         max_articulos 300→500. Útil para rangos 2020-2023
+                         donde el contenido está en páginas 20+.
 
     Returns:
         DataFrame deduplicado con columnas estándar + 'departamento' +
@@ -6219,6 +6077,10 @@ def scrape_departamento(departamento: str,
         min_menciones = DEPARTAMENTO_MIN_MENCIONES.get(departamento, 3)
         print(f"  Umbral de menciones para {departamento}: {min_menciones} (automático)")
 
+    if modo_historico:
+        print(f"  Modo histórico activado — parada anticipada: 10 páginas, "
+              f"timeout: 900s, max_articulos: 500")
+
     if periodicos is None:
         periodicos = DEPARTAMENTO_PERIODICOS.get(departamento)
         if not periodicos:   # None o lista vacía → sin scrapers locales
@@ -6229,7 +6091,8 @@ def scrape_departamento(departamento: str,
 
     # Búsqueda principal en periódicos locales
     df = _buscar_multi_termino(departamento, fecha_desde, fecha_hasta,
-                                periodicos, min_menciones, _temas)
+                                periodicos, min_menciones, _temas,
+                                modo_historico=modo_historico)
 
     # Respaldo automático si el corpus es insuficiente
     if usar_respaldo and len(df) < min_articulos:
@@ -6245,7 +6108,8 @@ def scrape_departamento(departamento: str,
 
             df_respaldo = _buscar_multi_termino(
                 departamento, fecha_desde, fecha_hasta,
-                respaldo_disponible, min_menciones, _temas
+                respaldo_disponible, min_menciones, _temas,
+                modo_historico=modo_historico,
             )
 
             if not df_respaldo.empty:
@@ -6278,7 +6142,8 @@ def scrape_multiples_departamentos(departamentos: List[str],
                                    usar_respaldo: bool = True,
                                    max_paralelos: int = 3,
                                    directorio_salida: str = ".",
-                                   temas: List[str] = None) -> pd.DataFrame:
+                                   temas: List[str] = None,
+                                   modo_historico: bool = False) -> pd.DataFrame:
     """
     Corre scrape_departamento() para hasta max_paralelos departamentos en simultáneo.
 
@@ -6338,6 +6203,7 @@ def scrape_multiples_departamentos(departamentos: List[str],
                 min_articulos=min_articulos,
                 usar_respaldo=usar_respaldo,
                 temas=temas,
+                modo_historico=modo_historico,
             )
             mins = (time.time() - t0) / 60
             if not df_dep.empty:
