@@ -16,12 +16,19 @@ env/
 .env
 
 # ── Logs y outputs de pruebas ────────────────────────────────────────────────
-# Excluir todos los .txt EXCEPTO requirements.txt
 *.txt
 !requirements.txt
+*.json
+
+# ── Scripts de prueba temporales ─────────────────────────────────────────────
+test_*.py
+
+# ── Claude session ───────────────────────────────────────────────────────────
+.claude/
 
 # ── Jupyter ──────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
+*.ipynb
 
 # ── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
