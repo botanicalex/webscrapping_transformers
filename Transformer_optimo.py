@@ -348,6 +348,83 @@ def correr_scraping(fecha_desde: str, fecha_hasta: str, salida: str, temas: List
             temas=temas
         )
 
+class ValidadorPrecondiciones:
+    COLUMNAS_CORPUS = ['periodico', 'titulo', 'fecha', 'texto', 'url', 'departamento']
+
+    @staticmethod
+    def etapa_corpus(ruta_pkl: str) -> None:
+        archivos = sorted(glob.glob(os.path.join(ruta_pkl, "df_corpus_*.pkl")))
+        if not archivos:
+            raise FileNotFoundError(
+                f"Precondición corpus: no se encontraron archivos df_corpus_*.pkl en '{ruta_pkl}'"
+            )
+        faltantes_por_archivo: Dict[str, List[str]] = {}
+        for ruta in archivos:
+            try:
+                df = pd.read_pickle(ruta)
+            except Exception as e:
+                raise RuntimeError(f"Precondición corpus: no se pudo leer '{ruta}': {e}")
+            faltantes = [c for c in ValidadorPrecondiciones.COLUMNAS_CORPUS if c not in df.columns]
+            if faltantes:
+                faltantes_por_archivo[os.path.basename(ruta)] = faltantes
+        if faltantes_por_archivo:
+            detalle = "; ".join(f"{f}: {cols}" for f, cols in faltantes_por_archivo.items())
+            raise ValueError(f"Precondición corpus: columnas requeridas faltantes — {detalle}")
+
+    @staticmethod
+    def etapa_salida_no_vacia(ruta_pkl: str, nombre_etapa: str) -> None:
+        if not os.path.isfile(ruta_pkl):
+            raise FileNotFoundError(
+                f"Precondición {nombre_etapa}: archivo de salida no existe '{ruta_pkl}'"
+            )
+        if os.path.getsize(ruta_pkl) == 0:
+            raise ValueError(
+                f"Precondición {nombre_etapa}: archivo de salida vacío '{ruta_pkl}'"
+            )
+        try:
+            df = pd.read_pickle(ruta_pkl)
+        except Exception as e:
+            raise RuntimeError(
+                f"Precondición {nombre_etapa}: no se pudo deserializar '{ruta_pkl}': {e}"
+            )
+        if df.empty:
+            raise ValueError(
+                f"Precondición {nombre_etapa}: DataFrame sin filas en '{ruta_pkl}'"
+            )
+
+
+def run_pipeline_transformers(ruta_pkl: str, salida: str) -> Tuple[str, str]:
+    os.makedirs(salida, exist_ok=True)
+
+    ValidadorPrecondiciones.etapa_corpus(ruta_pkl)
+
+    df_corpus = CargadorCorpus(ruta_pkl).cargar()
+    print(f"Corpus cargado: {len(df_corpus)} artículos")
+
+    pipeline = PipelineTransformers()
+    df_procesado = pipeline.procesar(df_corpus)
+    ruta_procesado_pkl = os.path.join(salida, "df_procesado.pkl")
+    ruta_procesado_csv = os.path.join(salida, "df_procesado.csv")
+    df_procesado.to_pickle(ruta_procesado_pkl)
+    df_procesado.to_csv(ruta_procesado_csv, index=False)
+
+    ValidadorPrecondiciones.etapa_salida_no_vacia(ruta_procesado_pkl, "NLP")
+
+    radar = CalculadorRadar()
+    df_radar = radar.calcular(df_procesado)
+    ruta_radar_pkl = os.path.join(salida, "radar_departamentos.pkl")
+    ruta_radar_csv = os.path.join(salida, "radar_departamentos.csv")
+    df_radar.to_pickle(ruta_radar_pkl)
+    df_radar.to_csv(ruta_radar_csv, index=False)
+
+    ValidadorPrecondiciones.etapa_salida_no_vacia(ruta_radar_pkl, "radar")
+
+    print("\nRadar final:")
+    print(df_radar.to_string(index=False))
+    print(f"\nGuardado:\n- {ruta_procesado_pkl}\n- {ruta_procesado_csv}\n- {ruta_radar_pkl}\n- {ruta_radar_csv}")
+
+    return ruta_procesado_pkl, ruta_radar_pkl
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--fecha-desde", default=sc.FECHA_DESDE)
@@ -357,31 +434,10 @@ def main():
     parser.add_argument("--skip-scraping", action="store_true")
     args = parser.parse_args()
 
-    os.makedirs(args.salida, exist_ok=True)
-
     if not args.skip_scraping:
         correr_scraping(args.fecha_desde, args.fecha_hasta, args.ruta_pkl, temas=None)
 
-    df_corpus = CargadorCorpus(args.ruta_pkl).cargar()
-    print(f"Corpus cargado: {len(df_corpus)} artículos")
-
-    pipeline = PipelineTransformers()
-    df_procesado = pipeline.procesar(df_corpus)
-    ruta_procesado_pkl = os.path.join(args.salida, "df_procesado.pkl")
-    ruta_procesado_csv = os.path.join(args.salida, "df_procesado.csv")
-    df_procesado.to_pickle(ruta_procesado_pkl)
-    df_procesado.to_csv(ruta_procesado_csv, index=False)
-
-    radar = CalculadorRadar()
-    df_radar = radar.calcular(df_procesado)
-    ruta_radar_pkl = os.path.join(args.salida, "radar_departamentos.pkl")
-    ruta_radar_csv = os.path.join(args.salida, "radar_departamentos.csv")
-    df_radar.to_pickle(ruta_radar_pkl)
-    df_radar.to_csv(ruta_radar_csv, index=False)
-
-    print("\nRadar final:")
-    print(df_radar.to_string(index=False))
-    print(f"\nGuardado:\n- {ruta_procesado_pkl}\n- {ruta_procesado_csv}\n- {ruta_radar_pkl}\n- {ruta_radar_csv}")
+    run_pipeline_transformers(args.ruta_pkl, args.salida)
 
 if __name__ == "__main__":
     main()

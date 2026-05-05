@@ -6133,6 +6133,7 @@ def scrape_multiples_departamentos(departamentos: List[str],
 
     resultados: Dict[str, pd.DataFrame] = {}
     errores: List[str] = []
+    status_dict: Dict[str, Dict] = {}
     _lock = threading.Lock()
 
     # ── Banner de inicio ──────────────────────────────────────────────────────
@@ -6173,14 +6174,18 @@ def scrape_multiples_departamentos(departamentos: List[str],
                 print(f"\n✓ FIN  [{dep}]  {mins:.1f} min  →  {len(df_dep)} artículos  →  {ruta}")
                 with _lock:
                     resultados[dep] = df_dep
+                    status_dict[dep] = {'articulos': len(df_dep), 'errores': None, 'archivo_generado': ruta}
             else:
                 print(f"\n⚠ FIN  [{dep}]  {mins:.1f} min  →  sin artículos")
+                with _lock:
+                    status_dict[dep] = {'articulos': 0, 'errores': None, 'archivo_generado': None}
         except Exception as e:
             mins = (time.time() - t0) / 60
             msg = f"[{dep}] Error: {e}"
             print(f"\n✗ ERROR  [{dep}]  {mins:.1f} min  →  {e}")
             with _lock:
                 errores.append(msg)
+                status_dict[dep] = {'articulos': 0, 'errores': str(e), 'archivo_generado': None}
 
     with ThreadPoolExecutor(max_workers=max_paralelos,
                             thread_name_prefix="depto") as pool:
@@ -6199,7 +6204,7 @@ def scrape_multiples_departamentos(departamentos: List[str],
 
     if not resultados:
         print("Sin artículos en ningún departamento.")
-        return pd.DataFrame()
+        return pd.DataFrame(), {}
 
     # Concatenar en el orden original de la lista
     df_final = pd.concat(
@@ -6313,3 +6318,52 @@ DEPARTAMENTO_MIN_MENCIONES = {
     'Vaupés':                   2,
     'San Andrés y Providencia': 2,
 }
+
+
+def scrape_departamentos_status(config: dict) -> dict:
+    """
+    Función de alto nivel que recibe configuración y devuelve estado por departamento.
+
+    Args:
+        config: Diccionario con configuración. Claves opcionales:
+            - fecha_desde: str, default FECHA_DESDE
+            - fecha_hasta: str, default FECHA_HASTA
+            - temas: list, default TEMAS_BUSQUEDA
+            - departamentos: list, default todos los departamentos de GRUPOS_DEPARTAMENTOS
+            - min_menciones: int, default 3
+            - min_articulos: int, default MIN_ARTICULOS_RESPALDO
+            - usar_respaldo: bool, default True
+            - max_paralelos: int, default 3
+            - directorio_salida: str, default RUTA_CORPUS_PKL
+
+    Returns:
+        dict: Estado por departamento con claves:
+            - articulos: int, número de artículos
+            - errores: str or None, mensaje de error si ocurrió
+            - archivo_generado: str or None, ruta del archivo generado
+    """
+    # Extraer parámetros de config con defaults
+    fecha_desde = config.get('fecha_desde', FECHA_DESDE)
+    fecha_hasta = config.get('fecha_hasta', FECHA_HASTA)
+    temas = config.get('temas', TEMAS_BUSQUEDA)
+    departamentos = config.get('departamentos', [dep for grupo in GRUPOS_DEPARTAMENTOS for dep in grupo])
+    min_menciones = config.get('min_menciones', 3)
+    min_articulos = config.get('min_articulos', MIN_ARTICULOS_RESPALDO)
+    usar_respaldo = config.get('usar_respaldo', True)
+    max_paralelos = config.get('max_paralelos', 3)
+    directorio_salida = config.get('directorio_salida', RUTA_CORPUS_PKL)
+
+    # Llamar a la función de scraping y obtener el status
+    _, status = scrape_multiples_departamentos(
+        departamentos=departamentos,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        min_menciones=min_menciones,
+        min_articulos=min_articulos,
+        usar_respaldo=usar_respaldo,
+        max_paralelos=max_paralelos,
+        directorio_salida=directorio_salida,
+        temas=temas
+    )
+
+    return status
