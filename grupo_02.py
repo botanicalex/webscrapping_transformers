@@ -1,4 +1,4 @@
-"""
+﻿"""
 Grupo 2 — 3 departamentos simultáneos
   Valle del Cauca : elpais + diariooccidente  (rápidos)
   Arauca          : lavozdelcinaruco + tronchandosinfronteras  (LENTO — timeout 600 s)
@@ -28,8 +28,8 @@ scrape_multiples_departamentos(
     fecha_hasta=FECHA_HASTA,
     min_menciones=None,
     directorio_salida=DIRECTORIO_SALIDA,
-    temas=TEMAS,
-)
+    temas=TEMAS,`n    modo_historico=True,`n)
 
 duracion = (time.time() - inicio) / 60
 print(f"\nGrupo 2 completado en {duracion:.1f} minutos")
+

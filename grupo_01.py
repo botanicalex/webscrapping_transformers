@@ -29,6 +29,7 @@ scrape_multiples_departamentos(
     min_menciones=None,        # usa DEPARTAMENTO_MIN_MENCIONES por dpto
     directorio_salida=DIRECTORIO_SALIDA,
     temas=TEMAS,               # None = usa TEMAS_BUSQUEDA global de scrappers.py
+    modo_historico=True,
 )
 
 duracion = (time.time() - inicio) / 60

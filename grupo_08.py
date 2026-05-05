@@ -1,4 +1,4 @@
-"""
+﻿"""
 Grupo 8 — 3 departamentos simultáneos
   Cundinamarca : eltiempo + portafolio + publimetro + larepublica  (Playwright)
   La Guajira   : elpilon  (3/3 — separado de Cesar G6 y Magdalena G7)
@@ -28,8 +28,8 @@ scrape_multiples_departamentos(
     fecha_hasta=FECHA_HASTA,
     min_menciones=None,
     directorio_salida=DIRECTORIO_SALIDA,
-    temas=TEMAS,
-)
+    temas=TEMAS,`n    modo_historico=True,`n)
 
 duracion = (time.time() - inicio) / 60
 print(f"\nGrupo 8 completado en {duracion:.1f} minutos")
+

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Grupo 5 — 3 departamentos simultáneos
   Quindío  : elquindiano       (rápido)
   Guaviare : llanoalmundo      (3/3 — separado de Meta G3 y Caquetá G4)
@@ -32,9 +32,9 @@ scrape_multiples_departamentos(
     fecha_hasta=FECHA_HASTA,
     min_menciones=None,
     directorio_salida=DIRECTORIO_SALIDA,
-    temas=TEMAS,
-)
+    temas=TEMAS,`n    modo_historico=True,`n)
 
 duracion = (time.time() - inicio) / 60
 print(f"\nGrupo 5 completado en {duracion:.1f} minutos")
 # Quindío (elquindiano) + Guaviare (llanoalmundo) + Amazonas (El Tiempo) — 1 ET user ✓
+

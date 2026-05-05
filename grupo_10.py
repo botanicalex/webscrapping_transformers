@@ -1,4 +1,4 @@
-"""
+﻿"""
 Grupo 10 — 3 departamentos simultáneos
   Sucre               : elmeridiano  (2/2 — separado de Córdoba G9)
   Huila               : diariodelcauca + diariodelsur  (resuelto: Cauca→G8, Nariño→G9)
@@ -28,8 +28,8 @@ scrape_multiples_departamentos(
     fecha_hasta=FECHA_HASTA,
     min_menciones=None,
     directorio_salida=DIRECTORIO_SALIDA,
-    temas=TEMAS,
-)
+    temas=TEMAS,`n    modo_historico=True,`n)
 
 duracion = (time.time() - inicio) / 60
 print(f"\nGrupo 10 completado en {duracion:.1f} minutos")
+

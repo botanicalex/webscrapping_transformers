@@ -1,4 +1,4 @@
-"""
+﻿"""
 Grupo 3 — 3 departamentos simultáneos
   Caldas  : bcnoticias    (rápido; separado de Tolima que también usa bcnoticias)
   Meta    : llanoalmundo  (1/3 — separado de Caquetá G4 y Guaviare G5)
@@ -28,8 +28,8 @@ scrape_multiples_departamentos(
     fecha_hasta=FECHA_HASTA,
     min_menciones=None,
     directorio_salida=DIRECTORIO_SALIDA,
-    temas=TEMAS,
-)
+    temas=TEMAS,`n    modo_historico=True,`n)
 
 duracion = (time.time() - inicio) / 60
 print(f"\nGrupo 3 completado en {duracion:.1f} minutos")
+

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Grupo 11 — 2 departamentos simultáneos  (32 % 3 == 2)
   Casanare : diariodecasanare + El Tiempo fallback  (movido desde G5)
   Tolima   : bcnoticias + El Tiempo  (separado de Caldas G3 que también usa bcnoticias)
@@ -31,9 +31,9 @@ scrape_multiples_departamentos(
     fecha_hasta=FECHA_HASTA,
     min_menciones=None,
     directorio_salida=DIRECTORIO_SALIDA,
-    temas=TEMAS,
-)
+    temas=TEMAS,`n    modo_historico=True,`n)
 
 duracion = (time.time() - inicio) / 60
 print(f"\nGrupo 11 completado en {duracion:.1f} minutos")
 # Casanare (diariodecasanare+ET) + Tolima (bcnoticias+ET) — solo 2 deptos, 1 ET user activo a la vez ✓
+
