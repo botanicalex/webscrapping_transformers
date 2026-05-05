@@ -52,7 +52,7 @@ except Exception as exc:
 
 # ── Parámetros globales ───────────────────────────────────────────────────────
 FECHA_HASTA = date.today().isoformat()
-FECHA_DESDE = (date.today() - timedelta(days=90)).isoformat()
+FECHA_DESDE = (date.today() - timedelta(days=30)).isoformat()  # 30 días: suficiente para verificar sin ahogar scrapers lentos
 
 # Timeouts base (segundos)
 TIMEOUT_FAST       = 120   # scrapers requests/API normales
@@ -61,12 +61,17 @@ UMBRAL_LENTO       = 60    # arts > 0 pero tardó ≥ 60s → Lento
 
 # Timeouts extra para scrapers confirmados lentos
 TIMEOUT_POR_SCRAPER: dict[str, int] = {
-    "eltiempo":         200,   # curl_cffi ~113s para 76 arts con sem=5; dar margen
-    "miputumayo":       180,   # servidor muy lento (<20% éxito con 90s)
+    "eltiempo":         120,   # con 30 días debería ser ~15-25s; 120 como margen
+    "miputumayo":       180,   # servidor muy lento
     "lavozdelcinaruco": 180,   # servidor lento confirmado
-    "diariodelsur":     300,   # servidor muy lento; Nariño + Huila
-    "portafolio":       300,   # ~10s/página × 15 páginas = 150s solo en links
+    "diariodelsur":     180,   # servidor lento
+    "portafolio":       180,   # ~10s/página; con 30 días pocas páginas
 }
+
+# Cap de artículos para el health check — evita que scrapers sin límite nativo
+# procesen cientos de resultados. Se pasa como max_articulos=HC_MAX_ARTS cuando
+# la clase lo soporta (detectado via inspect en _run_scraper).
+HC_MAX_ARTS = 50
 
 
 def _timeout_para(pid: str) -> int:
@@ -233,7 +238,21 @@ def _run_scraper(pid: str) -> dict:
 
     t0 = time.perf_counter()
     try:
-        scraper = scraper_cls(termino, FECHA_DESDE, FECHA_HASTA)
+        # Cap de artículos para evitar que scrapers procesen cientos de resultados.
+        # Estrategia por tipo de parámetro que acepte cada clase:
+        #   max_articulos → scrapers HTML paginados (Las2Orillas, Portafolio, etc.)
+        #   max_paginas   → ScraperElTiempo (cap de páginas de búsqueda)
+        import inspect as _ins
+        _sig = _ins.signature(scraper_cls.__init__)
+        if 'max_paginas' in _sig.parameters:
+            # ElTiempo: limitar a 3 páginas (~60 arts max) — evita 20+ páginas con
+            # términos amplios como "Colombia conflicto" sobre 30 días
+            scraper = scraper_cls(termino, FECHA_DESDE, FECHA_HASTA, max_paginas=3)
+        elif 'max_articulos' in _sig.parameters:
+            scraper = scraper_cls(termino, FECHA_DESDE, FECHA_HASTA,
+                                  max_articulos=HC_MAX_ARTS)
+        else:
+            scraper = scraper_cls(termino, FECHA_DESDE, FECHA_HASTA)
         df = scraper.scrape()
         elapsed = time.perf_counter() - t0
 

@@ -1970,9 +1970,15 @@ class ScraperElTiempo(ScraperPeriodico):
     de TLS fingerprint, mientras curl_cffi impersonando Chrome consigue 0.3-2.5s.
     """
 
-    def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str):
+    def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str,
+                 max_paginas: int = 0):
+        """
+        max_paginas: cap de páginas de resultados (0 = sin límite).
+        En health_check se usa max_articulos=50 → instanciar con max_paginas=3
+        para evitar recorrer 20+ páginas con términos amplios.
+        """
         super().__init__(termino, fecha_desde, fecha_hasta)
-        # Aumentar timeout de sesión: páginas de ElTiempo pueden tardar 5-10s
+        self.max_paginas = max_paginas  # 0 = sin límite (comportamiento normal)
         self.session.headers.update({
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -2002,17 +2008,21 @@ class ScraperElTiempo(ScraperPeriodico):
     def _obtener_total_paginas(self, soup: BeautifulSoup) -> int:
         pagination = soup.find('nav', class_='c-pagination')
 
+        total = 1
         if pagination:
             numeros = []
             for link in pagination.find_all('a'):
                 texto = link.text.strip()
                 if texto.isdigit():
                     numeros.append(int(texto))
-
             if numeros:
-                return max(numeros)
+                total = max(numeros)
 
-        return 1
+        # Respetar cap si está definido (health check usa max_paginas=3)
+        if self.max_paginas and self.max_paginas > 0:
+            total = min(total, self.max_paginas)
+
+        return total
 
     def _extraer_links_pagina(self, soup: BeautifulSoup) -> List[str]:
         links = []
@@ -2026,24 +2036,29 @@ class ScraperElTiempo(ScraperPeriodico):
 
         return links
 
-    # ── Descarga con curl_cffi (reemplaza newspaper base) ────────────────────
-    # newspaper.Article.download() tarda 5-17s/art en eltiempo.com por throttling
-    # TLS. curl_cffi chrome120 consigue 0.3-2.5s con impersonación de navegador.
+    # ── Descarga con curl_cffi síncrono + ThreadPoolExecutor ─────────────────
+    # newspaper.Article.download() tarda 5-17s/art (throttling TLS).
+    # curl_cffi async mejoró a 0.5-2.5s, pero article.parse() bloquea el event
+    # loop y anula la concurrencia (~113s para 76 arts con sem=5).
+    # Solución: ThreadPoolExecutor(10) con curl_cffi síncrono (thread-safe):
+    #   76 arts / 10 workers × ~0.8s = ~6s descargas → total ~17-20s.
 
-    async def _descargar_articulo_async(self, session, info: tuple) -> Optional[Dict]:
-        i, link = info
+    def _descargar_articulo_sync(self, args: tuple) -> Optional[Dict]:
+        """
+        Descarga un artículo reutilizando la Session curl_cffi del worker.
+        args = (i, link, session) — session compartida por worker, no por artículo.
+        """
+        i, link, session = args
         try:
-            r = await session.get(link, timeout=45, impersonate="chrome120")
-            html = r.text
-
+            r = session.get(link, timeout=45)
             from newspaper import Article
             article = Article(link)
-            article.html = html
+            article.html = r.text
             article.download_state = 2
             article.parse()
 
-            if i % 50 == 0:
-                print(f"  Descargados: {i} artículos")
+            if i % 25 == 0:
+                print(f"  Descargados: {i}/{self._total_links} artículos")
 
             return {
                 "periodico": self.nombre_periodico,
@@ -2053,44 +2068,48 @@ class ScraperElTiempo(ScraperPeriodico):
                 "texto":     article.text,
             }
         except Exception as e:
-            _es_to = (isinstance(e, (asyncio.TimeoutError, TimeoutError))
-                      or "28" in str(e) or "timeout" in str(e).lower()
+            _es_to = ("28" in str(e) or "timeout" in str(e).lower()
                       or "timed out" in str(e).lower())
             if _es_to:
                 _registrar_error(self.nombre_periodico, "TimeoutError")
             else:
-                print(f"  ⚠ Error [{type(e).__name__}]: {e}")
                 _registrar_error(self.nombre_periodico, type(e).__name__)
             return None
 
-    async def _ejecutar_descargas_async(self, links: List[str]):
-        links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        _sem = asyncio.Semaphore(5)   # 5 concurrentes: óptimo para ElTiempo (10 da throttling)
-        async with CfAsyncSession(impersonate="chrome120") as session:
-            async def _dl(info):
-                async with _sem:
-                    return await self._descargar_articulo_async(session, info)
-            resultados = await asyncio.gather(*[_dl(i) for i in links_enumerados])
-        return resultados
-
     def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
-        print(f"\nDescargando {len(links)} artículos [ElTiempo curl_cffi chrome120]...")
+        # max_workers=5: balance entre velocidad y rate limiting de ElTiempo.
+        # 10 workers causaba DNSError en pipeline largo (CDN bloquea por volumen).
+        # Session por worker (no por artículo) reutiliza conexiones keep-alive.
+        print(f"\nDescargando {len(links)} artículos [ElTiempo curl_cffi workers×5]...")
         if not links:
             return pd.DataFrame()
 
-        loop = asyncio.SelectorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
+        self._total_links = len(links)
+        MAX_W = 5
 
-        data = [r for r in resultados if r is not None]
+        from curl_cffi.requests import Session as CfSession
+
+        def _worker_batch(batch):
+            """Cada worker tiene su propia Session reutilizable."""
+            results = []
+            with CfSession(impersonate="chrome120") as session:
+                for info in batch:
+                    results.append(self._descargar_articulo_sync(
+                        (info[0], info[1], session)
+                    ))
+            return results
+
+        # Dividir en MAX_W lotes balanceados
+        links_enum = list(enumerate(links, 1))
+        lotes = [links_enum[i::MAX_W] for i in range(MAX_W)]
+
+        with ThreadPoolExecutor(max_workers=MAX_W) as ex:
+            lotes_res = list(ex.map(_worker_batch, lotes))
+
+        data = [r for lote in lotes_res for r in lote if r is not None]
         fallos = len(links) - len(data)
-        nota_t = f" ({fallos} timeouts)" if fallos else ""
-        print(f"{len(data)} artículos descargados exitosamente "
-              f"({len(data)/len(links)*100:.1f}%){nota_t}")
+        nota_t = f" ({fallos} timeouts/errores)" if fallos else ""
+        print(f"{len(data)} artículos descargados ({len(data)/len(links)*100:.1f}%){nota_t}")
 
         df = pd.DataFrame(data)
         if not df.empty and 'fecha' in df.columns:
@@ -2099,7 +2118,7 @@ class ScraperElTiempo(ScraperPeriodico):
             fh = pd.Timestamp(self.fecha_hasta) + pd.Timedelta(hours=23, minutes=59, seconds=59)
             mask = df['fecha'].isna() | ((df['fecha'] >= fd) & (df['fecha'] <= fh))
             fuera = (~mask).sum()
-            if fuera > 0:
+            if fuera:
                 print(f"  Filtro fecha: {fuera} artículos fuera de rango eliminados")
                 df = df[mask].reset_index(drop=True)
         return df
