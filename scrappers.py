@@ -1,9 +1,7 @@
-# scrappers.py — Pipeline de webscraping de periódicos colombianos
-# Extraído del notebook Webscraping_Transformers_Optimizados_(2).ipynb
-# Proyecto FNCE — UPB
+# scrappers.py: Pipeline de webscraping de periódicos colombianos
 
 
-# ── IMPORTS ──────────────────────────────────────────────────────────────────
+# IMPORTS
 
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional
@@ -58,17 +56,8 @@ FECHA_HASTA = "2023-12-31"
 # Ejemplo: "Antioquia conflicto", "Antioquia comunidades", etc.
 # Agregar o quitar términos según las dimensiones que se quieran cubrir.
 # Mínimo recomendado: 3 términos. Sin límite máximo.
-TEMAS_BUSQUEDA = [
-    "conflicto",       # DIM5: derechos humanos, grupos armados
-    "comunidades",     # DIM3: vulneración socioeconómica, grupos étnicos
-    "institucional",   # DIM1: gobernanza, DIM2: capacidad institucional
-    "derechos",        # DIM5: DDHH, DIM1: gobernanza
-    "social",          # DIM3: protesta, movimientos sociales
-    # "energia",       # descomentar para búsquedas de proyectos FNCE
-    # "mineria",       # descomentar para búsquedas minero-energéticas
-    # "ambiental",     # descomentar para DIM4: impactos ambientales
-    # "territorio",    # descomentar para DIM4: conflictos territoriales
-]
+TEMAS_BUSQUEDA = ["conflicto", "comunidades", "derechos", "violencia", "corrupcion"]
+# "gobierno" → "corrupcion" que es más específico y relevante para DIM1
 
 DEPARTAMENTOS = [
     # ("NombreDepto", min_menciones),  # min_menciones: número mínimo de veces que
@@ -5560,7 +5549,12 @@ class GestorScraping:
 
     def _es_relevante(self, texto: str, titulo: str,
                       min_menciones: int = 3) -> bool:
-        territorio = self.termino.split()[0].lower()
+        # Extrae el territorio quitando el último token (el tema de búsqueda).
+        # Termino siempre tiene forma "{departamento} {tema_una_palabra}", ej:
+        #   "La Guajira conflicto" → territorio = "la guajira"  (antes: "la" ❌)
+        #   "Norte de Santander derechos" → "norte de santander"  (antes: "norte" ❌)
+        #   "Meta conflicto" → "meta"  (caso simple, sin cambio)
+        territorio = " ".join(self.termino.split()[:-1]).lower()
         texto_lower  = (texto  or "").lower()
         titulo_lower = (titulo or "").lower()
         menciones_texto = texto_lower.count(territorio)
@@ -5571,6 +5565,7 @@ class GestorScraping:
                              min_menciones: int = 3) -> pd.DataFrame:
         if df.empty:
             return df
+        territorio = " ".join(self.termino.split()[:-1])
         mascara = df.apply(
             lambda row: self._es_relevante(
                 row.get('texto', ''),
@@ -5581,7 +5576,7 @@ class GestorScraping:
         )
         df_filtrado = df[mascara].reset_index(drop=True)
         descartados = len(df) - len(df_filtrado)
-        print(f"   Filtro relevancia ({self.termino.split()[0]}, "
+        print(f"   Filtro relevancia ({territorio}, "
               f"umbral={min_menciones}): "
               f"{len(df)} → {len(df_filtrado)} artículos "
               f"({descartados} descartados)")
@@ -6162,7 +6157,8 @@ def scrape_multiples_departamentos(departamentos: List[str],
                                    max_paralelos: int = 3,
                                    directorio_salida: str = ".",
                                    temas: List[str] = None,
-                                   modo_historico: bool = False) -> pd.DataFrame:
+                                   modo_historico: bool = False,
+                                   forzar_rescrape: bool = False) -> pd.DataFrame:
     """
     Corre scrape_departamento() para hasta max_paralelos departamentos en simultáneo.
 
@@ -6172,6 +6168,8 @@ def scrape_multiples_departamentos(departamentos: List[str],
       Chromium activo, sin importar cuántos departamentos corran en paralelo.
     - Cada departamento guarda su pkl tan pronto termina, sin esperar a los demás.
     - Si un departamento falla, el error se loguea y los demás continúan.
+    - Si ya existe el pkl de un departamento, se omite el scraping y se carga
+      directamente (a menos que forzar_rescrape=True).
 
     Args:
         departamentos:      Lista de nombres de departamentos.
@@ -6184,6 +6182,8 @@ def scrape_multiples_departamentos(departamentos: List[str],
         directorio_salida:  Carpeta donde guardar los pkl. Default: directorio actual.
         temas:              Lista de palabras clave de búsqueda. Si es None, usa
                             TEMAS_BUSQUEDA definido en la sección CONFIG.
+        forzar_rescrape:    Si True, ignora pkls existentes y re-scrapea todo.
+                            Default: False.
     """
     # Reiniciar registro de errores para esta corrida
     global _errores_run
@@ -6209,6 +6209,20 @@ def scrape_multiples_departamentos(departamentos: List[str],
         return f"df_corpus_{sin_tildes.replace(' ', '_')}.pkl"
 
     def _procesar_dep(dep: str) -> None:
+        # ── SKIP si ya existe el pkl ──────────────────────────────────────────
+        ruta = os.path.join(directorio_salida, _nombre_archivo(dep))
+        if not forzar_rescrape and os.path.exists(ruta):
+            print(f"\n⏭ SKIP  [{dep}]  →  pkl ya existe: {ruta}")
+            try:
+                df_existente = pd.read_pickle(ruta)
+                with _lock:
+                    resultados[dep] = df_existente
+                print(f"   ↳ cargado: {len(df_existente)} artículos")
+                return
+            except Exception as e:
+                print(f"   ⚠ No se pudo leer el pkl existente de [{dep}]: {e}  →  re-scrapeando")
+        # ─────────────────────────────────────────────────────────────────────
+
         t0 = time.time()
         print(f"\n{'━'*60}"
               f"\n▶ INICIO  [{dep}]"
