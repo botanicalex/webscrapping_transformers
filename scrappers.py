@@ -52,6 +52,8 @@ FECHA_DESDE = cfg.FECHA_DESDE
 FECHA_HASTA = cfg.FECHA_HASTA
 TEMAS_BUSQUEDA = cfg.TEMAS_BUSQUEDA
 GRUPOS_DEPARTAMENTOS = cfg.GRUPOS_DEPARTAMENTOS
+MIN_ARTICULOS_RESPALDO = cfg.MIN_ARTICULOS_RESPALDO
+RUTA_CORPUS_PKL = cfg.RUTA_CORPUS_PKL
 
 # ── BUCLE DE EJECUCIÓN ────────────────────────────────────────────────────────
 # Descomenta y ejecuta este bloque para correr todos los departamentos:

@@ -7,11 +7,14 @@ import pandas as pd
 import numpy as np
 import torch
 from transformers import pipeline as hf_pipeline
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModelForTokenClassification
 import scrappers as sc
 import config_pipeline as cfg
+from radar import CalculadorRadar
+
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+PIPELINE_DEVICE = 0 if DEVICE.type == "cuda" else -1
 
 class CargadorCorpus:
     def __init__(self, ruta_pkl: str = cfg.RUTA_CORPUS_PKL):
@@ -45,14 +48,41 @@ class PipelineTransformers:
         self.modelo_nli_nombre = "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7"
         self.modelo_sent_nombre = "finiteautomata/beto-sentiment-analysis"
         self.modelo_ner_nombre = "dccuchile/bert-base-spanish-wwm-cased-finetuned-ner"
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = DEVICE
+        self.cuda_disponible = self.device.type == "cuda"
+        print(f"CUDA disponible: {self.cuda_disponible} | dispositivo: {self.device}")
+
         self.tokenizer_nli = AutoTokenizer.from_pretrained(self.modelo_nli_nombre)
         self.modelo_nli = AutoModelForSequenceClassification.from_pretrained(self.modelo_nli_nombre).to(self.device)
         self.modelo_nli.eval()
         self.label_ent, self.label_neu, self.label_con = self._resolver_labels_nli()
-        self.zero_shot = hf_pipeline("zero-shot-classification", model=self.modelo_nli_nombre, device=0 if torch.cuda.is_available() else -1)
-        self.sentiment = hf_pipeline("sentiment-analysis", model=self.modelo_sent_nombre, device=0 if torch.cuda.is_available() else -1)
-        self.ner = hf_pipeline("ner", model=self.modelo_ner_nombre, aggregation_strategy="simple", device=0 if torch.cuda.is_available() else -1)
+        self.zero_shot = hf_pipeline(
+            "zero-shot-classification",
+            model=self.modelo_nli,
+            tokenizer=self.tokenizer_nli,
+            device=PIPELINE_DEVICE
+        )
+
+        self.tokenizer_sent = AutoTokenizer.from_pretrained(self.modelo_sent_nombre)
+        self.modelo_sent = AutoModelForSequenceClassification.from_pretrained(self.modelo_sent_nombre).to(self.device)
+        self.modelo_sent.eval()
+        self.sentiment = hf_pipeline(
+            "sentiment-analysis",
+            model=self.modelo_sent,
+            tokenizer=self.tokenizer_sent,
+            device=PIPELINE_DEVICE
+        )
+
+        self.tokenizer_ner = AutoTokenizer.from_pretrained(self.modelo_ner_nombre)
+        self.modelo_ner = AutoModelForTokenClassification.from_pretrained(self.modelo_ner_nombre).to(self.device)
+        self.modelo_ner.eval()
+        self.ner = hf_pipeline(
+            "ner",
+            model=self.modelo_ner,
+            tokenizer=self.tokenizer_ner,
+            aggregation_strategy="simple",
+            device=PIPELINE_DEVICE
+        )
 
         self.temas = {
             "participacion_comunitaria": "déficit de participación comunitaria, ausencia de participación ciudadana, exclusión de veedurías ciudadanas, debilidad del control social",
@@ -137,7 +167,8 @@ class PipelineTransformers:
     def _clasificar_temas(self, texto: str) -> Dict[str, float]:
         labels = list(self.temas.values())
         claves = list(self.temas.keys())
-        resultado = self.zero_shot(texto[:3000], candidate_labels=labels, multi_label=False)
+        with torch.no_grad():
+            resultado = self.zero_shot(texto[:3000], candidate_labels=labels, multi_label=False)
         score_por_label = {l: s for l, s in zip(resultado["labels"], resultado["scores"])}
         return {k: float(score_por_label.get(v, 0.0)) for k, v in zip(claves, labels)}
 
@@ -148,7 +179,8 @@ class PipelineTransformers:
         return out
 
     def _analizar_sentimiento(self, texto: str) -> Tuple[str, float]:
-        r = self.sentiment(texto[:512])[0]
+        with torch.no_grad():
+            r = self.sentiment(texto[:512])[0]
         label = r["label"]
         score = float(r["score"])
         if label == "POS":
@@ -166,7 +198,8 @@ class PipelineTransformers:
             if any(ref in texto_low for ref in refs):
                 res[cat] = True
         try:
-            ents = self.ner(texto[:3000])
+            with torch.no_grad():
+                ents = self.ner(texto[:3000])
             for e in ents:
                 w = str(e.get("word", "")).lower()
                 for cat, refs in self.ref_entidades.items():
@@ -233,108 +266,6 @@ class PipelineTransformers:
         df["score_dim4_vulnerabilidad_territorial"] = df[dim4].astype(float).mean(axis=1).round(4)
         df["score_dim5_derechos_humanos_conflicto"] = df[dim5].astype(float).mean(axis=1).round(4)
 
-class CalculadorRadar:
-    MAPEO_PERIODICO_DEPARTAMENTO = {
-        'El Colombiano': 'Antioquia', 'El Diario': 'Risaralda', 'BC Noticias': 'Caldas', 'El Quindiano': 'Quindío',
-        'El País Cali': 'Valle del Cauca', 'Diario Occidente': 'Valle del Cauca', 'Diario del Sur': 'Nariño',
-        'Diario del Cauca': 'Cauca', 'Chocó 7 Días': 'Chocó', 'Llano al Mundo': 'Meta', 'Diario de Casanare': 'Casanare',
-        'La Voz del Cinaruco': 'Arauca', 'El Morichal': 'Vichada', 'Mi Putumayo': 'Putumayo', 'El Tiempo': 'Cundinamarca',
-        'La República': 'Cundinamarca', 'Portafolio': 'Cundinamarca', 'Publimetro': 'Cundinamarca', 'Las2Orillas': 'Cundinamarca',
-        'El Heraldo': 'Atlántico', 'El Universal': 'Bolívar', 'El Pilón': 'Cesar', 'El Meridiano': 'Córdoba',
-        'Vanguardia': 'Santander', 'Trochando Sin Fronteras': 'Arauca', 'Enlace Television': 'Santander', 'Corrillos': 'Santander'
-    }
-
-    BLOQUES_PCA = {
-        'bloque_A': ['denuncia_violacion','transparencia_contractual','conflicto_territorial','actores_economicos_entidades'],
-        'bloque_B': ['presencia_grupos_armados','desaparicion_lideres','amenaza_intimidacion','grupos_armados_entidades','conflictos_socioambientales'],
-        'bloque_C': ['fortalecimiento_institucional','llamado_dialogo','instituciones_entidades','propuesta_alternativa','incentivos_economicos'],
-        'bloque_D': ['desplazamiento_forzado','grupos_etnicos','grupos_poblacionales_afectados','zonas_proteccion_alimentaria','respeto_territorios','equidad_inclusion','grupos_etnicos_entidades'],
-        'bloque_E': ['participacion_comunitaria','consulta_previa','audiencia_publica','taller_participativo','exigencia_participacion','movimientos_sociales','organizaciones_entidades','lideres_entidades','nivel_acuerdo_proyecto']
-    }
-
-    VARS_INVERTIR = {
-        'fortalecimiento_institucional','llamado_dialogo','consulta_previa','audiencia_publica',
-        'taller_participativo','participacion_comunitaria','nivel_acuerdo_proyecto','propuesta_alternativa',
-        'incentivos_economicos','participacion_economica_local','instituciones_entidades'
-    }
-
-    COLUMNAS_BINARIAS = [
-        'participacion_comunitaria','incentivos_economicos','fortalecimiento_institucional','impactos_ambientales','conflictos_socioambientales',
-        'desplazamiento_forzado','reasentamiento','protesta_social','amenaza_intimidacion','consulta_previa','audiencia_publica','taller_participativo','conflicto_territorial',
-        'nivel_acuerdo_proyecto','demanda_derechos','denuncia_violacion','propuesta_alternativa','llamado_dialogo','defensa_territorio','exigencia_participacion',
-        'equidad_inclusion','grupos_etnicos','movimientos_sociales','grupos_poblacionales_afectados','participacion_economica_local','transparencia_contractual',
-        'zonas_proteccion_alimentaria','respeto_territorios','presencia_grupos_armados','desaparicion_lideres',
-        'grupos_etnicos_entidades','grupos_armados_entidades','organizaciones_entidades','lideres_entidades','instituciones_entidades','actores_economicos_entidades'
-    ]
-
-    def calcular(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = df.copy()
-        if 'departamento' not in df.columns or not df['departamento'].notna().any():
-            df['departamento'] = df['periodico'].map(self.MAPEO_PERIODICO_DEPARTAMENTO)
-            df = df.dropna(subset=['departamento'])
-        cols = [c for c in self.COLUMNAS_BINARIAS if c in df.columns]
-        for c in cols:
-            if df[c].dtype == bool:
-                df[c] = df[c].astype(float)
-            else:
-                df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0.0)
-        df_tasas = df.groupby('departamento')[cols].mean()
-        df_tasas['n_articulos'] = df.groupby('departamento').size()
-        for c in [c for c in cols if c in self.VARS_INVERTIR]:
-            df_tasas[c] = 1 - df_tasas[c]
-
-        df_bloques = pd.DataFrame(index=df_tasas.index)
-        n_depts = len(df_tasas)
-        for b, variables in self.BLOQUES_PCA.items():
-            v = [x for x in variables if x in df_tasas.columns]
-            if not v:
-                df_bloques[b] = 0.0
-                continue
-            X = df_tasas[v].values
-            if n_depts < len(v):
-                scores = X.mean(axis=1)
-            else:
-                try:
-                    Xs = StandardScaler().fit_transform(X)
-                    scores = PCA(n_components=1).fit_transform(Xs)[:, 0]
-                except Exception:
-                    scores = X.mean(axis=1)
-            smin, smax = scores.min(), scores.max()
-            if smax > smin:
-                sn = (scores - smin) / (smax - smin) * 100
-            elif n_depts == 1:
-                sn = np.clip(scores, 0, 1) * 100
-            else:
-                sn = np.full_like(scores, 50.0, dtype=float)
-            df_bloques[b] = sn
-
-        df_bloques['n_articulos'] = df_tasas['n_articulos']
-        df_sub = df_bloques.copy()
-        corr_raw = 0.80 * df_sub['bloque_B'] + 0.35 * df_sub['bloque_A'] - 0.15 * df_sub['bloque_C']
-        vul_raw = 0.50 * df_sub['bloque_D'] + 0.50 * df_sub['bloque_E']
-        df_sub['corrupcion_score'] = self._minmax(corr_raw)
-        df_sub['vulneracion_score'] = self._minmax(vul_raw)
-        radar_raw = 0.60 * df_sub['corrupcion_score'] + 0.40 * df_sub['vulneracion_score']
-        df_sub['radar_propio'] = self._minmax(radar_raw)
-        p25 = df_sub['radar_propio'].quantile(0.25)
-        p75 = df_sub['radar_propio'].quantile(0.75)
-        def cat(x):
-            if x <= p25:
-                return "bajo"
-            if x >= p75:
-                return "alto"
-            return "medio"
-        df_sub['categoria_riesgo'] = df_sub['radar_propio'].apply(cat)
-        out = df_sub.reset_index().rename(columns={'index': 'departamento'})
-        return out[['departamento','n_articulos','bloque_A','bloque_B','bloque_C','bloque_D','bloque_E','corrupcion_score','vulneracion_score','radar_propio','categoria_riesgo']].sort_values('radar_propio', ascending=False)
-
-    @staticmethod
-    def _minmax(s: pd.Series) -> pd.Series:
-        smin, smax = s.min(), s.max()
-        if smax > smin:
-            return (s - smin) / (smax - smin) * 100
-        return pd.Series([50.0] * len(s), index=s.index)
-
 def correr_scraping(fecha_desde: str, fecha_hasta: str, salida: str, temas: List[str] = None):
     os.makedirs(salida, exist_ok=True)
     for i, grupo in enumerate(sc.GRUPOS_DEPARTAMENTOS, 1):
@@ -393,6 +324,43 @@ class ValidadorPrecondiciones:
             )
 
 
+def exportar_indicadores_transformers_por_departamento(df_procesado: pd.DataFrame, salida: str) -> str:
+    df = df_procesado.copy()
+    if 'departamento' not in df.columns or not df['departamento'].notna().any():
+        df['departamento'] = df['periodico'].map(CalculadorRadar.MAPEO_PERIODICO_DEPARTAMENTO)
+    df = df.dropna(subset=['departamento'])
+    cols = [c for c in CalculadorRadar.COLUMNAS_BINARIAS if c in df.columns]
+    for c in cols:
+        if df[c].dtype == bool:
+            df[c] = df[c].astype(float)
+        else:
+            df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0.0)
+    df_indicadores = df.groupby('departamento')[cols].mean().reset_index()
+    ruta_indicadores_csv = os.path.join(salida, "indicadores_transformers_departamento.csv")
+    df_indicadores.to_csv(ruta_indicadores_csv, index=False)
+    return ruta_indicadores_csv
+
+
+def exportar_radar_base_por_departamento(df_procesado: pd.DataFrame, salida: str) -> Tuple[str, str]:
+    df = df_procesado.copy()
+    if 'departamento' not in df.columns or not df['departamento'].notna().any():
+        df['departamento'] = df['periodico'].map(CalculadorRadar.MAPEO_PERIODICO_DEPARTAMENTO)
+    df = df.dropna(subset=['departamento'])
+    df['departamento'] = df['departamento'].astype(str).str.strip()
+    df_base = df.groupby('departamento').size().reset_index(name='n_articulos')
+    df_base = df_base.sort_values('departamento').reset_index(drop=True)
+    for col in ['bloque_A', 'bloque_B', 'bloque_C', 'bloque_D', 'bloque_E', 'corrupcion_score', 'vulneracion_score', 'radar_propio']:
+        df_base[col] = np.nan
+    df_base['categoria_riesgo'] = "None"
+    columnas = ['departamento', 'n_articulos', 'bloque_A', 'bloque_B', 'bloque_C', 'bloque_D', 'bloque_E', 'corrupcion_score', 'vulneracion_score', 'radar_propio', 'categoria_riesgo']
+    df_base = df_base[columnas]
+    ruta_radar_pkl = os.path.join(salida, "radar_departamentos.pkl")
+    ruta_radar_csv = os.path.join(salida, "radar_departamentos.csv")
+    df_base.to_pickle(ruta_radar_pkl)
+    df_base.to_csv(ruta_radar_csv, index=False)
+    return ruta_radar_pkl, ruta_radar_csv
+
+
 def run_pipeline_transformers(ruta_pkl: str, salida: str) -> Tuple[str, str]:
     os.makedirs(salida, exist_ok=True)
 
@@ -410,18 +378,12 @@ def run_pipeline_transformers(ruta_pkl: str, salida: str) -> Tuple[str, str]:
 
     ValidadorPrecondiciones.etapa_salida_no_vacia(ruta_procesado_pkl, "NLP")
 
-    radar = CalculadorRadar()
-    df_radar = radar.calcular(df_procesado)
-    ruta_radar_pkl = os.path.join(salida, "radar_departamentos.pkl")
-    ruta_radar_csv = os.path.join(salida, "radar_departamentos.csv")
-    df_radar.to_pickle(ruta_radar_pkl)
-    df_radar.to_csv(ruta_radar_csv, index=False)
+    ruta_indicadores_csv = exportar_indicadores_transformers_por_departamento(df_procesado, salida)
+    ruta_radar_pkl, ruta_radar_csv = exportar_radar_base_por_departamento(df_procesado, salida)
 
-    ValidadorPrecondiciones.etapa_salida_no_vacia(ruta_radar_pkl, "radar")
+    ValidadorPrecondiciones.etapa_salida_no_vacia(ruta_radar_pkl, "radar_base")
 
-    print("\nRadar final:")
-    print(df_radar.to_string(index=False))
-    print(f"\nGuardado:\n- {ruta_procesado_pkl}\n- {ruta_procesado_csv}\n- {ruta_radar_pkl}\n- {ruta_radar_csv}")
+    print(f"\nGuardado:\n- {ruta_procesado_pkl}\n- {ruta_procesado_csv}\n- {ruta_indicadores_csv}\n- {ruta_radar_pkl}\n- {ruta_radar_csv}")
 
     return ruta_procesado_pkl, ruta_radar_pkl
 
