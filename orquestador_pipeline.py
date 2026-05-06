@@ -202,6 +202,13 @@ def main() -> None:
         action="store_true",
         help="En modo 'todo', omitir la etapa de scraping",
     )
+    parser.add_argument(
+        "--from-group",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Retomar scraping desde el grupo N (1-based). Los grupos anteriores se saltan. Default: 1",
+    )
     parser.add_argument("--ruta-pkl", default=cfg.RUTA_CORPUS_PKL)
     parser.add_argument("--salida", default=cfg.RUTA_SALIDA_PIPELINE)
     parser.add_argument("--excel", default=cfg.ARCHIVO_COMPARACION_EXCEL)
@@ -236,7 +243,8 @@ def main() -> None:
         _ejecutar_etapa(
             "scraping",
             lambda: tf.correr_scraping(
-                tf.sc.FECHA_DESDE, tf.sc.FECHA_HASTA, args.ruta_pkl, temas=None
+                tf.sc.FECHA_DESDE, tf.sc.FECHA_HASTA, args.ruta_pkl, temas=None,
+                from_group=args.from_group
             ),
         )
 

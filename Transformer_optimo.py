@@ -310,11 +310,11 @@ class CalculadorRadar:
 
         df_bloques['n_articulos'] = df_tasas['n_articulos']
         df_sub = df_bloques.copy()
-        corr_raw = 0.80 * df_sub['bloque_B'] + 0.35 * df_sub['bloque_A'] - 0.15 * df_sub['bloque_C']
-        vul_raw = 0.50 * df_sub['bloque_D'] + 0.50 * df_sub['bloque_E']
+        corr_raw = 0.90 * df_sub['bloque_B'] + 0.40 * df_sub['bloque_A'] - 0.10 * df_sub['bloque_C']
+        vul_raw = 0.60 * df_sub['bloque_D'] + 0.40 * df_sub['bloque_E']
         df_sub['corrupcion_score'] = self._minmax(corr_raw)
         df_sub['vulneracion_score'] = self._minmax(vul_raw)
-        radar_raw = 0.60 * df_sub['corrupcion_score'] + 0.40 * df_sub['vulneracion_score']
+        radar_raw = 0.65 * df_sub['corrupcion_score'] + 0.35 * df_sub['vulneracion_score']
         df_sub['radar_propio'] = self._minmax(radar_raw)
         p25 = df_sub['radar_propio'].quantile(0.25)
         p75 = df_sub['radar_propio'].quantile(0.75)
@@ -335,9 +335,12 @@ class CalculadorRadar:
             return (s - smin) / (smax - smin) * 100
         return pd.Series([50.0] * len(s), index=s.index)
 
-def correr_scraping(fecha_desde: str, fecha_hasta: str, salida: str, temas: List[str] = None):
+def correr_scraping(fecha_desde: str, fecha_hasta: str, salida: str, temas: List[str] = None, from_group: int = 1):
     os.makedirs(salida, exist_ok=True)
     for i, grupo in enumerate(sc.GRUPOS_DEPARTAMENTOS, 1):
+        if i < from_group:
+            print(f"\nGrupo {i}/{len(sc.GRUPOS_DEPARTAMENTOS)}: {grupo}  [SALTADO — ya procesado]")
+            continue
         print(f"\nGrupo {i}/{len(sc.GRUPOS_DEPARTAMENTOS)}: {grupo}")
         sc.scrape_multiples_departamentos(
             departamentos=grupo,

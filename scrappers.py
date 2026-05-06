@@ -52,6 +52,9 @@ FECHA_DESDE = cfg.FECHA_DESDE
 FECHA_HASTA = cfg.FECHA_HASTA
 TEMAS_BUSQUEDA = cfg.TEMAS_BUSQUEDA
 GRUPOS_DEPARTAMENTOS = cfg.GRUPOS_DEPARTAMENTOS
+MIN_ARTICULOS_RESPALDO= cfg.MIN_ARTICULOS_RESPALDO
+RUTA_CORPUS_PKL= cfg.RUTA_CORPUS_PKL
+
 
 # ── BUCLE DE EJECUCIÓN ────────────────────────────────────────────────────────
 # Descomenta y ejecuta este bloque para correr todos los departamentos:
@@ -6153,6 +6156,16 @@ def scrape_multiples_departamentos(departamentos: List[str],
 
     def _procesar_dep(dep: str) -> None:
         t0 = time.time()
+        ruta_existente = os.path.join(directorio_salida, _nombre_archivo(dep))
+        if os.path.exists(ruta_existente):
+            df_existente = pd.read_pickle(ruta_existente)
+            print(f"\n{'━'*60}"
+                  f"\n⏭ SKIP  [{dep}]  →  pkl ya existe ({len(df_existente)} artículos)  →  {ruta_existente}"
+                  f"\n{'━'*60}")
+            with _lock:
+                resultados[dep] = df_existente
+                status_dict[dep] = {'articulos': len(df_existente), 'errores': None, 'archivo_generado': ruta_existente}
+            return
         print(f"\n{'━'*60}"
               f"\n▶ INICIO  [{dep}]"
               f"\n{'━'*60}")
