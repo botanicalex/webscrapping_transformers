@@ -23,6 +23,10 @@ env/
 # ── Jupyter ──────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
 
+# ── Claude Code / Worktrees ─────────────────────────────────────────────────
+# Carpeta de trabajo aislada para Claude Code, no versionar
+.claude/
+
 # ── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
