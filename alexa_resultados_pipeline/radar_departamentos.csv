@@ -1,0 +1,33 @@
+departamento,n_articulos,bloque_A,bloque_B,bloque_C,bloque_D,bloque_E,corrupcion_score,vulneracion_score,radar_propio,categoria_riesgo
+Amazonas,242,,,,,,,,,None
+Antioquia,494,,,,,,,,,None
+Arauca,280,,,,,,,,,None
+Atlántico,1099,,,,,,,,,None
+Bolívar,262,,,,,,,,,None
+Boyacá,87,,,,,,,,,None
+Caldas,236,,,,,,,,,None
+Caquetá,350,,,,,,,,,None
+Casanare,161,,,,,,,,,None
+Cauca,861,,,,,,,,,None
+Cesar,29,,,,,,,,,None
+Chocó,148,,,,,,,,,None
+Cundinamarca,87,,,,,,,,,None
+Córdoba,191,,,,,,,,,None
+Guainía,6,,,,,,,,,None
+Guaviare,98,,,,,,,,,None
+Huila,86,,,,,,,,,None
+La Guajira,11,,,,,,,,,None
+Magdalena,266,,,,,,,,,None
+Meta,125,,,,,,,,,None
+Nariño,375,,,,,,,,,None
+Norte de Santander,36,,,,,,,,,None
+Putumayo,154,,,,,,,,,None
+Quindío,115,,,,,,,,,None
+Risaralda,108,,,,,,,,,None
+San Andrés y Providencia,54,,,,,,,,,None
+Santander,105,,,,,,,,,None
+Sucre,168,,,,,,,,,None
+Tolima,283,,,,,,,,,None
+Valle del Cauca,247,,,,,,,,,None
+Vaupés,6,,,,,,,,,None
+Vichada,31,,,,,,,,,None
