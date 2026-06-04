@@ -31,21 +31,21 @@ class CalculadorRadar:
     BLOQUES_PCA = {
         'bloque_A': ['denuncia_violacion', 'transparencia_contractual', 'conflicto_territorial', 'actores_economicos_entidades'],
         'bloque_B': ['presencia_grupos_armados', 'desaparicion_lideres', 'amenaza_intimidacion', 'grupos_armados_entidades', 'conflictos_socioambientales'],
-        'bloque_C': ['fortalecimiento_institucional', 'llamado_dialogo', 'instituciones_entidades', 'propuesta_alternativa', 'incentivos_economicos'],
+        'bloque_C': ['fortalecimiento_institucional', 'ruptura_dialogo', 'instituciones_entidades', 'deficit_participacion_efectiva', 'incentivos_economicos'],
         'bloque_D': ['desplazamiento_forzado', 'grupos_etnicos', 'grupos_poblacionales_afectados', 'zonas_proteccion_alimentaria', 'respeto_territorios', 'equidad_inclusion', 'grupos_etnicos_entidades'],
-        'bloque_E': ['participacion_comunitaria', 'consulta_previa', 'audiencia_publica', 'taller_participativo', 'exigencia_participacion', 'movimientos_sociales', 'organizaciones_entidades', 'lideres_entidades', 'nivel_acuerdo_proyecto']
+        'bloque_E': ['participacion_comunitaria', 'consulta_previa', 'audiencia_publica', 'taller_participativo', 'exclusion_participacion', 'movimientos_sociales', 'organizaciones_entidades', 'lideres_entidades', 'rechazo_proyecto']
     }
 
     VARS_INVERTIR = {
-        'fortalecimiento_institucional', 'llamado_dialogo', 'consulta_previa', 'audiencia_publica',
-        'taller_participativo', 'participacion_comunitaria', 'nivel_acuerdo_proyecto', 'propuesta_alternativa',
+        'fortalecimiento_institucional', 'consulta_previa', 'audiencia_publica',
+        'taller_participativo', 'participacion_comunitaria',
         'incentivos_economicos', 'participacion_economica_local', 'instituciones_entidades'
     }
 
     COLUMNAS_BINARIAS = [
         'participacion_comunitaria', 'incentivos_economicos', 'fortalecimiento_institucional', 'impactos_ambientales', 'conflictos_socioambientales',
         'desplazamiento_forzado', 'reasentamiento', 'protesta_social', 'amenaza_intimidacion', 'consulta_previa', 'audiencia_publica', 'taller_participativo', 'conflicto_territorial',
-        'nivel_acuerdo_proyecto', 'demanda_derechos', 'denuncia_violacion', 'propuesta_alternativa', 'llamado_dialogo', 'defensa_territorio', 'exigencia_participacion',
+        'rechazo_proyecto', 'deficit_derechos', 'denuncia_violacion', 'deficit_participacion_efectiva', 'ruptura_dialogo', 'reivindicacion_territorial', 'exclusion_participacion',
         'equidad_inclusion', 'grupos_etnicos', 'movimientos_sociales', 'grupos_poblacionales_afectados', 'participacion_economica_local', 'transparencia_contractual',
         'zonas_proteccion_alimentaria', 'respeto_territorios', 'presencia_grupos_armados', 'desaparicion_lideres',
         'grupos_etnicos_entidades', 'grupos_armados_entidades', 'organizaciones_entidades', 'lideres_entidades', 'instituciones_entidades', 'actores_economicos_entidades'

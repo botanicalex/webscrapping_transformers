@@ -1,6 +1,9 @@
 """
 Cálculo de radar sin pesos (promedio simple de indicadores transformers)
 y métricas de clasificación contra Clasificacion_radar_oficial_promedio y Clasificacion_IDIC.
+
+Clasificación: 3 clases (Bajo / Medio / Alto) por terciles.
+Rankings: posición 1 = mayor valor de radar (más actividad mediática detectada).
 """
 import argparse
 import os
@@ -23,9 +26,9 @@ INDICADORES_36 = [
     'participacion_comunitaria', 'incentivos_economicos', 'fortalecimiento_institucional',
     'impactos_ambientales', 'conflictos_socioambientales', 'desplazamiento_forzado',
     'reasentamiento', 'protesta_social', 'amenaza_intimidacion', 'consulta_previa',
-    'audiencia_publica', 'taller_participativo', 'conflicto_territorial', 'nivel_acuerdo_proyecto',
-    'demanda_derechos', 'denuncia_violacion', 'propuesta_alternativa', 'llamado_dialogo',
-    'defensa_territorio', 'exigencia_participacion', 'equidad_inclusion', 'grupos_etnicos',
+    'audiencia_publica', 'taller_participativo', 'conflicto_territorial', 'rechazo_proyecto',
+    'deficit_derechos', 'denuncia_violacion', 'deficit_participacion_efectiva', 'ruptura_dialogo',
+    'reivindicacion_territorial', 'exclusion_participacion', 'equidad_inclusion', 'grupos_etnicos',
     'movimientos_sociales', 'grupos_poblacionales_afectados', 'participacion_economica_local',
     'transparencia_contractual', 'zonas_proteccion_alimentaria', 'respeto_territorios',
     'presencia_grupos_armados', 'desaparicion_lideres', 'grupos_etnicos_entidades',
@@ -33,7 +36,7 @@ INDICADORES_36 = [
     'instituciones_entidades', 'actores_economicos_entidades',
 ]
 
-ETIQUETAS_CLASES = ['Bajo', 'Medio-Bajo', 'Medio', 'Medio-Alto', 'Alto']
+ETIQUETAS_CLASES = ['Bajo', 'Medio', 'Alto']
 
 
 def _normalizar_nombre_depto(nombre: str) -> str:
@@ -54,15 +57,31 @@ def _minmax_0_1(serie: pd.Series) -> pd.Series:
     return pd.Series([0.5] * len(serie), index=serie.index)
 
 
+def _terciles(serie: pd.Series, invertir: bool = False) -> pd.Series:
+    """
+    Clasifica en 3 clases por terciles.
+    invertir=True: valor alto → 'Bajo' (usado para radar_oficial donde alto = más riesgo).
+    invertir=False: valor alto → 'Alto' (IDIC y radares nuevos).
+    """
+    if invertir:
+        labels = ['Alto', 'Medio', 'Bajo']   # el tercil más bajo del valor → 'Alto' (menos riesgo)
+    else:
+        labels = ['Bajo', 'Medio', 'Alto']
+
+    return pd.qcut(serie, q=3, labels=labels, duplicates='drop').astype(str)
+
+
 def calcular_radar_sin_pesos(df_indicadores: pd.DataFrame, etiqueta: str) -> pd.DataFrame:
-    """Promedio simple de los 36 indicadores → min-max a 0-1 → clasificación por quintiles."""
+    """
+    Promedio simple de los 36 indicadores → normalización 0-1 → terciles → ranking.
+    Ranking: posición 1 = mayor valor (más actividad mediática detectada).
+    """
     if 'departamento' not in df_indicadores.columns:
         raise ValueError(f"[{etiqueta}] CSV debe contener columna 'departamento'")
 
     df = df_indicadores.copy()
     df['departamento'] = df['departamento'].astype(str).str.strip().map(_normalizar_nombre_depto)
 
-    cols_presentes = [c for c in INDICADORES_36 if c in df.columns]
     faltantes = [c for c in INDICADORES_36 if c not in df.columns]
     if faltantes:
         print(f"[{etiqueta}] Indicadores faltantes (se rellenan con 0): {faltantes}")
@@ -74,24 +93,65 @@ def calcular_radar_sin_pesos(df_indicadores: pd.DataFrame, etiqueta: str) -> pd.
 
     radar_raw = df[INDICADORES_36].mean(axis=1)
     radar_norm = _minmax_0_1(radar_raw)
-
-    clasif = pd.qcut(
-        radar_norm,
-        q=5,
-        labels=ETIQUETAS_CLASES,
-        duplicates='drop',
-    ).astype(str)
+    clasif = _terciles(radar_norm, invertir=False)   # alto radar = 'Alto'
+    ranking = radar_norm.rank(method='min', ascending=False).astype(int)
 
     out = pd.DataFrame({
         'departamento': df['departamento'].values,
         f'radar_{etiqueta}_promedio_normalizado': radar_norm.values,
         f'Clasificacion_radar_{etiqueta}': clasif.values,
+        f'Ranking_radar_{etiqueta}': ranking.values,
     })
     return out
 
 
+def _reclasificar_referencias_en_xlsx(ws, headers_existentes: dict) -> None:
+    """
+    Reclasifica Clasificacion_radar_oficial_promedio y Clasificacion_IDIC
+    desde sus valores numéricos originales a 3 clases por terciles.
+    """
+    col_depto = headers_existentes.get('Departamento') or headers_existentes.get('departamento')
+    col_radar_val = headers_existentes.get('radar_oficial_promedio')
+    col_idic_val = headers_existentes.get('IDIC')
+    col_clasif_radar = headers_existentes.get('Clasificacion_radar_oficial_promedio')
+    col_clasif_idic = headers_existentes.get('Clasificacion_IDIC')
+
+    if not all([col_radar_val, col_idic_val, col_clasif_radar, col_clasif_idic]):
+        print("ADVERTENCIA: no se encontraron todas las columnas de referencia para reclasificar.")
+        return
+
+    # Leer valores numéricos
+    filas = list(range(2, ws.max_row + 1))
+    radar_vals = []
+    idic_vals = []
+    for r in filas:
+        rv = ws.cell(r, col_radar_val).value
+        iv = ws.cell(r, col_idic_val).value
+        radar_vals.append(float(rv) if rv is not None else np.nan)
+        idic_vals.append(float(iv) if iv is not None else np.nan)
+
+    s_radar = pd.Series(radar_vals)
+    s_idic  = pd.Series(idic_vals)
+
+    # radar_oficial: alto valor = más riesgo = peor → invertir
+    clasif_radar = _terciles(s_radar, invertir=True)
+    # IDIC: alto valor = mejor situación → no invertir
+    clasif_idic  = _terciles(s_idic, invertir=False)
+
+    for i, r in enumerate(filas):
+        ws.cell(r, col_clasif_radar, clasif_radar.iloc[i])
+        ws.cell(r, col_clasif_idic,  clasif_idic.iloc[i])
+
+    print("  Clasificacion_radar_oficial_promedio -> reclasificada (3 clases, invertida)")
+    print("  Clasificacion_IDIC                  -> reclasificada (3 clases)")
+
+
 def actualizar_xlsx(ruta_xlsx: str, df_viejo: pd.DataFrame, df_nuevo: pd.DataFrame) -> None:
-    """Agrega 4 columnas al xlsx preservando las existentes. Backup automático."""
+    """
+    Actualiza el xlsx:
+    - Reclasifica las referencias a 3 clases.
+    - Agrega/actualiza columnas de radar viejo y nuevo (valor, clasificación, ranking).
+    """
     if not os.path.isfile(ruta_xlsx):
         raise FileNotFoundError(f"xlsx no existe: {ruta_xlsx}")
 
@@ -109,11 +169,17 @@ def actualizar_xlsx(ruta_xlsx: str, df_viejo: pd.DataFrame, df_nuevo: pd.DataFra
         if h is not None:
             headers_existentes[str(h).strip()] = c
 
+    # 1. Reclasificar referencias
+    _reclasificar_referencias_en_xlsx(ws, headers_existentes)
+
+    # 2. Preparar columnas de los nuevos radares (6 columnas: valor + clasif + ranking × 2)
     nuevas_cols = [
         'radar_viejo_promedio_normalizado',
         'Clasificacion_radar_viejo',
+        'Ranking_radar_viejo',
         'radar_nuevo_promedio_normalizado',
         'Clasificacion_radar_nuevo',
+        'Ranking_radar_nuevo',
     ]
     col_indices = {}
     siguiente_col = ws.max_column + 1
@@ -133,6 +199,7 @@ def actualizar_xlsx(ruta_xlsx: str, df_viejo: pd.DataFrame, df_nuevo: pd.DataFra
         _normalizar_nombre_depto(r['departamento']): (
             r['radar_viejo_promedio_normalizado'],
             r['Clasificacion_radar_viejo'],
+            r['Ranking_radar_viejo'],
         )
         for _, r in df_viejo.iterrows()
     }
@@ -140,6 +207,7 @@ def actualizar_xlsx(ruta_xlsx: str, df_viejo: pd.DataFrame, df_nuevo: pd.DataFra
         _normalizar_nombre_depto(r['departamento']): (
             r['radar_nuevo_promedio_normalizado'],
             r['Clasificacion_radar_nuevo'],
+            r['Ranking_radar_nuevo'],
         )
         for _, r in df_nuevo.iterrows()
     }
@@ -152,29 +220,33 @@ def actualizar_xlsx(ruta_xlsx: str, df_viejo: pd.DataFrame, df_nuevo: pd.DataFra
         dep_norm = _normalizar_nombre_depto(dep)
 
         if dep_norm in mapa_viejo:
-            val, cls = mapa_viejo[dep_norm]
+            val, cls, rank = mapa_viejo[dep_norm]
             ws.cell(row=r, column=col_indices['radar_viejo_promedio_normalizado'], value=float(val))
-            ws.cell(row=r, column=col_indices['Clasificacion_radar_viejo'], value=str(cls))
+            ws.cell(row=r, column=col_indices['Clasificacion_radar_viejo'],        value=str(cls))
+            ws.cell(row=r, column=col_indices['Ranking_radar_viejo'],              value=int(rank))
         else:
             no_match.append(('viejo', dep_norm))
 
         if dep_norm in mapa_nuevo:
-            val, cls = mapa_nuevo[dep_norm]
+            val, cls, rank = mapa_nuevo[dep_norm]
             ws.cell(row=r, column=col_indices['radar_nuevo_promedio_normalizado'], value=float(val))
-            ws.cell(row=r, column=col_indices['Clasificacion_radar_nuevo'], value=str(cls))
+            ws.cell(row=r, column=col_indices['Clasificacion_radar_nuevo'],        value=str(cls))
+            ws.cell(row=r, column=col_indices['Ranking_radar_nuevo'],              value=int(rank))
         else:
             no_match.append(('nuevo', dep_norm))
 
     if no_match:
-        print(f"ADVERTENCIA: departamentos sin match en xlsx: {no_match}")
+        print(f"ADVERTENCIA: departamentos sin match: {no_match}")
 
     wb.save(ruta_xlsx)
     print(f"xlsx actualizado: {ruta_xlsx}")
 
 
 def _calcular_metricas_par(y_true: pd.Series, y_pred: pd.Series, etiqueta: str) -> Tuple[dict, pd.DataFrame, np.ndarray]:
-    """Calcula métricas para un par (verdadero, predicho)."""
-    mask = y_true.notna() & y_pred.notna() & (y_true.astype(str).str.strip() != '') & (y_pred.astype(str).str.strip() != '')
+    """Calcula métricas de clasificación para un par (verdadero, predicho)."""
+    mask = (y_true.notna() & y_pred.notna() &
+            (y_true.astype(str).str.strip() != '') &
+            (y_pred.astype(str).str.strip() != ''))
     yt = y_true[mask].astype(str).tolist()
     yp = y_pred[mask].astype(str).tolist()
 
@@ -216,7 +288,7 @@ def _calcular_metricas_par(y_true: pd.Series, y_pred: pd.Series, etiqueta: str) 
 
 
 def metricas_clasificacion(ruta_xlsx: str, ruta_salida: str) -> None:
-    """Genera xlsx con métricas de clasificación para 4 comparaciones."""
+    """Genera xlsx con métricas de clasificación para las 4 comparaciones."""
     wb = load_workbook(ruta_xlsx, data_only=True)
     ws = wb[wb.sheetnames[0]]
     headers = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
@@ -230,10 +302,10 @@ def metricas_clasificacion(ruta_xlsx: str, ruta_salida: str) -> None:
     df = pd.DataFrame(data)
 
     pares = [
-        ('viejo_vs_radar_oficial', 'Clasificacion_radar_viejo', 'Clasificacion_radar_oficial_promedio'),
-        ('viejo_vs_IDIC', 'Clasificacion_radar_viejo', 'Clasificacion_IDIC'),
-        ('nuevo_vs_radar_oficial', 'Clasificacion_radar_nuevo', 'Clasificacion_radar_oficial_promedio'),
-        ('nuevo_vs_IDIC', 'Clasificacion_radar_nuevo', 'Clasificacion_IDIC'),
+        ('viejo_vs_radar_oficial', 'Clasificacion_radar_viejo',  'Clasificacion_radar_oficial_promedio'),
+        ('viejo_vs_IDIC',          'Clasificacion_radar_viejo',  'Clasificacion_IDIC'),
+        ('nuevo_vs_radar_oficial', 'Clasificacion_radar_nuevo',  'Clasificacion_radar_oficial_promedio'),
+        ('nuevo_vs_IDIC',          'Clasificacion_radar_nuevo',  'Clasificacion_IDIC'),
     ]
 
     for etiqueta, col_pred, col_true in pares:
@@ -241,9 +313,7 @@ def metricas_clasificacion(ruta_xlsx: str, ruta_salida: str) -> None:
             if c not in df.columns:
                 raise ValueError(f"Falta columna '{c}' en xlsx")
 
-    resumenes = []
-    detalles = []
-    matrices = {}
+    resumenes, detalles, matrices = [], [], {}
 
     for etiqueta, col_pred, col_true in pares:
         resumen, detalle, cm = _calcular_metricas_par(df[col_true], df[col_pred], etiqueta)
@@ -256,7 +326,8 @@ def metricas_clasificacion(ruta_xlsx: str, ruta_salida: str) -> None:
 
     filas_cm = []
     for etiqueta, cm in matrices.items():
-        filas_cm.append({'comparacion': etiqueta, 'verdadero \\ predicho': '---', **{c: '' for c in ETIQUETAS_CLASES}})
+        filas_cm.append({'comparacion': etiqueta, 'verdadero \\ predicho': '---',
+                         **{c: '' for c in ETIQUETAS_CLASES}})
         for i, clase_real in enumerate(ETIQUETAS_CLASES):
             fila = {'comparacion': etiqueta, 'verdadero \\ predicho': clase_real}
             for j, clase_pred in enumerate(ETIQUETAS_CLASES):
@@ -289,12 +360,12 @@ def main():
     print(f"CSV nuevo: {df_nuevo_csv.shape}")
 
     df_viejo = calcular_radar_sin_pesos(df_viejo_csv, 'viejo')
-    df_nuevo = calcular_radar_sin_pesos(df_nuevo_csv, 'nuevo')
+    df_nuevo  = calcular_radar_sin_pesos(df_nuevo_csv,  'nuevo')
 
-    print("\n=== Radar viejo ===")
-    print(df_viejo.to_string(index=False))
-    print("\n=== Radar nuevo ===")
-    print(df_nuevo.to_string(index=False))
+    print("\n=== Radar viejo (ordenado por ranking) ===")
+    print(df_viejo.sort_values('Ranking_radar_viejo').to_string(index=False))
+    print("\n=== Radar nuevo (ordenado por ranking) ===")
+    print(df_nuevo.sort_values('Ranking_radar_nuevo').to_string(index=False))
 
     actualizar_xlsx(args.xlsx_comparacion, df_viejo, df_nuevo)
     metricas_clasificacion(args.xlsx_comparacion, args.salida_metricas)
