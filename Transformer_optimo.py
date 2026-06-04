@@ -16,6 +16,21 @@ from radar import CalculadorRadar
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 PIPELINE_DEVICE = 0 if DEVICE.type == "cuda" else -1
 
+HF_HUB_CACHE = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
+
+def _ruta_modelo_local(nombre_modelo: str) -> str:
+    """Devuelve la ruta del snapshot local si existe; si no, retorna el nombre original."""
+    carpeta = "models--" + nombre_modelo.replace("/", "--")
+    refs_main = os.path.join(HF_HUB_CACHE, carpeta, "refs", "main")
+    if os.path.isfile(refs_main):
+        with open(refs_main) as f:
+            commit = f.read().strip()
+        ruta = os.path.join(HF_HUB_CACHE, carpeta, "snapshots", commit)
+        if os.path.isdir(ruta):
+            return ruta
+    return nombre_modelo
+
+
 class CargadorCorpus:
     def __init__(self, ruta_pkl: str = cfg.RUTA_CORPUS_PKL):
         self.ruta_pkl = ruta_pkl
@@ -52,8 +67,13 @@ class PipelineTransformers:
         self.cuda_disponible = self.device.type == "cuda"
         print(f"CUDA disponible: {self.cuda_disponible} | dispositivo: {self.device}")
 
-        self.tokenizer_nli = AutoTokenizer.from_pretrained(self.modelo_nli_nombre)
-        self.modelo_nli = AutoModelForSequenceClassification.from_pretrained(self.modelo_nli_nombre).to(self.device)
+        nli_path  = _ruta_modelo_local(self.modelo_nli_nombre)
+        sent_path = _ruta_modelo_local(self.modelo_sent_nombre)
+        ner_path  = _ruta_modelo_local(self.modelo_ner_nombre)
+        print(f"NLI: {nli_path}\nSent: {sent_path}\nNER: {ner_path}")
+
+        self.tokenizer_nli = AutoTokenizer.from_pretrained(nli_path)
+        self.modelo_nli = AutoModelForSequenceClassification.from_pretrained(nli_path).to(self.device)
         self.modelo_nli.eval()
         self.label_ent, self.label_neu, self.label_con = self._resolver_labels_nli()
         self.zero_shot = hf_pipeline(
@@ -63,8 +83,8 @@ class PipelineTransformers:
             device=PIPELINE_DEVICE
         )
 
-        self.tokenizer_sent = AutoTokenizer.from_pretrained(self.modelo_sent_nombre)
-        self.modelo_sent = AutoModelForSequenceClassification.from_pretrained(self.modelo_sent_nombre).to(self.device)
+        self.tokenizer_sent = AutoTokenizer.from_pretrained(sent_path)
+        self.modelo_sent = AutoModelForSequenceClassification.from_pretrained(sent_path).to(self.device)
         self.modelo_sent.eval()
         self.sentiment = hf_pipeline(
             "sentiment-analysis",
@@ -73,8 +93,8 @@ class PipelineTransformers:
             device=PIPELINE_DEVICE
         )
 
-        self.tokenizer_ner = AutoTokenizer.from_pretrained(self.modelo_ner_nombre)
-        self.modelo_ner = AutoModelForTokenClassification.from_pretrained(self.modelo_ner_nombre).to(self.device)
+        self.tokenizer_ner = AutoTokenizer.from_pretrained(ner_path)
+        self.modelo_ner = AutoModelForTokenClassification.from_pretrained(ner_path).to(self.device)
         self.modelo_ner.eval()
         self.ner = hf_pipeline(
             "ner",
@@ -209,9 +229,90 @@ class PipelineTransformers:
             pass
         return res
 
-    def procesar(self, df: pd.DataFrame) -> pd.DataFrame:
+    # ------------------------------------------------------------------
+    # Métodos batch (procesan N textos de una vez, ~30x más rápido)
+    # ------------------------------------------------------------------
+
+    def _nli_batch(self, textos: List[str], hipotesis: str, batch_size: int = 32) -> List[float]:
+        """Calcula P(entailment) de N textos contra UNA hipótesis en chunks."""
+        scores: List[float] = []
+        for start in range(0, len(textos), batch_size):
+            chunk = textos[start: start + batch_size]
+            inputs = self.tokenizer_nli(
+                chunk,
+                [hipotesis] * len(chunk),
+                truncation=True,
+                max_length=512,
+                padding=True,
+                return_tensors="pt",
+            ).to(self.device)
+            with torch.no_grad():
+                probs = torch.softmax(self.modelo_nli(**inputs).logits, dim=1)
+            scores.extend(probs[:, self.label_ent].cpu().tolist())
+        return scores
+
+    def _sentimiento_batch(self, textos: List[str], batch_size: int = 32) -> Tuple[List[str], List[float]]:
+        """Análisis de sentimiento en batch sobre todos los textos."""
+        resultados = self.sentiment(
+            [t[:512] for t in textos],
+            batch_size=batch_size,
+            truncation=True,
+        )
+        sentimientos: List[str] = []
+        confianzas: List[float] = []
+        for r in resultados:
+            label = r["label"]
+            if label == "POS":
+                sentimientos.append("positivo")
+            elif label == "NEG":
+                sentimientos.append("negativo")
+            else:
+                sentimientos.append("neutral")
+            confianzas.append(float(r["score"]))
+        return sentimientos, confianzas
+
+    def _ner_batch(self, textos: List[str], batch_size: int = 32) -> Dict[str, List[bool]]:
+        """NER + keyword matching en batch. Devuelve dict cat -> lista de N bools."""
+        N = len(textos)
+        res: Dict[str, List[bool]] = {k: [False] * N for k in self.ref_entidades}
+
+        # Keyword matching vectorizado (sin GPU, muy rápido)
+        for idx, t in enumerate(textos):
+            tl = t.lower()
+            for cat, refs in self.ref_entidades.items():
+                if any(ref in tl for ref in refs):
+                    res[cat][idx] = True
+
+        # NER model en batch
+        try:
+            ner_resultados = self.ner(
+                [t[:3000] for t in textos],
+                batch_size=batch_size,
+                truncation=True,
+            )
+            for idx, ents in enumerate(ner_resultados):
+                for e in ents:
+                    w = str(e.get("word", "")).lower()
+                    for cat, refs in self.ref_entidades.items():
+                        if any(ref in w for ref in refs):
+                            res[cat][idx] = True
+        except Exception:
+            pass
+
+        return res
+
+    # ------------------------------------------------------------------
+    # procesar() — versión batch (~30x más rápida que el loop original)
+    # ------------------------------------------------------------------
+
+    def procesar(self, df: pd.DataFrame, batch_size: int = 32) -> pd.DataFrame:
         df = df.copy()
-        for col in list(self.temas.keys()) + list(self.eventos.keys()) + list(self.posturas.keys()) + list(self.indicadores.keys()):
+        textos = df["texto"].fillna("").astype(str).tolist()
+        N = len(textos)
+
+        # Inicializar columnas
+        for col in (list(self.temas.keys()) + list(self.eventos.keys())
+                    + list(self.posturas.keys()) + list(self.indicadores.keys())):
             if col not in df.columns:
                 df[col] = 0.0
         if "sentimiento" not in df.columns:
@@ -222,33 +323,48 @@ class PipelineTransformers:
             if c not in df.columns:
                 df[c] = False
 
-        for i, texto in enumerate(df["texto"].fillna("").astype(str).tolist()):
-            if not texto.strip():
-                continue
-            temas_scores = self._clasificar_temas(texto)
-            eventos_scores = self._detectar_por_nli(texto, self.eventos)
-            posturas_scores = self._detectar_por_nli(texto, self.posturas)
-            indicadores_scores = self._detectar_por_nli(texto, self.indicadores)
-            sent, sent_conf = self._analizar_sentimiento(texto)
-            ents = self._entidades_booleanas(texto)
+        # 1. Sentimiento en batch
+        sents, confs = self._sentimiento_batch(textos, batch_size)
+        df["sentimiento"] = sents
+        df["sentimiento_confianza"] = confs
+        print(f"[batch] Sentimiento completado ({N} articulos)")
 
-            for k, v in temas_scores.items():
-                df.at[i, k] = v
-            for k, v in eventos_scores.items():
-                df.at[i, k] = v
-            for k, v in posturas_scores.items():
-                df.at[i, k] = v
-            for k, v in indicadores_scores.items():
-                df.at[i, k] = v
-            for k, v in ents.items():
-                df.at[i, k] = bool(v)
-            df.at[i, "sentimiento"] = sent
-            df.at[i, "sentimiento_confianza"] = sent_conf
+        # 2. NER en batch
+        ner_res = self._ner_batch(textos, batch_size)
+        for cat, vals in ner_res.items():
+            df[cat] = vals
+        print(f"[batch] NER completado")
 
-            if (i + 1) % 10 == 0 or (i + 1) == len(df):
-                print(f"Transformers procesados: {i+1}/{len(df)}")
+        # 3. Zero-shot temas en batch (pipeline HF acepta lista directamente)
+        labels = list(self.temas.values())
+        claves_temas = list(self.temas.keys())
+        zs_results = self.zero_shot(
+            [t[:3000] for t in textos],
+            candidate_labels=labels,
+            multi_label=False,
+            batch_size=batch_size,
+        )
+        for clave in claves_temas:
+            df[clave] = 0.0
+        if isinstance(zs_results, dict):
+            zs_results = [zs_results]
+        for idx, r in enumerate(zs_results):
+            score_map = dict(zip(r["labels"], r["scores"]))
+            for k, label in zip(claves_temas, labels):
+                df.at[idx, k] = float(score_map.get(label, 0.0))
+        print(f"[batch] Zero-shot temas completado")
+
+        # 4. NLI en batch: eventos + posturas + indicadores (una hipotesis a la vez)
+        todos = {**self.eventos, **self.posturas, **self.indicadores}
+        n_hip = len(todos)
+        for i_hip, (clave, hipotesis) in enumerate(todos.items(), 1):
+            scores = self._nli_batch(textos, hipotesis, batch_size)
+            df[clave] = scores
+            if i_hip % 5 == 0 or i_hip == n_hip:
+                print(f"[batch] NLI hipotesis {i_hip}/{n_hip} completada")
 
         self._crear_scores_dimension(df)
+        print(f"[batch] Procesamiento completado: {N} articulos")
         return df
 
     def _crear_scores_dimension(self, df: pd.DataFrame) -> None:
