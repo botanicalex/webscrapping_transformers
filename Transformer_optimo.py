@@ -104,13 +104,13 @@ class PipelineTransformers:
         }
 
         self.posturas = {
-            "nivel_acuerdo_proyecto": "Este texto expresa explícitamente apoyo o rechazo a un proyecto o iniciativa específico",
-            "demanda_derechos": "Este texto expresa demandas urgentes, exigencias o reclamos intensos de derechos vulnerados",
-            "denuncia_violacion": "Este texto reporta una denuncia formal o explícita de violaciones de derechos humanos",
-            "propuesta_alternativa": "Este texto propone alternativas porque los canales de participación existentes son insuficientes",
-            "llamado_dialogo": "Este texto hace un llamado al diálogo, negociación o búsqueda de acuerdos",
-            "defensa_territorio": "Este texto expresa resistencia activa o reivindicación del territorio frente a una amenaza",
-            "exigencia_participacion": "Este texto exige participación o inclusión porque las comunidades han sido excluidas"
+            "rechazo_proyecto": "Este texto expresa rechazo, oposicion o desacuerdo explicito frente a un proyecto o iniciativa especifica, por parte de actores sociales, comunitarios o institucionales.",
+            "deficit_derechos": "Este texto expresa reclamos urgentes o exigencias de derechos que estan siendo vulnerados o que no han sido garantizados a comunidades o grupos afectados.",
+            "denuncia_violacion": "Este texto reporta una denuncia formal o explicita de violaciones de derechos humanos, abusos o incumplimientos graves de acuerdos, presentada por comunidades, organizaciones o defensores identificados.",
+            "deficit_participacion_efectiva": "Este texto propone alternativas o soluciones diferentes porque los canales institucionales de participacion han fallado o son insuficientes para atender las necesidades de las comunidades.",
+            "ruptura_dialogo": "Este texto hace un llamado urgente al dialogo o la negociacion porque existe un conflicto activo, una ruptura de acuerdos o una situacion de exclusion que las instituciones no han resuelto.",
+            "reivindicacion_territorial": "Este texto expresa resistencia activa, conflictividad o reivindicacion del territorio, los recursos naturales o el medio ambiente frente a una amenaza concreta.",
+            "exclusion_participacion": "Este texto exige participacion, consulta o inclusion porque las comunidades han sido excluidas de decisiones que las afectan directamente."
         }
 
         self.indicadores = {
@@ -252,11 +252,11 @@ class PipelineTransformers:
         return df
 
     def _crear_scores_dimension(self, df: pd.DataFrame) -> None:
-        dim1 = ["transparencia_contractual","consulta_previa","exigencia_participacion","propuesta_alternativa","participacion_comunitaria","audiencia_publica","taller_participativo","llamado_dialogo"]
+        dim1 = ["transparencia_contractual","consulta_previa","exclusion_participacion","deficit_participacion_efectiva","participacion_comunitaria","audiencia_publica","taller_participativo","ruptura_dialogo"]
         dim2 = ["fortalecimiento_institucional"]
-        dim3 = ["incentivos_economicos","protesta_social","nivel_acuerdo_proyecto","equidad_inclusion","movimientos_sociales","grupos_poblacionales_afectados","participacion_economica_local"]
-        dim4 = ["impactos_ambientales","conflictos_socioambientales","reasentamiento","conflicto_territorial","defensa_territorio","respeto_territorios"]
-        dim5 = ["desplazamiento_forzado","amenaza_intimidacion","denuncia_violacion","demanda_derechos","presencia_grupos_armados","desaparicion_lideres"]
+        dim3 = ["incentivos_economicos","protesta_social","rechazo_proyecto","equidad_inclusion","movimientos_sociales","grupos_poblacionales_afectados","participacion_economica_local"]
+        dim4 = ["impactos_ambientales","conflictos_socioambientales","reasentamiento","conflicto_territorial","reivindicacion_territorial","respeto_territorios"]
+        dim5 = ["desplazamiento_forzado","amenaza_intimidacion","denuncia_violacion","deficit_derechos","presencia_grupos_armados","desaparicion_lideres"]
         for c in dim1 + dim2 + dim3 + dim4 + dim5:
             if c not in df.columns:
                 df[c] = 0.0
