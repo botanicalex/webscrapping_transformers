@@ -34,9 +34,51 @@ corr(n_articulos,  radar_oficial)  Spearman = -0.260
 **La correlación con el objetivo es cero.** No es que el radar mida mal el objetivo: es que
 ambos constructos son prácticamente ortogonales.
 
-Un matiz a favor del pipeline: la correlación con el número de artículos también es ~0, así
-que el radar **no** es un medidor de cobertura de prensa disfrazado. Mide algo —
-presumiblemente conflicto — pero ese algo no es lo que el índice oficial ordena.
+### Pero el radar SÍ produce datos con sentido — mirar el ranking, no solo la correlación
+
+Corrección importante, medida después de lo anterior. El ranking que produce el radar propio:
+
+```
+Más alto : Caquetá · Huila · Antioquia · Putumayo · Nariño · Tolima ·
+           Arauca · Cesar · Norte de Santander · Casanare
+Más bajo : Meta · Quindío · Boyacá · San Andrés · Sucre · Caldas · Guainía
+```
+
+**Por criterio de conflicto ese ranking es defendible.** Caquetá, Putumayo, Nariño, Arauca,
+Norte de Santander y Antioquia arriba; Quindío, Boyacá, Caldas y San Andrés abajo. Y pasa la
+prueba de sensatez: Cundinamarca no sale Alto.
+
+Decir "el radar no lleva señal" sería incorrecto. **Lleva señal de conflicto; lo que no lleva
+es señal de lo que el índice oficial ordena.** Son constructos distintos, no ruido.
+
+### El MAX sí es un artefacto de cobertura — confirmado a escala nacional
+
+```
+corr(radar_MAX_crudo, nº de artículos)  Spearman = 0.87
+```
+
+Calculando el MAX de los 26 indicadores por departamento sobre `df_procesado_32deptos.pkl`,
+los 5 más bajos son los 5 corpus más pequeños (Guainía 6 art., La Guajira 11, Vaupés 32,
+Sucre 41, San Andrés 79) y los más altos los mayores (Magdalena 1.538, Cesar 1.075).
+
+Es el artefacto del experimento 6 confirmado sobre los 32 departamentos. El cambio a **P75
+ataca exactamente esto** (ver `04_hallazgos_revision_nli.md`).
+
+### ⚠️ Discrepancia sin resolver — verificar antes de confiar en el 31.2%
+
+Los dos cálculos anteriores **no dan el mismo ranking**:
+
+| Fuente | corr con nº de artículos |
+|---|---|
+| Columna `Radar_completo_promedio_normalizado` del Excel de referencia | 0.062 |
+| MAX de los 26 indicadores sobre `df_procesado_32deptos.pkl` | 0.87 |
+
+`radar.py` aplica z-score (media 31.4, desv 7.6) y bloques A–E, pero **una calibración
+z-score es monótona y no reordena**. Conclusión: la columna del Excel salió de un método o
+de una corrida que **no es el pipeline actual**.
+
+**Implicación:** no se sabe con certeza qué radar produjo la accuracy de 31.2%. Identificarlo
+es barato y debe hacerse antes de interpretar esa cifra o de compararla con la de V2.
 
 Reproducir con:
 
@@ -84,10 +126,38 @@ optimizar directamente contra ese número arriesga sobreajustar a 32 puntos.
 
 ---
 
+## Para qué existe el radar: el encuadre correcto
+
+Antes de leer los tres caminos, hay que entender el diseño real del proyecto (confirmado por
+el usuario, 2026-08-29):
+
+> **Validar contra el DANE donde el DANE existe** (los 32 departamentos), **para poder
+> aplicar el radar donde no existe**: veredas, municipios y otras ventanas temporales.
+
+Es construir un proxy de alta frecuencia para una estadística oficial de baja frecuencia.
+Diseño legítimo y común. Explica el ejercicio de Maicao, Oicatá y Paraguachón: el objetivo
+final es bajar del nivel departamental, donde no hay referencia contra la cual contrastar.
+
+No se busca reproducir la medida del DANE exactamente —podría ser mejor o peor— sino
+**coincidir lo suficiente como para que el radar sea creíble donde no hay con qué
+compararlo**.
+
+**Consecuencia:** el acuerdo con el DANE no es un criterio más entre otros. Es **la licencia
+para extrapolar**. Sin él no hay argumento para creerle al radar en una vereda.
+
+**Asimetría a tener presente:** el DANE ordena por déficit estructural, el radar por
+presencia de conflicto, y la cobertura de prensa está invertida respecto de ambos. Los
+lugares donde más se quiere extrapolar (veredas remotas) son donde menos noticias hay —
+Paraguachón tiene 20 artículos y Güintiva ninguno.
+
 ## Los tres caminos
 
 **La decisión es de diseño de la investigación, no técnica.** Corresponde a la profesora, no
 a quien programe.
+
+Con el encuadre anterior, el camino (A) queda **debilitado**: el DANE no es un objetivo
+intercambiable, es el ancla que da validez a la extrapolación. El debate real está entre
+(B) y (C).
 
 ### A. Cambiar el objetivo
 
@@ -135,6 +205,31 @@ Saber exactamente qué indicador es decide cuál de los tres caminos corresponde
 ser algo distinto de lo inferido, buena parte de este documento hay que reescribirla.
 
 ---
+
+## Anclas de validez aparente — una prueba que la accuracy no da
+
+Idea del usuario: *"sería imposible que en Cundinamarca nos arrojara un Alto"*. Es un juicio
+externo, independiente del DANE, y detecta el disparate que una métrica agregada esconde.
+
+Formalizado como test: departamentos donde el juicio externo es firme, con la clase que
+**no** pueden tomar. Cualquier radar candidato debe respetarlas.
+
+```
+Nunca "Alto" : Cundinamarca · Quindío · Boyacá · San Andrés · Caldas · Risaralda
+Nunca "Bajo" : Cauca · Nariño · Chocó · Arauca · Norte de Santander · Putumayo
+```
+
+**Ventajas sobre la accuracy:** es independiente del DANE, sobrevive a cambios de escala y
+de agregación, y con n = 32 y error estándar de ~8 pp la accuracy sola no distingue un radar
+bueno de uno mediocre — las anclas sí distinguen uno absurdo.
+
+**Estado actual: el radar V0 las pasa.** Cundinamarca, Quindío, Boyacá y Caldas salen Bajo;
+Nariño, Arauca, Putumayo y Norte de Santander salen Alto. Queda escrito **antes** de cambiar
+la agregación, para poder comprobar que P75 no rompe lo que hoy funciona.
+
+La lista es un juicio, no un dato: conviene revisarla con la profesora antes de usarla como
+criterio formal. Implementar en `src/metricas_y_calculo_de_error.py` junto a la accuracy y
+las líneas base.
 
 ## Riesgo metodológico: selección sobre el conjunto de evaluación
 

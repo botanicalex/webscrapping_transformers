@@ -81,6 +81,31 @@ irrelevantes ya puntúan ~0 por sí solos.
 **Costo:** minutos, si los scores están guardados sin enmascarar.
 **Depende de:** punto 1.
 
+## 3b. Los términos de búsqueda apuntan a conflicto, el objetivo mide déficit
+
+Hipótesis concreta, barata de probar, que puede explicar buena parte de la brecha.
+
+`cfg.TEMAS_BUSQUEDA` es: `conflicto, comunidades, institucional, derechos, social`. **Cuatro
+de los cinco tiran hacia conflicto.** Si el índice oficial mide déficit estructural y
+ausencia de Estado, el corpus se está construyendo con las noticias equivocadas desde el
+primer paso — antes de que ninguna hipótesis NLI intervenga.
+
+La prensa regional **sí** reporta el otro tipo de señal: acueductos que fallan, vías
+destapadas, hospitales sin insumos, colegios en ruinas, cortes de gas, desabastecimiento.
+Términos como *servicios, acueducto, agua, vías, salud, educación, infraestructura* traerían
+ese material.
+
+Encaja con dos hechos ya medidos: el radar produce un ranking de conflicto defendible pero
+no correlaciona con el objetivo, y los indicadores que apuntan a la dimensión de déficit
+(`exclusion_servicios_derechos`, `debilidad_institucional`, `zonas_proteccion_alimentaria`)
+son los más débiles — `debilidad_institucional` es directamente uno de los muertos.
+
+**Prueba barata antes de re-scrapear todo:** correr un departamento con los términos nuevos
+y ver cuántos artículos aparecen y si los indicadores de déficit se activan. Si sí, es la
+palanca más grande del proyecto. Si no, se descarta por poco costo.
+
+**Depende de:** la tarea 0 (saber qué mide el índice) para saber qué términos añadir.
+
 ## 4. Ampliar el estándar de plata
 
 Hoy cubre **2 de 26** indicadores. **Es la mayor debilidad del informe**: todas las
