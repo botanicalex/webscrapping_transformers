@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 Prueba de integración controlada del pipeline radar de prensa.
-Cubre 2 departamentos sintéticos (Antioquia, Caldas) sin cargar modelos ML.
+Cubre 3 departamentos sintéticos (Antioquia, Caldas, Chocó) sin cargar modelos ML.
 
 Checklist de aceptación:
   [1] df_corpus_*.pkl generado y no vacío con columnas requeridas
   [2] df_procesado.pkl presente, no vacío y con columnas de señal
   [3] radar_departamentos.csv/pkl con columnas departamento, radar_propio, categoria_riesgo, n_articulos
   [4] comparacion_radares.xlsx contiene columna experimento_integracion rellena
-  [5] resultado_comparacion_radares_<timestamp>.xlsx generado con hojas metricas/ranking/errores
-  [6] Campos MAE, RMSE, MAPE_pct, Pearson, n_departamentos presentes en métricas
+  [5] resultado_comparacion_radares_<timestamp>.xlsx generado con hojas resumen/
+      detalle_por_clase/matrices_confusion/clasificacion_departamentos
+  [6] Campos comparacion, accuracy, f1_macro, cohen_kappa, n_departamentos en métricas
   [7] Resumen JSON con claves n_departamentos, articulos_por_departamento, metricas, artefactos
   [8] ValidadorPrecondiciones.etapa_corpus acepta el corpus sintético
   [9] ValidadorPrecondiciones.etapa_salida_no_vacia acepta df_procesado y radar
@@ -44,14 +45,23 @@ import orquestador_pipeline as orq
 # Constantes de prueba
 # ---------------------------------------------------------------------------
 
-DEPARTAMENTOS_TEST = ["Antioquia", "Caldas"]
+DEPARTAMENTOS_TEST = ["Antioquia", "Caldas", "Chocó"]
 N_ART_POR_DEPTO = 3
 NOMBRE_EXPERIMENTO = "experimento_integracion"
+
+# procesar_metricas_multi_experimento exige al menos 3 departamentos con dato
+# valido para calcular metricas (src/metricas_y_calculo_de_error.py); con 2
+# la corrida entera se descarta como "sin datos suficientes".
+_MIN_DEPARTAMENTOS_METRICAS = 3
+assert len(DEPARTAMENTOS_TEST) >= _MIN_DEPARTAMENTOS_METRICAS, (
+    "El pipeline de metricas exige minimo "
+    f"{_MIN_DEPARTAMENTOS_METRICAS} departamentos con dato valido"
+)
 
 # Señales diferenciadas por departamento para que CalculadorRadar produzca
 # radar_propio distintos (necesario para que scipy.stats.pearsonr no reciba
 # serie constante y pueda calcular).
-_SEÑAL = {"Antioquia": 0.8, "Caldas": 0.2}
+_SEÑAL = {"Antioquia": 0.8, "Caldas": 0.2, "Chocó": 0.5}
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +116,7 @@ def _excel_comparacion_sintetico(ruta: str) -> None:
     df = pd.DataFrame(
         {
             "departamento": DEPARTAMENTOS_TEST,
-            "radar_oficial_promedio": [55.0, 62.0],
+            "radar_oficial_promedio": [40.0, 55.0, 70.0][: len(DEPARTAMENTOS_TEST)],
         }
     )
     with pd.ExcelWriter(ruta, engine="openpyxl") as writer:
@@ -277,7 +287,9 @@ class TestIntegracionPipeline(unittest.TestCase):
     # [5] Excel de métricas timestamped
     # -------------------------------------------------------------------------
 
-    def test_05_metricas_excel_timestamped_con_tres_hojas(self) -> None:
+    def test_05_metricas_excel_timestamped_con_hojas_de_clasificacion(self) -> None:
+        # Métrica oficial actual: accuracy de clasificación en terciles (ver CLAUDE.md).
+        # MAE/RMSE/Pearson quedaron obsoletos; las hojas correspondientes también.
         excel_salida = self.resultado_metricas.get("excel_salida", "")
         self.assertTrue(
             os.path.isfile(excel_salida),
@@ -287,7 +299,8 @@ class TestIntegracionPipeline(unittest.TestCase):
             os.path.getsize(excel_salida), 0, "Excel de métricas no debe tener 0 bytes"
         )
         with pd.ExcelFile(excel_salida, engine="openpyxl") as xl:
-            for hoja in ("metricas", "ranking", "errores"):
+            for hoja in ("resumen", "detalle_por_clase", "matrices_confusion",
+                         "clasificacion_departamentos"):
                 self.assertIn(hoja, xl.sheet_names, f"Hoja '{hoja}' debe existir en métricas")
 
     # -------------------------------------------------------------------------
@@ -298,19 +311,19 @@ class TestIntegracionPipeline(unittest.TestCase):
         metricas = self.resultado_metricas.get("metricas", [])
         self.assertGreaterEqual(len(metricas), 1, "Debe calcularse al menos un experimento")
         m = metricas[0]
-        for campo in ("MAE", "RMSE", "MAPE_pct", "Pearson", "n_departamentos"):
+        for campo in ("comparacion", "n_departamentos", "accuracy", "f1_macro", "cohen_kappa"):
             self.assertIn(campo, m, f"Métricas deben incluir el campo '{campo}'")
         self.assertEqual(
             m["n_departamentos"],
             len(DEPARTAMENTOS_TEST),
             "n_departamentos debe coincidir con el número de departamentos de prueba",
         )
-        self.assertIsInstance(m["MAE"], float, "MAE debe ser float")
-        self.assertIsInstance(m["MAPE_pct"], float, "MAPE_pct debe ser float")
+        self.assertIsInstance(m["accuracy"], float, "accuracy debe ser float")
+        self.assertIsInstance(m["f1_macro"], float, "f1_macro debe ser float")
         self.assertIn(
-            "max_error_abs",
+            "best_accuracy",
             self.resultado_metricas,
-            "resultado_metricas debe incluir 'max_error_abs'",
+            "resultado_metricas debe incluir 'best_accuracy'",
         )
 
     # -------------------------------------------------------------------------
@@ -396,8 +409,8 @@ _CHECKLIST = [
     ("df_procesado.pkl presente, no vacío, columnas de señal",  "test_02"),
     ("radar_departamentos.csv/pkl con columnas clave",          "test_03"),
     ("Excel contiene columna experimento_integracion rellena",  "test_04"),
-    ("Métricas Excel timestamped generado con 3 hojas",         "test_05"),
-    ("Campos MAE/RMSE/MAPE_pct/Pearson/max_error_abs presentes","test_06"),
+    ("Métricas Excel timestamped generado con 4 hojas",         "test_05"),
+    ("Campos comparacion/accuracy/f1_macro/cohen_kappa presentes","test_06"),
     ("Resumen JSON con estructura correcta y serializable",     "test_07"),
     ("ValidadorPrecondiciones corpus OK",                       "test_08"),
     ("ValidadorPrecondiciones salidas NLP y radar OK",          "test_09"),
@@ -411,7 +424,7 @@ def _imprimir_checklist(resultado: unittest.TestResult) -> None:
     }
     linea = "=" * 64
     print(f"\n{linea}")
-    print("  CHECKLIST DE ACEPTACIÓN — INTEGRACIÓN CONTROLADA (2 DEPTOS)")
+    print("  CHECKLIST DE ACEPTACIÓN — INTEGRACIÓN CONTROLADA (3 DEPTOS)")
     print(linea)
     for descripcion, prefijo in _CHECKLIST:
         paso = not any(prefijo in k for k in fallos)

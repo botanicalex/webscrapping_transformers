@@ -338,8 +338,9 @@ def evaluar_criterio_parada(
     print("\n========== CRITERIO DE PARADA ==========")
     for m in metricas:
         estado = "OK" if m["accuracy"] >= umbral_accuracy else "NO OK"
+        etiqueta = m.get("comparacion", m.get("experimento", ""))
         print(
-            f"  {m['experimento']}: Accuracy={m['accuracy']*100:.1f}%  "
+            f"  {etiqueta}: Accuracy={m['accuracy']*100:.1f}%  "
             f"F1={m['f1_macro']:.3f}  kappa={m['cohen_kappa']:.3f}  "
             f"(umbral>={umbral_accuracy*100:.0f}%) [{estado}]"
         )
