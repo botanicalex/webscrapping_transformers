@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Datos: pesan ~107 MB y se regeneran o se copian. Viven en disco, no en git.
+datos/**/*.pkl
+datos/**/*.csv
+
+# Salidas del pipeline
+resultados/*
+!resultados/.gitkeep
+
+# Excel abiertos
+~$*.xlsx
+
+# Los resultados de los experimentos SI se versionan (~50 KB): son la evidencia
+# de las conclusiones documentadas en contexto/04_hallazgos_revision_nli.md.
+!experimentos/resultados/
+!experimentos/resultados/*.xlsx
+experimentos/resultados/*.pkl
