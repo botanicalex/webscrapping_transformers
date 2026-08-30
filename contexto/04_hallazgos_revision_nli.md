@@ -161,6 +161,15 @@ No volver a proponer revisarlo.
 
 ## Limitaciones declaradas
 
+- **Las variantes se eligieron sobre el mismo conjunto con el que se evaluó.** Se probaron 6
+  variantes por indicador y se escogió por AUC sobre los mismos 141 y 119 positivos de
+  plata, sin conjunto reservado. Con esas muestras, diferencias de AUC de 0.03–0.08 pueden
+  no sobrevivir a validación independiente.
+  *Aguantan* las conclusiones grandes —el marco metalingüístico (78% vs 20% en el control
+  absurdo, criterio independiente del AUC) y el problema del MAX (razón 0.91 vs 49.0)—;
+  *no necesariamente* las comparaciones finas entre variantes cercanas.
+  **Para futuras comparaciones:** reservar un tercio de los positivos como validación,
+  elegir en los dos tercios restantes y reportar sobre el reservado.
 - El estándar de plata es por palabras clave: alta precisión, recall imperfecto. Sirve para
   comparar variantes **entre sí**, no como verdad absoluta. Cubre 2 de 26 indicadores.
 - Los negativos ("0 keywords") contienen falsos negativos —un artículo de "hombres armados"

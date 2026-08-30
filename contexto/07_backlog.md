@@ -4,6 +4,33 @@ En orden de valor. Cada entrada dice qué desbloquea y qué cuesta.
 
 ---
 
+## 0. Confirmar qué mide exactamente el índice del DANE — minutos
+
+**Lo primero, antes que las 4 h de GPU.** Es lo más barato y de mayor impacto de todo el
+backlog.
+
+Hoy solo hay una **inferencia** a partir de cómo ordena los departamentos (Vichada, Guainía
+y Chocó arriba; Antioquia y Valle abajo → vulnerabilidad socioeconómica y ausencia de
+Estado). El DANE produce NBI, IPM y censo —no índices de conflicto—, lo que apoya la
+inferencia pero no la confirma.
+
+**Por qué bloquea todo lo demás:** el radar tiene correlación **+0.067** con ese objetivo,
+o sea cero, y empata con el modelo nulo. Saber qué mide el índice decide cuál de los tres
+caminos de `09_riesgos_y_limites.md` corresponde: cambiar el objetivo, cambiar los
+indicadores o soltar la métrica. Es una decisión de diseño de la investigación, no técnica.
+
+**Cómo:** preguntar a la profesora, o localizar la fuente original del archivo
+`comparacion_radares_V3.xlsx`.
+
+## 0b. Reportar líneas base junto a la accuracy — minutos
+
+`src/metricas_y_calculo_de_error.py` compara contra un objetivo de 0.70 sin ninguna
+referencia intermedia. Añadir siempre: azar (33.3%), clase mayoritaria (34.4%) y **modelo
+nulo por número de artículos** (31.2%).
+
+Sin eso, "31.2%" no dice si el pipeline aporta algo — y resulta que no. Los números ya están
+en `01_objetivo_y_radar.md`; falta llevarlos al script.
+
 ## 1. Scoring V2 sobre los 32 departamentos — ~4 h GPU
 
 ```bash
@@ -11,10 +38,16 @@ cd experimentos && python generar_scores_32deptos.py
 ```
 
 **Desbloquea:** todo lo demás. Los puntos 2, 3 y 6 dependen de este pkl.
-**Estado:** el script está listo y probado; la corrida anterior se perdió al apagar el
-equipo porque guarda solo al final. Considerar guardar por lotes antes de relanzar.
+**Estado:** el script está listo y **guarda por checkpoint tras cada hipótesis**, así que
+una interrupción ya no cuesta la corrida entera. Reanuda solo; `--reiniciar` empieza de
+cero.
 **Produce:** `datos/scores/scores_v2_32deptos.pkl` con `ent_` y `neu_` sin enmascarar, de
 modo que después se puede analizar todo offline sin volver a la GPU.
+
+**Lo primero que hay que medir con ese pkl:** la correlación del radar V2 corregido con el
+oficial. El radar V0 daba +0.067 (cero), pero se midió sobre un radar que ya sabíamos roto.
+Si el V2 tampoco correlaciona, el problema no está en los indicadores — ver
+`09_riesgos_y_limites.md`.
 
 ## 2. Recalibrar los cortes Bajo/Medio/Alto
 

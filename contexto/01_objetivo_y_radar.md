@@ -55,12 +55,27 @@ cómo se interpretan los resultados.)*
 `src/metricas_y_calculo_de_error.py`, junto con precision/recall/F1 macro, Cohen-kappa y la
 matriz de confusión 3×3.
 
-- **Objetivo del proyecto:** accuracy ≥ 0.70
-- **Estado medido:** **0.312** (10 de 32 aciertos)
-- **Azar con 3 clases:** 0.333
+### Líneas base — reportarlas SIEMPRE junto a la accuracy
 
-El radar está en el azar o por debajo. Ya **no** se calculan MAE, RMSE, R², Pearson ni MAPE;
-cualquier documento que los mencione como criterio está obsoleto.
+Una accuracy sola no dice si el pipeline aporta algo. Medido el 2026-08-27:
+
+```
+Azar (3 clases)                        : 33.3%
+Predecir siempre "Bajo"                : 34.4%
+Predecir siempre "Alto"                : 34.4%
+Predecir por nº de artículos solamente : 31.2%   <- modelo nulo
+Radar propio actual                    : 31.2%
+Objetivo del proyecto                  : 70.0%
+```
+
+**El radar empata con el modelo nulo y pierde contra un predictor constante.** Y su
+correlación con el objetivo es **+0.067 (Spearman): cero**.
+
+Esto es lo primero que hay que mirar antes de invertir esfuerzo en optimizar indicadores.
+El análisis completo, con los tres caminos posibles, está en `09_riesgos_y_limites.md`.
+
+Ya **no** se calculan MAE, RMSE, R², Pearson ni MAPE; cualquier documento que los mencione
+como criterio está obsoleto.
 
 **Con n = 32, el error estándar de la accuracy es ~8 pp.** Diferencias menores a ~15 pp no
 se distinguen del ruido: una mejora de 3 departamentos no es una mejora.

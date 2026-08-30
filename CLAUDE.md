@@ -9,7 +9,10 @@ grupos armados, ausencia de Estado). No es un índice de "cuánto pasa", es uno 
 
 **Métrica oficial:** accuracy de clasificación en terciles contra el radar DANE
 (`datos/referencia/comparacion_radares_V3.xlsx`, 32 departamentos). Objetivo 0.70.
-**Estado real: 0.312 — por debajo del azar (0.333).** Todavía no hay resultado que defender.
+**Estado real: 0.312 — empata con el modelo nulo (predecir por nº de artículos) y pierde
+contra un predictor constante ("siempre Bajo" da 0.344).** Su correlación con el objetivo es
++0.067: cero. **Leer `contexto/09_riesgos_y_limites.md` antes de invertir más trabajo en
+optimizar indicadores** — hay un techo estructural y una decisión de diseño pendiente.
 
 ## Reglas duras
 
@@ -88,6 +91,9 @@ Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`); los de
 - `contexto/07_backlog.md` — pendientes priorizados.
 - `contexto/08_log_decisiones.md` — **decisiones cerradas con su evidencia.** Leer antes de
   proponer cualquier cosa.
+- `contexto/09_riesgos_y_limites.md` — **el techo estructural del proyecto.** Leer antes de
+  optimizar indicadores: el radar no correlaciona con el objetivo y hay una decisión de
+  diseño pendiente que no es técnica.
 
 ## Convenciones
 

@@ -16,6 +16,12 @@ Se identificaron tres defectos, todos con corrección propuesta y validada sobre
 1.647 artículos. **Ninguna de esas correcciones está aplicada a `src/` todavía.** Viven en
 `experimentos/` y esperan la validación nacional.
 
+**Y hay un cuarto problema, de otra naturaleza, medido al cerrar agosto:** el radar tiene
+correlación **+0.067** con el índice oficial contra el que se evalúa —o sea cero— y su
+accuracy (31.2%) empata con el modelo nulo y pierde contra predecir "siempre Bajo" (34.4%).
+Eso no se arregla puliendo hipótesis: es una decisión de diseño de la investigación.
+**Leer `09_riesgos_y_limites.md` antes de invertir más trabajo en los indicadores.**
+
 ## Qué está hecho
 
 - **26 indicadores NLI**, cero NER, cero análisis de sentimiento (ambos desactivados y
