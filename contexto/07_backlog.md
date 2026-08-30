@@ -9,10 +9,17 @@ En orden de valor. Cada entrada dice qué desbloquea y qué cuesta.
 **Lo primero, antes que las 4 h de GPU.** Es lo más barato y de mayor impacto de todo el
 backlog.
 
-Hoy solo hay una **inferencia** a partir de cómo ordena los departamentos (Vichada, Guainía
-y Chocó arriba; Antioquia y Valle abajo → vulnerabilidad socioeconómica y ausencia de
-Estado). El DANE produce NBI, IPM y censo —no índices de conflicto—, lo que apoya la
-inferencia pero no la confirma.
+**Lo que ya está confirmado** (usuario, 2026-08-29): la columna es del DANE, se pegó a mano
+desde una página web donde el DANE publica el valor por departamento, y **esa URL está
+perdida**. El DANE usa sus propios indicadores, con otros nombres y otros cálculos.
+
+**Lo que falta:** cuál de sus índices es. Hoy solo hay una inferencia a partir de cómo
+ordena los departamentos (Vichada, Guainía y Chocó arriba; Antioquia y Valle abajo →
+vulnerabilidad socioeconómica y ausencia de Estado).
+
+El nombre `radar_oficial_**promedio**` sugiere que es el promedio de varios ejes. Si se
+recupera la página fuente, esos ejes son los "indicadores con otros nombres" del DANE — el
+mapa completo del constructo contra el que se compara.
 
 **Por qué bloquea todo lo demás:** el radar tiene correlación **+0.067** con ese objetivo,
 o sea cero, y empata con el modelo nulo. Saber qué mide el índice decide cuál de los tres

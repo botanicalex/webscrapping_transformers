@@ -46,8 +46,29 @@ brecha de accuracy. Los pocos indicadores que sí apuntan a esa dimensión
 `deficit_participacion_comunitaria`) merecen atención — y `debilidad_institucional` es
 justamente uno de los tres que no se activan nunca.
 
-*(No se ha confirmado qué indicador exacto del DANE es. Vale la pena preguntarlo: cambia
-cómo se interpretan los resultados.)*
+### Procedencia de la columna `radar_oficial_promedio`
+
+Confirmado por el usuario (2026-08-29):
+
+- **Es del DANE.**
+- **La columna se pegó a mano** en el Excel, tomada de una página web donde el DANE publica
+  el valor por departamento.
+- **La URL de esa página está perdida** por ahora. No hay script, documento ni commit en el
+  repositorio que la registre: el valor entra al proyecto ya consolidado.
+- El DANE usa **sus propios indicadores, con otros nombres y otros cálculos**. Cuáles son
+  exactamente no está documentado en ninguna parte del repositorio.
+
+**Lo que sigue abierto no es si es del DANE, sino cuál de sus índices es.** Eso decide si
+los 26 indicadores propios apuntan al constructo correcto. Es la tarea 0 del backlog.
+
+Pista de nomenclatura: `radar_oficial_**promedio**` sugiere que el valor es el promedio de
+varios ejes de un radar original. Si es así, la página fuente tendría las columnas por eje —
+y esos ejes serían justamente los "indicadores con otros nombres" del DANE. Recuperar esa
+página daría el mapa completo contra el que se está comparando.
+
+> Nota histórica: hubo una columna `IDIC` (índice del DNP) en la versión anterior del
+> archivo. **Se eliminó a propósito** porque comparar contra dos referencias a la vez no
+> tenía sentido. No es una pista perdida: fue una decisión. No reintroducirla.
 
 ## La métrica
 
