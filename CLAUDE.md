@@ -42,6 +42,13 @@ optimizar indicadores** — hay un techo estructural y una decisión de diseño 
     figure ahí como CERRADO no se relitiga sin evidencia nueva medida.
 11. **n = 32.** El error estándar de la accuracy es ~8 pp; diferencias menores a ~15 pp no
     se distinguen del ruido. No optimizar a ciegas contra ese número.
+12. **Se experimenta en `pruebas`, se entrega desde `master`.** `src/` en master es lo que
+    se manda si alguien pide el proyecto.
+13. **Promover algo de `pruebas` a `master` no está completo hasta que
+    `ESTADO_DEL_PROYECTO.md` lo refleje.** El entregable describe lo probado, no lo
+    intentado.
+14. **Los rechazos se registran en `contexto/08_log_decisiones.md` en `pruebas`, sobre la
+    marcha** — no esperan a la fusión. Registrarlos evita reintentarlos.
 
 ## Estado técnico
 
@@ -74,6 +81,8 @@ sobre los 32 departamentos.
 | `datos/corpus/` | Texto crudo. `df_corpus_combinado_32deptos.pkl` (11.439) y `df_corpus_5lugares.pkl` (1.647) |
 | `datos/referencia/` | Radar oficial DANE |
 | `datos/scores/` | Matrices de scores ya calculadas — reutilizar antes de tocar la GPU |
+| `../pruebas/` | Worktree hermano en la rama `pruebas`, mismo historial. Ahí se experimenta; `datos/corpus/` y `datos/scores/` están enlazados por junction a los de `desarrollo/` (no duplicar los 107 MB), `resultados/` es independiente en cada worktree |
+| `ESTADO_DEL_PROYECTO.md` | Entregable para lector externo (jefe, profesora). Solo existe en `master`; se actualiza al fusionar algo de `pruebas`, no durante los experimentos |
 
 Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`); los de
 `experimentos/`, **desde `experimentos/`**.
