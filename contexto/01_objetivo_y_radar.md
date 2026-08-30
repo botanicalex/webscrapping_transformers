@@ -101,6 +101,22 @@ como criterio está obsoleto.
 **Con n = 32, el error estándar de la accuracy es ~8 pp.** Diferencias menores a ~15 pp no
 se distinguen del ruido: una mejora de 3 departamentos no es una mejora.
 
+### Para iterar, usar Spearman — no la accuracy
+
+La accuracy en terciles **tira a la basura casi toda la información**: convierte 32 valores
+continuos en 3 clases y cuenta aciertos. Un cambio que mejore el orden de verdad puede no
+moverla ni un punto, y con n = 32 el ruido se come las diferencias pequeñas.
+
+Para trabajar hace falta una señal más fina: **correlación de Spearman contra
+`radar_oficial_promedio`** (el valor continuo, no la clase). Hoy está en **+0.067**.
+
+```
+Optimizar mirando Spearman · Reportar la accuracy
+```
+
+La accuracy sigue siendo el entregable y el criterio de éxito del proyecto (≥ 0.70); Spearman
+es el instrumento de trabajo, porque responde cuando algo mejora de verdad.
+
 ## La limitación estructural del insumo
 
 La cobertura de prensa está **negativamente correlacionada** con el objetivo:

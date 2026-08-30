@@ -106,6 +106,67 @@ palanca más grande del proyecto. Si no, se descarta por poco costo.
 
 **Depende de:** la tarea 0 (saber qué mide el índice) para saber qué términos añadir.
 
+### Términos candidatos
+
+```
+acueducto · agua potable · energía · alcantarillado · gas · salud · hospital ·
+escuela · educación · docentes · vías · carretera · desnutrición · vivienda ·
+servicios públicos · conectividad
+```
+
+## 3c. Bloque de indicadores de déficit estructural (propuesta)
+
+Idea del usuario tras ver que el objetivo mide déficit y los indicadores miden conflicto:
+**añadir indicadores de la dimensión faltante, y podar los que no aportan.**
+
+Es legítimo: en un diseño de proxy, ajustar las variables al constructo que se quiere
+predecir es ingeniería de características correcta, no trampa. Pero ver el freno más abajo.
+
+### Candidatos a añadir — escritos en formato V2 (declarativos, sin marco metalingüístico)
+
+| Clave | Hipótesis |
+|---|---|
+| `carencia_agua_potable` | "No hay acueducto ni agua potable." |
+| `carencia_energia` | "Hay cortes de energía o falta de servicio eléctrico." |
+| `carencia_saneamiento` | "No hay alcantarillado ni manejo de residuos." |
+| `deficit_salud` | "El servicio de salud es insuficiente o no hay hospital." |
+| `desnutricion` | "Hay desnutrición o hambre en la población." |
+| `deficit_educacion` | "Las escuelas están en mal estado o faltan docentes." |
+| `aislamiento_vial` | "Las vías están en mal estado o el territorio está incomunicado." |
+| `ausencia_estatal` | "No hay presencia de instituciones del Estado en el territorio." |
+| `vivienda_precaria` | "Hay viviendas precarias o hacinamiento." |
+
+Junto con los ya existentes `exclusion_servicios_derechos` y `zonas_proteccion_alimentaria`
+formarían un bloque de déficit real. `desnutricion` es especialmente pertinente para
+La Guajira, que el oficial clasifica Alto y hoy tiene 11 artículos.
+
+### Sobre podar
+
+- **`debilidad_institucional` NO se elimina: se reescribe.** Su concepto —ausencia de
+  Estado— es exactamente la dimensión que falta. Lo que falló es la redacción. Sería un
+  error quitarlo justo ahora que sabemos que es el que más falta hace.
+- `danos_ambientales` e `irregularidad_contractual` sí son de la dimensión conflicto/
+  gobernanza y también están muertos. Ahí sí cabe preguntarse si valen la pena.
+- `incentivos_economicos_inequitativos` y `exclusion_beneficios_economicos` correlacionan
+  **0.80**: fusionarlos libera un espacio sin perder información.
+
+### ⚠️ Freno metodológico — leer antes de empezar
+
+Con **n = 32**, probar varios conjuntos de indicadores y quedarse con el de mejor número es
+sobreajuste garantizado. Y lo peor: ese número **no se transferiría a las veredas**, que es
+donde se quiere usar el radar.
+
+Disciplina propuesta:
+
+1. Decidir el conjunto **por razonamiento del dominio**, no por prueba y error.
+2. Medir **una vez** y registrar el resultado salga como salga, en `08_log_decisiones.md`.
+3. Usar las **anclas de validez aparente** (ver `09_riesgos_y_limites.md`) como criterio
+   independiente: no se pueden sobreajustar.
+4. Optimizar mirando **Spearman**, no accuracy (ver `01_objetivo_y_radar.md`).
+
+**Orden correcto:** primero el corpus (3b), luego los indicadores (3c). Si la prensa no trae
+el material, ninguna hipótesis lo va a encontrar.
+
 ## 4. Ampliar el estándar de plata
 
 Hoy cubre **2 de 26** indicadores. **Es la mayor debilidad del informe**: todas las
