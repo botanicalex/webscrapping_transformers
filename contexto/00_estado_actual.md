@@ -38,14 +38,20 @@ completo en `08_log_decisiones.md` [2026-08-30] y `09_riesgos_y_limites.md`.
   lo que sigue en el backlog (puntos 2, 3, 6).
 - **Cortes Bajo/Medio/Alto recalibrados** sobre el radar V2 nacional: `Bajo < 0.30 <=
   Medio < 0.35 <= Alto` (backlog punto 2, ver `08_log_decisiones.md` [2026-08-30]).
+  Calibrados "con pre-filtro" — ver el punto siguiente, quedan pendientes de
+  recalibrar si se retira.
+- **Pre-filtro social V2 (umbral 0.85) RECHAZADO** (backlog punto 3, resuelto
+  2026-08-31): cuesta AUC de forma clara en los 2 indicadores con estándar de plata
+  (−0.053 y −0.027, IC95% excluye cero), y el control absurdo no lo explica. La
+  correlación agregada del radar no lo detectaba (diferencia dentro del ruido) porque
+  se diluye en la agregación P75. Ver `08_log_decisiones.md` [2026-08-31].
 
 ## Qué NO está hecho
 
-- **Decidir la suerte del pre-filtro social.** El A/B (con vs sin umbral 0.85) dio
-  +0.384 vs +0.376 de Spearman — diferencia dentro del ruido, apunta a que es
-  prescindible pero falta confirmar con AUC/control absurdo por indicador antes de
-  tocar producción. Ver `07_backlog.md` punto 3.
-- **Aplicar nada de V2 a `src/`.** Producción sigue con las hipótesis V0.
+- **Aplicar nada de V2 a `src/`.** Producción sigue con las hipótesis V0. Si se
+  promueve, la receta V2 va **sin pre-filtro social** (ver abajo) y con los cortes
+  Bajo/Medio/Alto recalibrados para esa distribución (regla 2 — los actuales se
+  calibraron "con pre-filtro").
 - **Re-scrapear del todo los 4 departamentos de nombre compuesto** (La Guajira, Norte de
   Santander, San Andrés y Providencia, Valle del Cauca): dos bugs de scraping ya se
   corrigieron (filtro de relevancia, SSL/MITM), pero quedan 3 fallas de scraper sin

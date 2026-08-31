@@ -413,3 +413,88 @@ municipio, vereda), sin recalcular terciles por lote.
 (hoy clasifican con terciles empíricos, `_categoria_terciles`/`_clasificar`) es un paso
 de promoción aparte (regla 9), pendiente de que el usuario lo pida — nada de V2 está en
 `src/` todavía, ni las hipótesis ni la agregación ni estos cortes.
+**Nota (2026-08-31):** la entrada siguiente RECHAZA el pre-filtro a nivel de indicador.
+Si esa decisión se confirma para producción, estos cortes (calibrados "con pre-filtro")
+quedan invalidados por la regla 2 y hay que recalibrarlos sobre la distribución sin
+pre-filtro antes de promover nada a `src/`.
+
+## [2026-08-31] A/B del pre-filtro social V2, con AUC y control absurdo por indicador — RECHAZADO (umbral 0.85)
+
+**Pregunta (backlog punto 3):** el A/B a nivel de radar agregado (entrada anterior,
+2026-08-30) dio Spearman +0.376 con pre-filtro 0.85 vs +0.384 sin — "diferencia dentro
+del ruido", y la propia entrada decía que no alcanzaba para decidir: faltaba el AUC y el
+control absurdo por indicador, que es justo lo que pide la regla 1. Esta entrada mide eso.
+
+**Método:** sobre `datos/scores/scores_v2_32deptos.pkl` (11.439 artículos, 32
+departamentos, `ent_`/`neu_` sin enmascarar — sin volver a tocar la GPU, regla 8). Única
+variable que cambia: aplicar o no `score_social_v2 >= 0.85` como máscara (forzar a 0 los
+artículos que no pasan) antes de puntuar (regla 7). AUC contra estándar de plata en los 2
+indicadores que lo tienen (`grupos_etnicos_existentes`, `presencia_grupos_armados`,
+`experimentos/silver.py` + `hipotesis_base.KEYWORDS_SILVER`), en `ent` crudo y en score
+corregido (`clip(clip(ent−sesgo,0)*(1−neu),0,1)`, la fórmula de producción V2). IC95% de
+la diferencia por bootstrap (2.000 remuestreos, n=871–1.335 positivos de plata — mucha
+más potencia que el n=32 departamental de la regla 11, que no aplica aquí). Control
+absurdo por indicador: AUC de `NULA_TEST` (osos polares, reservada, nunca calibra el
+sesgo — regla 4) contra los MISMOS silver labels, con y sin la máscara — para separar "el
+pre-filtro discrimina el indicador real" de "el pre-filtro solo correlaciona con el tema
+y por eso separa cualquier cosa, real o absurda, igual de bien". Script:
+`experimentos/exp_prefiltro_auc_indicador.py`
+(`resultados/exp_prefiltro_auc_indicador.xlsx`). Verificado con una revisión adversarial
+de 3 lentes independientes (bugs de implementación, cumplimiento de reglas duras,
+sensatez de la interpretación) antes de cerrar esta entrada; encontró un bug real menor
+(la media corregida del control absurdo en escala completa se calculaba pero no se
+guardaba en el Excel) — corregido y el script re-corrido; no cambió ningún número ya
+reportado (ver el script, semilla de bootstrap fija).
+
+**Evidencia:**
+
+```
+indicador                    escala            AUC sin   AUC con    delta        IC95%
+grupos_etnicos_existentes    ent crudo          0.8413    0.7823   -0.0589   [-0.0734,-0.0450]
+grupos_etnicos_existentes    score corregido    0.8323    0.7791   -0.0531   [-0.0662,-0.0402]
+presencia_grupos_armados     ent crudo          0.8578    0.8210   -0.0369   [-0.0469,-0.0278]
+presencia_grupos_armados     score corregido    0.8232    0.7963   -0.0269   [-0.0355,-0.0191]
+```
+
+Las 4 caídas tienen IC95% que excluye cero: el costo es real, no ruido de muestreo. El
+pre-filtro retiene 89.1% / 92.7% de los positivos de plata a escala nacional (consistente
+con el 92.4%/95.0% medido en `exp_agregacion_v2.py` sobre el corpus de 5 lugares, que fue
+la única base con la que se eligió 0.85) — pero ese ~7-11% que SÍ se fuerza a 0 cae al
+fondo del ranking y cuesta muchas comparaciones por pares en el AUC, mucho más de lo que
+sugeriría la tasa de pérdida por sí sola.
+
+**Control absurdo:** `NULA_TEST` contra los mismos silver labels gana algo de AUC con el
+pre-filtro en `ent` crudo (+0.0117 y +0.0234, IC excluye cero en ambos — el pre-filtro sí
+correlaciona algo con el tema), pero esa ganancia **casi desaparece en score corregido**
+(+0.0019 y +0.0022, IC rozando cero) — la resta de sesgo ya neutraliza ese artefacto. Es
+mucho menor que la caída de los indicadores reales en la misma escala (-0.0531 y -0.0269):
+el costo del pre-filtro no se explica por ese artefacto. Control absurdo en escala
+completa (sin condicionar a silver labels): prácticamente plano (media cruda 0.2142→
+0.2034, prop>0.9 5.7%→5.5%, media corregida 0.0203→0.0193) — el pre-filtro no lo rompe,
+tampoco lo mejora de forma que compense.
+
+**Decisión:** RECHAZADO el pre-filtro social V2 con umbral 0.85, para los 2 indicadores
+medidos. Caída de AUC clara y estadísticamente distinguible de cero en las 2 escalas y
+los 2 indicadores; el control absurdo no la explica (gana mucho menos de lo que pierden
+los indicadores reales, y nada en la escala que usa producción). No es la lectura que
+sugería el A/B agregado del 2026-08-30 ("apunta a prescindible") — a nivel de radar por
+P75 con 87% de artículos pasando el filtro, forzar a 0 el 7-11% de los positivos se
+diluye; a nivel de AUC por artículo no.
+
+**Alcance de la decisión — no sobregeneralizar:**
+- Solo se probó el umbral **0.85** (regla 7, una variable). No dice nada sobre si algún
+  otro umbral sí pasaría el control; recalibrar el umbral sería un experimento aparte.
+- El estándar de plata cubre 2 de 26 indicadores. La generalización a los otros 24 es
+  plausible (el pre-filtro es uniforme por artículo, no específico de un indicador) pero
+  **no medida**.
+
+**Cierra:** "el pre-filtro es prescindible" (no lo es: hace daño medible) y "hace falta
+el AUC por indicador antes de decidir" (backlog punto 3, ya no está pendiente para estos
+2 indicadores).
+**Abre:**
+- Si se decide sacar el pre-filtro de la receta V2 antes de promoverla a `src/` (regla 9,
+  paso de promoción aparte, no hecho todavía): los cortes Bajo/Medio/Alto del
+  2026-08-30 (entrada anterior) se calibraron "con pre-filtro" y quedan inválidos por la
+  regla 2 — recalibrar sobre la distribución sin pre-filtro.
+- Backlog punto 4 (ampliar el estándar de plata) ahora importa más: esta decisión
+  descansa en 2 de 26 indicadores.

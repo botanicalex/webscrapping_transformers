@@ -96,21 +96,31 @@ dentro del ruido de la de terciles ad hoc 40.6%).
 clasifican con terciles empíricos) — paso de promoción aparte, regla 9, no hecho
 todavía. Recalibrar si cambia la decisión del pre-filtro (punto 3).
 
-## 3. A/B del pre-filtro social — con y sin
+## 3. A/B del pre-filtro social — RESUELTO 2026-08-31 (RECHAZADO, umbral 0.85)
 
-**Hipótesis:** con la escala corregida puede ser prescindible, porque los artículos
-irrelevantes ya puntúan ~0 por sí solos.
-
-**Datos que la motivan:** el pre-filtro V0 anulaba el 33.6% de los positivos de plata de
-`grupos_etnicos_existentes` y el 17.7% de `presencia_grupos_armados`, y costaba −0.074 y
-−0.024 de AUC. El V2 con umbral 0.85 retiene 92.4% / 95.0% pero solo filtra el 12%.
+**Hipótesis original:** con la escala corregida puede ser prescindible, porque los
+artículos irrelevantes ya puntúan ~0 por sí solos. **Refutada** — no es prescindible,
+hace daño medible.
 
 **Medido 2026-08-30 (nivel radar, no por indicador):** con vs sin el umbral 0.85, sobre
 los 32 departamentos, Spearman contra el oficial da +0.376 vs +0.384 — diferencia
-dentro del ruido. Apunta a que es prescindible, pero esto es una medición agregada del
-radar completo, no el AUC/control absurdo por indicador que pide la regla 1 antes de
-tocar producción. **No cerrar la decisión solo con este número.**
-**Depende de:** punto 1 — YA CUMPLIDO. Falta el AUC por indicador antes de decidir.
+dentro del ruido. Apuntaba a que era prescindible, pero era una medición agregada del
+radar completo, no el AUC/control absurdo por indicador que pide la regla 1.
+
+**Medido 2026-08-31 (AUC + control absurdo por indicador, `exp_prefiltro_auc_indicador.py`):**
+el pre-filtro 0.85 **cuesta AUC de forma clara y con IC95% que excluye cero** en los 2
+indicadores con estándar de plata: `grupos_etnicos_existentes` −0.053, `presencia_grupos_armados`
+−0.027 (escala corregida). El control absurdo (NULA_TEST) no lo explica: gana mucho menos
+que lo que pierden los indicadores reales. El efecto es invisible a nivel de radar
+agregado (P75, 87% de artículos pasan) pero claro a nivel de artículo. Ver
+`08_log_decisiones.md` [2026-08-31] para el detalle completo, incluida la revisión
+adversarial que lo verificó.
+**Decisión:** RECHAZADO para umbral 0.85. Alcance: solo ese umbral, solo esos 2
+indicadores (medible).
+**Cierra:** "el pre-filtro es prescindible", "falta el AUC por indicador".
+**Abre:** si se decide sacar el pre-filtro de la receta V2, los cortes Bajo/Medio/Alto
+del punto 2 (calibrados "con pre-filtro") quedan inválidos y hay que recalibrarlos —
+paso de promoción a `src/` aparte, no hecho.
 
 ## 3b. Los términos de búsqueda apuntan a conflicto, el objetivo mide déficit
 
