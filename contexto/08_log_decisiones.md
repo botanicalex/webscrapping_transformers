@@ -285,6 +285,124 @@ siendo la prioridad activa.
   guardados. `experimentos/resultados/re_scrape_bugfix_relevancia/` tiene el resultado
   parcial (solo La Guajira y Norte de Santander) para cuando se retome.
 
+## [2026-08-31] Backlog 1b — 3 fallas de scraper diagnosticadas y corregidas, re-scraping repetido
+
+**Contexto:** las 3 fallas que quedaron abiertas en la entrada anterior (El Tiempo 502,
+parser de El País sin resultados, timeouts de Corrillos/Enlace/diariooccidente). Cada
+una se diagnosticó con pruebas directas contra la red real (no contra el HTML servido a
+mano — eso fue lo que llevó a un diagnóstico impreciso la vez anterior) antes de tocar
+`src/scrappers.py`.
+
+**1. El País Cali — el diagnóstico anterior era impreciso.** La búsqueda (API Queryly)
+**sí funcionaba**: 15-94 links encontrados por término en el log de la corrida anterior.
+La falla real estaba en la descarga de artículos: 0% de éxito, mal etiquetado como
+"timeouts" por el código (`_descargar_articulos` rotula CUALQUIER excepción como
+"timeouts", regla general del código, no solo de El País). Reproducido directo:
+`newspaper.Article(link).download()` da `CERTIFICATE_VERIFY_FAILED` — usa su propio
+`requests.Session` interno, AJENO a `self.session`, así que el fix del 2026-08-30
+(`self.session.verify = False`) nunca lo cubrió. `ScraperElTiempo` ya traía este mismo
+fix aplicado a mano en su propio override; el resto de los ~20 scrapers que usan la
+descarga por defecto de la clase base no. **Fix:** `Config` de `newspaper4k` con
+`verify=False` (y de paso `timeout=20`, ver punto 4) en un objeto módulo
+`_NEWSPAPER_CONFIG`, usado por `ScraperPeriodico._descargar_articulo_individual` — cubre
+a los ~20 scrapers de una vez, no solo El País. Verificado: 2/2 artículos de prueba
+descargados (antes: 0/2).
+
+**2. Diario Occidente — el "parser" nunca fue el problema.** `_recolectar_links`
+detiene la paginación en cuanto ve el PRIMER artículo con fecha anterior a
+`fecha_desde`. Confirmado con la red real: la búsqueda de WordPress de `occidente.co`
+ordena por relevancia, no por fecha — un artículo de 2020 aparece en la página 1
+intercalado con otros de 2026 (ver ejemplo medido: query "institucional" trae
+2026-07-17, 2026-02-27, **2020-09-15**, 2026-08-27... en ese orden). Parar en el primero
+que se ve descarta páginas enteras con artículos en rango todavía por recorrer. **Fix:**
+se ignora el artículo viejo (no se agrega, no se detiene) en vez de romper el bucle —
+igual que ya hace `ScraperCorrillos`, que enfrenta el mismo problema de orden no
+monótono en el mismo tipo de sitio (WordPress) y ya lo resolvía bien. La parada real
+sigue siendo la de "3 páginas seguidas sin nada nuevo en rango", que no dependía del
+bug.
+
+**3. Corrillos / Enlace Televisión — el timeout medía la cola, no la red.** Reproducido
+con datos reales (132 links de Corrillos de un scraping en vivo): con
+`aiohttp.TCPConnector(limit=10, ssl=False)` y `session.get(link, timeout=15)` (entero,
+timeout TOTAL) lanzando todos los links de una vez vía `asyncio.gather`, **68 de 132
+(51%) fallaban por "TimeoutError"** — pero cada request individual tomaba 2-8s cuando sí
+conseguía una conexión libre del pool; el resto del tiempo lo pasaba esperando en cola,
+y esa espera cuenta contra el timeout total de 15s. A más links en el lote, más
+artículos reales se pierden por pura cola, no por lentitud del sitio. **Fix:**
+`aiohttp.ClientTimeout(total=None, sock_connect=20, sock_read=20)` en vez de un entero
+— así la espera en cola no cuenta contra el timeout, solo la actividad real de socket.
+Verificado con un lote simulado de 800 links (repitiendo los 132 reales): 51% de fallos
+→ 784/792 (99%) éxitos, 8 fallos reales (`SocketTimeoutError` genuino).
+
+**4. Hallazgo adicional durante la verificación de Diario Occidente — mismo patrón,
+sitio simplemente lento.** Con el fix del punto 2 aplicado, `occidente.co` seguía
+fallando la mayoría de sus páginas de listado (`Read timed out`, `timeout=10`).
+Reproducido directo: el sitio responde consistentemente en 10-12s para búsquedas
+paginadas, sin señal de estar caído ni de rate-limiting — el timeout de 10s era
+simplemente insuficiente. **Fix:** `timeout=10 → 20` en el fetch de la página 1
+(`ScraperPeriodico.scrape()`, clase base, beneficio de paso a cualquier scraper lento) y
+`timeout=10 → 25` en el bucle de páginas de `ScraperDiarioOccidente._recolectar_links`
+(igualando lo que `ScraperCorrillos` ya usa para el mismo tipo de sitio). Mismo problema
+se repetía en la descarga de artículos individuales (7s por defecto de `newspaper4k`,
+40% de fallos) — cubierto por el mismo `_NEWSPAPER_CONFIG` del punto 1
+(`timeout: 20` agregado ahí). Verificado end-to-end: 0% → 100% de artículos descargados
+en una búsqueda de prueba (35/35).
+
+**El Tiempo (San Andrés y Providencia):** confirmado con la red real que el 502 **se
+resolvió temporalmente** (200 OK en una prueba aislada) y **volvió a aparecer** en una
+prueba posterior, minutos después, de forma consistente (4 intentos con 8s de espera,
+502 en los 4). Es un problema externo intermitente del sitio, no del código — no hay fix
+posible de nuestro lado. Sigue bloqueando San Andrés y Providencia, que depende al 100%
+de este scraper.
+
+**Verificación:** cada uno de los 4 fixes se probó de forma aislada contra la red real
+(no solo `py_compile`) antes de correr el re-scraping completo — instanciando la clase
+del scraper directamente con un rango de fechas corto y confirmando 100% de descargas
+exitosas. `py_compile src/scrappers.py` limpio en cada paso.
+
+**Re-scraping completo** (`experimentos/exp_rescrape_fix_relevancia.py`, log en
+`resultados/log_rescrape_bugfix_v3.txt`), con los 4 fixes de esta entrada más los 2 de
+la entrada anterior (filtro de relevancia, SSL/MITM base):
+
+```
+                              viejo   nuevo
+La Guajira                      11    1553
+Norte de Santander               36     352
+San Andrés y Providencia         79       0   <- El Tiempo caído en el momento de la corrida
+Valle del Cauca                 117     145
+```
+
+Norte de Santander pasó de 15 (corrida anterior, con Corrillos/Enlace rotos) a 352.
+Valle del Cauca pasó de 0 (El País y Diario Occidente rotos) a 145. San Andrés sigue en
+0 — no por un bug nuestro, sino porque El Tiempo estaba caído en el momento exacto de
+esta corrida (confirmado con pruebas aisladas antes y después).
+
+**Decisión:** ADOPTADOS los 4 fixes de `src/scrappers.py`. **NO se fusionó** el
+resultado con `datos/corpus/df_corpus_combinado_32deptos.pkl` todavía — esa carpeta está
+enlazada por junction con `desarrollo/` (ver `CLAUDE.md`), así que escribir ahí afecta a
+los dos worktrees, y es una decisión aparte de si/cuándo hacerlo, no automática. El
+resultado de esta corrida queda en
+`experimentos/resultados/re_scrape_bugfix_relevancia/` (`df_corpus_la_guajira.pkl`,
+`df_corpus_norte_de_santander.pkl`, `df_corpus_valle_del_cauca.pkl`).
+**Cierra:** las 3 fallas de scraper que quedaron documentadas como abiertas en la
+entrada anterior — diagnosticadas y corregidas (San Andrés queda bloqueado por una causa
+externa distinta, no por las 3 fallas originales).
+**Abre:**
+- Fusionar estos 3 pkl con el corpus nacional (decisión pendiente, ver arriba).
+- Si se fusiona: `datos/scores/scores_v2_32deptos.pkl` queda desactualizado para estos
+  departamentos — la correlación V2 (+0.384, entrada del 2026-08-30) y el AUC del
+  pre-filtro (entrada del 2026-08-31) se midieron sobre el corpus viejo de estos 3
+  lugares. Re-medir es la tarea 3b/3c del backlog ("repetir con corpus limpio"), no algo
+  automático — cuesta GPU (regla 8) y el propio `PROMPT_ARRANQUE.md` ya lo preveía como
+  paso posterior a 1b, no parte de 1b.
+- Reintentar San Andrés y Providencia cuando El Tiempo se estabilice — probar primero
+  con una petición suelta a `eltiempo.com/buscar/` antes de relanzar el departamento
+  completo (mismo consejo que la entrada anterior, sigue vigente).
+- Se encontró y corrigió el mismo patrón de bug de timeout (`session.get(link,
+  timeout=15)` total en vez de granular) en otros 10 scrapers del archivo, sin
+  confirmar si también los afecta — fuera de alcance de esta tarea, queda como
+  sugerencia aparte (chip `task_fa136510`).
+
 ## [2026-08-30] Correlación del radar V2 con el oficial DANE, a escala nacional — MEDIDO
 
 **Pregunta:** la más importante pendiente del proyecto (ver `09_riesgos_y_limites.md`):

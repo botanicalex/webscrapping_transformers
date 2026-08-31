@@ -45,6 +45,15 @@ completo en `08_log_decisiones.md` [2026-08-30] y `09_riesgos_y_limites.md`.
   (−0.053 y −0.027, IC95% excluye cero), y el control absurdo no lo explica. La
   correlación agregada del radar no lo detectaba (diferencia dentro del ruido) porque
   se diluye en la agregación P75. Ver `08_log_decisiones.md` [2026-08-31].
+- **4 fallas de scraper más corregidas** (backlog punto 1b, 2026-08-31): El País Cali
+  (SSL/MITM en `newspaper.Article`, ajeno al fix del `self.session` de la entrada
+  anterior — corregido en la clase base, beneficia a ~20 scrapers), Diario Occidente
+  (paraba en el primer artículo viejo asumiendo orden cronológico que WordPress no
+  garantiza), Corrillos/Enlace Televisión (timeout total contaba la espera en cola del
+  pool de conexiones, no solo la descarga) y timeouts de listado/descarga de Diario
+  Occidente por ser insuficientes para un sitio simplemente lento (no caído). Los 4
+  verificados contra red real antes y después del fix. Ver `08_log_decisiones.md`
+  [2026-08-31].
 
 ## Qué NO está hecho
 
@@ -52,13 +61,18 @@ completo en `08_log_decisiones.md` [2026-08-30] y `09_riesgos_y_limites.md`.
   promueve, la receta V2 va **sin pre-filtro social** (ver abajo) y con los cortes
   Bajo/Medio/Alto recalibrados para esa distribución (regla 2 — los actuales se
   calibraron "con pre-filtro").
-- **Re-scrapear del todo los 4 departamentos de nombre compuesto** (La Guajira, Norte de
-  Santander, San Andrés y Providencia, Valle del Cauca): dos bugs de scraping ya se
-  corrigieron (filtro de relevancia, SSL/MITM), pero quedan 3 fallas de scraper sin
-  resolver (El Tiempo caído, parser de El País, timeouts de Corrillos/Enlace). Ver
-  `07_backlog.md` punto 1b. El scoring V2 nacional ya corrido usa el corpus viejo para
-  esos 4 (11/36/79/117 artículos), así que la medición de correlación de arriba
-  subestima si acaso — no la infla.
+- **Fusionar el corpus re-scrapeado de 3 de los 4 departamentos de nombre compuesto.**
+  Las 5 fallas de scraper originales (filtro de relevancia, SSL/MITM, El País, Diario
+  Occidente, Corrillos/Enlace) ya están corregidas y verificadas contra red real
+  (`08_log_decisiones.md` [2026-08-30] y [2026-08-31]). Re-scraping ya corrido: La
+  Guajira 11→1553, Norte de Santander 36→352, Valle del Cauca 117→145. **San Andrés y
+  Providencia sigue en 0** — depende 100% de El Tiempo, que tiene un 502 intermitente
+  externo, no arreglable de este lado. El resultado vive en
+  `experimentos/resultados/re_scrape_bugfix_relevancia/`, **todavía sin fusionar** con
+  `datos/corpus/` (junction compartida con `desarrollo/`, decisión aparte). El scoring V2
+  nacional (`datos/scores/scores_v2_32deptos.pkl`) sigue sobre el corpus viejo para estos
+  departamentos — la medición de correlación (+0.384) y el AUC del pre-filtro
+  subestiman si acaso, no inflan. Ver `07_backlog.md` punto 1b.
 
 ## Alcance actual
 

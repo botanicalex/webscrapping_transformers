@@ -77,6 +77,20 @@ RUTA_CORPUS_PKL = cfg.RUTA_CORPUS_PKL
 
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Config de newspaper4k con el mismo workaround SSL/MITM (Norton) que ya se le
+# aplica a requests.Session y aiohttp — ver 08_log_decisiones.md [2026-08-30].
+# Article() usa su propio requests.Session interno, AJENO a self.session, así
+# que el fix anterior no lo cubría: cualquier dominio interceptado por Norton
+# fallaba con CERTIFICATE_VERIFY_FAILED en la descarga de CADA artículo aunque
+# la búsqueda (que sí usa self.session) funcionara. Confirmado en El País Cali
+# (Valle del Cauca), ver 08_log_decisiones.md [2026-08-31].
+# timeout 7s (default de newspaper) -> 20s: occidente.co responde en 10-12s
+# normal para sus páginas de artículo, igual que para la búsqueda — con 7s el
+# 40% de las descargas fallaba por pura estrechez del timeout, no por un sitio
+# caído. Mismo hallazgo, misma solución que el timeout de búsqueda paginada.
+_NEWSPAPER_CONFIG = Config()
+_NEWSPAPER_CONFIG.requests_params = {**_NEWSPAPER_CONFIG.requests_params, "verify": False, "timeout": 20}
+
 # ── BASE CLASS ───────────────────────────────────────────────────────────────
 
 class ScraperPeriodico(ABC):
@@ -130,7 +144,11 @@ class ScraperPeriodico(ABC):
         # Obtener total de páginas
         try:
             url_inicial = self._construir_url_busqueda(pagina=1)
-            r = self.session.get(url_inicial, timeout=10)
+            # timeout=10 -> 20: occidente.co (Diario Occidente) responde en 10-12s
+            # normalmente (medido 2026-08-31, red real, sin señal de estar caído
+            # ni de rate-limiting), asi que 10s fallaba por pura estrechez, no por
+            # un problema real. Mas generoso, nunca perjudica a un sitio rapido.
+            r = self.session.get(url_inicial, timeout=20)
             soup = BeautifulSoup(r.content, 'html.parser')
             total_paginas = self._obtener_total_paginas(soup)
             print(f"Total de páginas: {total_paginas}")
@@ -177,7 +195,7 @@ class ScraperPeriodico(ABC):
         """Descarga un artículo individual"""
         i, link = info
         try:
-            article = Article(link)
+            article = Article(link, config=_NEWSPAPER_CONFIG)
             article.download()
             article.parse()
 
@@ -868,7 +886,12 @@ class ScraperDiarioOccidente(ScraperPeriodico):
 
             try:
                 url = self._construir_url_busqueda(pagina)
-                r = self.session.get(url, timeout=10)
+                # timeout=10 -> 25: medido 2026-08-31 contra la red real, occidente.co
+                # responde en 10-12s normalmente para busquedas paginadas — no es un
+                # sitio caido ni con rate-limiting, solo lento. Con 10s la mayoria de
+                # las paginas fallaban (Read timed out) y se saltaban en silencio sin
+                # reintento, perdiendo articulos reales. Ver 08_log_decisiones.md.
+                r = self.session.get(url, timeout=25)
                 soup = BeautifulSoup(r.content, 'html.parser')
 
                 main = soup.find('div', class_='main-content') or soup
@@ -880,7 +903,6 @@ class ScraperDiarioOccidente(ScraperPeriodico):
 
                 n_antes = len(links)
                 hay_mas_recientes = False   # algún artículo posterior a fecha_hasta
-                parar = False
 
                 for bloque in bloques:
                     # Fecha
@@ -914,12 +936,14 @@ class ScraperDiarioOccidente(ScraperPeriodico):
                     elif fecha_desde_dt <= fecha_art <= fecha_hasta_dt:
                         links.append(href)
                     elif fecha_art < fecha_desde_dt:
-                        print(f"  Artículos anteriores a {self.fecha_desde}, deteniendo en página {pagina}")
-                        parar = True
-                        break
-
-                if parar:
-                    break
+                        # NO se detiene aquí: la búsqueda de WordPress ordena por
+                        # relevancia, no por fecha — un artículo de 2020 puede
+                        # aparecer en la página 1 intercalado con otros de 2026
+                        # (medido 2026-08-31, ver 08_log_decisiones.md). Parar en
+                        # el primero que se ve descarta páginas con artículos en
+                        # rango todavía por recorrer. Se ignora y se sigue; la
+                        # parada real es la de abajo (3 páginas sin nada nuevo).
+                        continue
 
                 # Parada anticipada: 3 páginas seguidas con artículos pero ninguno en rango
                 # (solo cuando ya no hay artículos más nuevos que el rango — flag hay_mas_recientes)
@@ -5278,7 +5302,15 @@ class ScraperEnlaceTelevision(ScraperPeriodico):
     async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            # timeout GRANULAR (no total=15): con TCPConnector(limit=10) y muchos
+            # links en un solo asyncio.gather, un timeout total cuenta la espera en
+            # cola por una conexion libre, no solo la descarga — con lotes grandes
+            # esa cola supera 15s aunque el sitio responda en ~2-3s cada vez, dando
+            # TimeoutError que en realidad son de cola, no de red lenta (medido
+            # 2026-08-31 contra Corrillos: 68/132 fallos con timeout=15 total, 0/132
+            # con este cambio en un lote de 800 — ver 08_log_decisiones.md).
+            timeout_dl = aiohttp.ClientTimeout(total=None, sock_connect=20, sock_read=20)
+            async with session.get(link, timeout=timeout_dl) as response:
                 html = await response.text()
 
             from newspaper import Article
@@ -5614,7 +5646,15 @@ class ScraperCorrillos(ScraperPeriodico):
     ) -> Optional[Dict]:
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
+            # timeout GRANULAR (no total=15): con TCPConnector(limit=10) y muchos
+            # links en un solo asyncio.gather, un timeout total cuenta la espera en
+            # cola por una conexion libre, no solo la descarga — con lotes grandes
+            # esa cola supera 15s aunque el sitio responda en ~2-3s cada vez, dando
+            # TimeoutError que en realidad son de cola, no de red lenta (medido
+            # 2026-08-31 contra Corrillos: 68/132 fallos con timeout=15 total, 0/132
+            # con este cambio en un lote de 800 — ver 08_log_decisiones.md).
+            timeout_dl = aiohttp.ClientTimeout(total=None, sock_connect=20, sock_read=20)
+            async with session.get(link, timeout=timeout_dl) as response:
                 html = await response.text()
 
             from newspaper import Article

@@ -57,7 +57,7 @@ oficial. El radar V0 daba +0.067 (cero), pero se midió sobre un radar que ya sa
 Si el V2 tampoco correlaciona, el problema no está en los indicadores — ver
 `09_riesgos_y_limites.md`.
 
-## 1b. Terminar de limpiar el corpus de los 4 departamentos de nombre compuesto
+## 1b. Terminar de limpiar el corpus de los 4 departamentos de nombre compuesto — CASI CERRADO 2026-08-31
 
 Al probar 3b se encontraron y corrigieron dos bugs reales en `src/scrappers.py` (ver
 `08_log_decisiones.md` [2026-08-30]): el filtro de relevancia ignoraba el nombre completo
@@ -66,20 +66,50 @@ de los departamentos compuestos (`La Guajira`, `Norte de Santander`,
 tenían el workaround SSL/MITM (antivirus Norton local) que `ElTiempo` ya traía. Ambos
 corregidos y verificados contra red real.
 
-**Pendiente, sin relación con lo anterior — 3 fallas de scraper distintas:**
-- El Tiempo devolvía `502 Bad Gateway` para cualquier búsqueda (afecta 100% a San
-  Andrés y Providencia, que depende solo de `eltiempo`). Reintentar más tarde.
-- `elpais.com.co` (Valle del Cauca) responde 200 pero el parser no extrae resultados —
-  posible carga de resultados por JS/AJAX no capturada por el scraper actual.
-- `Corrillos` / `Enlace Televisión` (Norte de Santander, Playwright) y
-  `diariooccidente` (Valle del Cauca) acumulan timeouts.
+**Las 3 fallas que quedaban se diagnosticaron y corrigieron el 2026-08-31** (ver
+`08_log_decisiones.md` [2026-08-31] para el detalle completo con evidencia de red real):
+- El País Cali: la búsqueda funcionaba; la descarga de artículos fallaba 100% por el
+  mismo problema SSL/MITM pero en `newspaper.Article` (sesión propia, ajena a
+  `self.session`) — corregido en la clase base, beneficia a ~20 scrapers.
+- Diario Occidente: paraba la paginación en el primer artículo viejo que veía, pero
+  WordPress ordena por relevancia, no por fecha — corregido para ignorar y seguir, como
+  ya hacía Corrillos.
+- Corrillos / Enlace Televisión: el timeout de descarga (15s) era TOTAL e incluía la
+  espera en cola por una conexión del pool, no solo la descarga — con lotes grandes eso
+  causaba ~50% de falsos timeouts. Corregido con timeout granular (sock_connect/read).
+- Hallazgo de paso: `occidente.co` responde en 10-12s normal (no está caído), el
+  timeout de 10s de listado y el de 7s de descarga de artículo eran insuficientes —
+  ambos ampliados.
 
-**Estado del corpus:** `datos/corpus/df_corpus_combinado_32deptos.pkl` sigue con los
-conteos viejos (11, 36, 79, 117) — no se fusionó nada todavía. El resultado parcial del
-re-scraping (solo La Guajira: 1.561, Norte de Santander: 15) está en
-`experimentos/resultados/re_scrape_bugfix_relevancia/`.
-**Costo:** minutos-horas por scraper, más lo que tome esperar a El Tiempo.
-**Depende de:** nada técnico; se frenó por decisión de priorizar el punto 1 (GPU).
+**El Tiempo (San Andrés y Providencia) sigue bloqueado** — confirmado externo e
+intermitente (200 OK en una prueba, 502 cuatro pruebas seguidas minutos después). No es
+arreglable de este lado. Reintentar cuando se estabilice.
+
+**Re-scraping completo corrido 2026-08-31**
+(`experimentos/resultados/re_scrape_bugfix_relevancia/`, log
+`resultados/log_rescrape_bugfix_v3.txt`):
+
+```
+                              viejo   nuevo
+La Guajira                      11    1553
+Norte de Santander               36     352
+San Andrés y Providencia         79       0   (El Tiempo caído en el momento)
+Valle del Cauca                 117     145
+```
+
+**Pendiente:**
+- **Decidir si fusionar** estos 3 pkl con `datos/corpus/df_corpus_combinado_32deptos.pkl`
+  — esa carpeta está enlazada por junction con `desarrollo/`, así que es una decisión
+  aparte, no automática (ver `08_log_decisiones.md` [2026-08-31]).
+- Si se fusiona, `datos/scores/scores_v2_32deptos.pkl` queda desactualizado para estos 3
+  departamentos y hay que decidir si re-puntuar con GPU (regla 8, no repetir sin
+  necesidad) — esto es lo que pide la tarea 3b/3c de abajo, no parte de 1b.
+- Reintentar San Andrés cuando El Tiempo se estabilice.
+- El mismo bug de timeout de Corrillos/Enlace está duplicado en otros 10 scrapers del
+  archivo, sin confirmar si los afecta también — fuera de alcance de 1b, sugerido aparte.
+
+**Depende de:** nada técnico; ya no bloquea nada — 3 de 4 departamentos tienen datos
+mucho más ricos que antes, disponibles para 3b/3c en cuanto se decida el paso de fusión.
 
 ## 2. Recalibrar los cortes Bajo/Medio/Alto — HECHO 2026-08-30
 
