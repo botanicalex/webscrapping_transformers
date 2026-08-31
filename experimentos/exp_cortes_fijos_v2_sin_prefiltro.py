@@ -25,9 +25,40 @@ import numpy as np
 import pandas as pd
 
 import exp_correlacion_v2_nacional as base
+import hipotesis_v2 as V2
 
 NUNCA_ALTO = base.NUNCA_ALTO
 NUNCA_BAJO = base.NUNCA_BAJO
+
+
+def _p75_rango_cercano(x: np.ndarray) -> float:
+    """Idéntico a CalculadorRadar._p75_rango_cercano de src/radar.py."""
+    o = np.sort(x)
+    return float(o[round(0.75 * (len(o) - 1))])
+
+
+def calcular_radar_rango_cercano(d: pd.DataFrame) -> pd.DataFrame:
+    """
+    Radar V2 sin pre-filtro agregando con P75 por RANGO MAS CERCANO, que es lo
+    que corre en produccion. `base.calcular_radar_v2` usa np.quantile, que
+    INTERPOLA — es otra distribucion (max|dif| 0.0219 medido), y calibrar los
+    cortes sobre una para cortar la otra viola la regla 2 del proyecto.
+    """
+    inds = list(V2.TODAS)
+    sesgo = d["sesgo"].values
+
+    def corregido(col):
+        e, n = d[f"ent_{col}"].values, d[f"neu_{col}"].values
+        return np.clip(np.clip(e - sesgo, 0, None) * (1 - n), 0, 1)
+
+    S = {c: corregido(c) for c in inds}
+    lugares = d["departamento"].values
+    filas = []
+    for lug in sorted(set(lugares)):
+        m = lugares == lug
+        radar = float(np.mean([_p75_rango_cercano(S[c][m]) for c in inds]))
+        filas.append({"departamento": lug, "radar_propio": radar, "n_articulos": int(m.sum())})
+    return pd.DataFrame(filas)
 
 
 def _clasificar_fijo(v: float, corte_bajo_medio: float, corte_medio_alto: float) -> str:
@@ -40,11 +71,12 @@ def _clasificar_fijo(v: float, corte_bajo_medio: float, corte_medio_alto: float)
 
 def main():
     d = pd.read_pickle(base.SCORES)
-    radar = base.calcular_radar_v2(d, con_prefiltro=False)
+    radar = calcular_radar_rango_cercano(d)
     radar["_k"] = radar["departamento"].map(base._norm)
 
     print("=" * 70)
-    print("Distribucion del radar V2 (P75, SIN prefiltro) — 32 departamentos")
+    print("Distribucion del radar V2 (P75 RANGO CERCANO, SIN prefiltro) — 32 deptos")
+    print("(la misma agregacion que corre en src/, no la interpolada)")
     print("=" * 70)
     vals = np.sort(radar["radar_propio"].values)[::-1]
     print(f"min={vals.min():.4f}  max={vals.max():.4f}  "

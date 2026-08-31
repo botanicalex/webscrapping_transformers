@@ -20,10 +20,16 @@ Las líneas base que el proyecto nunca calculó, contra el radar oficial DANE:
 Azar (3 clases)                        : 33.3%
 Predecir siempre "Bajo"                : 34.4%
 Predecir siempre "Alto"                : 34.4%
-Predecir por nº de artículos solamente : 31.2%   <- modelo nulo
-Radar propio actual                    : 31.2%
+Predecir por nº de artículos solamente : 31.2%   <- modelo nulo  (ver corrección)
+Radar propio actual                    : 31.2%   <- V0, ya no es "el actual"
 Objetivo del proyecto                  : 70.0%
 ```
+
+> **Corrección [2026-08-31]:** el modelo nulo da **28.1%**, no 31.2%. El 31.2% se calculó
+> re-tercilando el número crudo del DANE en vez de usar su columna de clasificación
+> (`Clasificacion_radar_oficial_promedio`) — el mismo bug que se corrigió ese día en
+> `src/metricas_y_calculo_de_error.py`. Y "radar propio actual" ya no es este: producción
+> corre V2 desde el 2026-08-31. Ver `10_combinaciones_y_rumbo.md` sección 1.
 
 **El radar empata exactamente con el modelo nulo y pierde contra un predictor constante.**
 Decir "siempre Bajo" sin leer una sola noticia acierta más que todo el pipeline.
@@ -138,7 +144,8 @@ de Estado (Vichada, Guainía, Amazonas arriba; Antioquia y Valle abajo). En Colo
 cosas se separan bastante: Antioquia tiene mucho conflicto y poca vulnerabilidad relativa;
 Amazonas al revés.
 
-**2. La cobertura del corpus va en contra del objetivo** (Spearman −0.26). Los departamentos
+**2. La cobertura del corpus va en contra del objetivo** (Spearman −0.26; recalculado el
+2026-08-31 sobre el corpus vigente da **−0.31**). Los departamentos
 que el índice marca como más vulnerables son los que menos prensa tienen.
 
 **3. Casi la mitad de la clase "Alto" es invisible.** De los 11 departamentos clasificados

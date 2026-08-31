@@ -33,8 +33,10 @@ SCORES = "../datos/scores/scores_v2_32deptos.pkl"
 REFERENCIA_V3 = "../datos/referencia/comparacion_radares_V3.xlsx"
 SALIDA = "resultados/exp_verificar_promocion_v2.xlsx"
 
-CORTE_BAJO_MEDIO = 0.3074
-CORTE_MEDIO_ALTO = 0.3524
+# Espejo de src/config_pipeline.py (CORTE_*_RADAR). Recalibrados el 2026-08-31
+# sobre la distribucion de P75 por rango mas cercano, que es la que corre.
+CORTE_BAJO_MEDIO = 0.2969
+CORTE_MEDIO_ALTO = 0.3527
 
 NUNCA_ALTO = ["Cundinamarca", "Quindío", "Boyacá", "San Andrés y Providencia", "Caldas", "Risaralda"]
 NUNCA_BAJO = ["Cauca", "Nariño", "Chocó", "Arauca", "Norte de Santander", "Putumayo"]

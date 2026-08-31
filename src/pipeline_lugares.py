@@ -117,8 +117,15 @@ def paso4_tablas(df_proc: pd.DataFrame) -> None:
                 df_tabla[c] = df_tabla[c].astype(int)
         ruta = os.path.join(DIR_SALIDA, f"tabla_indicadores_{slug(lugar)}.xlsx")
         df_tabla.to_excel(ruta, index=False)
-        n_rel = int((grupo["score_social"] >= 0.65).sum())
-        print(f"  {str(lugar):<26} {len(df_tabla):>5} articulos | {n_rel:>5} relevantes -> {os.path.basename(ruta)}")
+        # 'score_social' ya no existe: el pre-filtro social se retiro de
+        # produccion el 2026-08-31 (contexto/08_log_decisiones.md). Se conserva
+        # el conteo solo para pkl viejos que todavia la traigan.
+        if "score_social" in grupo.columns:
+            n_rel = int((grupo["score_social"] >= 0.65).sum())
+            detalle = f"| {n_rel:>5} relevantes "
+        else:
+            detalle = ""
+        print(f"  {str(lugar):<26} {len(df_tabla):>5} articulos {detalle}-> {os.path.basename(ruta)}")
 
 
 def paso5_resumen(df_proc: pd.DataFrame) -> None:

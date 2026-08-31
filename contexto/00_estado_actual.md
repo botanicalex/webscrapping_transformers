@@ -48,8 +48,10 @@ Detalle completo en `08_log_decisiones.md` [2026-08-30, 2026-08-31] y
   (−0.053 y −0.027, IC95% excluye cero), y el control absurdo no lo explica. La
   correlación agregada del radar no lo detectaba (diferencia dentro del ruido) porque
   se diluye en la agregación P75. Ver `08_log_decisiones.md` [2026-08-31].
-- **Cortes Bajo/Medio/Alto recalibrados sin pre-filtro y promovidos**: `Bajo < 0.3074 <=
-  Medio < 0.3524 <= Alto` (backlog punto 2, ver `08_log_decisiones.md` [2026-08-31]).
+- **Cortes Bajo/Medio/Alto recalibrados sin pre-filtro y promovidos**: `Bajo < 0.2969 <=
+  Medio < 0.3527 <= Alto` (backlog punto 2, ver `08_log_decisiones.md` [2026-08-31]).
+  Una primera versión (0.3074/0.3524) se calibró sobre la distribución equivocada (P75
+  interpolado en vez de rango cercano) y se corrigió el mismo día.
 - **Agregación P75 (no MAX) promovida a `src/`**, por rango más cercano (conserva
   trazabilidad a un artículo real concreto para verificación manual).
 - **4 fallas de scraper más corregidas** (backlog punto 1b, 2026-08-31): El País Cali

@@ -778,3 +778,96 @@ regla 9 — se registra la promoción). El bug de clasificación oficial en
 - El sistema de pesos aleatorios/poda-top-N sigue sin resolver como deuda técnica: es
   código funcional pero con un riesgo metodológico documentado, no usado por defecto,
   sin plan de retirarlo ni de arreglarlo.
+
+## [2026-08-31] Revisión adversarial de la promoción — 5 defectos encontrados y corregidos
+
+**Contexto:** al escribir un documento de orientación para el usuario
+(`contexto/10_combinaciones_y_rumbo.md`) se lanzó una verificación con tres revisores
+independientes (cifras, código, honestidad intelectual) contra el repositorio. Encontró
+defectos reales **en la promoción del mismo día**, que la verificación original no detectó
+porque comprobó la fórmula offline y el scorer con GPU, pero **nunca corrió el comando
+end-to-end que se documentó**.
+
+**Defectos corregidos:**
+
+1. **Los cortes fijos se calibraron sobre la distribución equivocada.** 0.3074/0.3524
+   salieron del P75 **interpolado** (`np.quantile` en `exp_correlacion_v2_nacional.py`),
+   pero producción agrega con P75 por **rango más cercano** — otra distribución
+   (max|dif| 0.0219). En la distribución real, 0.3074 caía en un hueco de 0.0071, **por
+   debajo del umbral de 0.008 que el propio script exige** para considerarlo hueco. Es el
+   caso literal de la regla 2. Recalibrados sobre la distribución correcta →
+   **0.2969 / 0.3527**. Accuracy sin cambio (25.0%), anclas intactas.
+2. **El camino legado de métricas aplicaba los cortes V2 a columnas en escala 0–100.** Al
+   cambiar `_clasificar` por `_categoria_cortes_fijos` en
+   `procesar_metricas_multi_experimento` se rompió: las 13 columnas `EXPERIMENTO_*` del
+   Excel ancho van de 0 a 100, así que con corte 0.3527 caían casi todas en "Alto"
+   (medido: 20 de 21 en `EXPERIMENTO_1`), y esas accuracies sin sentido eran las que se
+   imprimían como RESUMEN FINAL. Revertido a terciles en ese camino; los cortes fijos
+   quedan solo en `calcular_metricas_experimento`, que recibe el radar en su escala.
+3. **El comando por defecto reventaba después de las ~4 h de GPU.** `--nombre-experimento`
+   tenía default `experimento_1`, y esa columna ya existe en
+   `datos/referencia/comparacion_radares.xlsx`: `_actualizar_excel_experimento` lanzaba
+   `ValueError` y el orquestador moría con `sys.exit(1)` **después** de la etapa de
+   transformers. Default cambiado a vacío → `radar.py` elige el siguiente índice libre con
+   `_siguiente_indice_experimento`, que ya existía.
+4. **`src/pipeline_lugares.py` reventaba con `KeyError`** al retirar el pre-filtro: leía
+   `grupo["score_social"]` sin guarda y esa columna ya no se genera.
+5. **La rama de scraping del orquestador era código muerto:** llamaba
+   `tf.sc.FECHA_DESDE`, pero `Transformer_optimo` ya no tiene atributo `sc` (el import de
+   `scrappers` se movió dentro de `correr_scraping`). Cambiado a `cfg.FECHA_DESDE`.
+
+También se corrigió una inconsistencia menor: `generar_comparacion_experimento` escribía
+la columna `Clasificacion_{EXP}` con terciles mientras la accuracy de la misma llamada se
+calculaba con cortes fijos.
+
+**Defectos NO corregidos, documentados como abiertos** (requieren una decisión, no un
+parche):
+
+- **`CargadorCorpus.cargar()` hace glob de TODOS los `df_corpus_*.pkl`.** Una corrida real
+  levanta **12.592 artículos y 35 valores de `departamento`** (incluye "Municipio Maicao",
+  "Vereda Paraguachón", "Antioquia (2023)"), no 11.439 / 32. Un re-puntuado nacional
+  produciría 35 filas de radar. Hay que decidir qué corpus debe cargar producción.
+- `src/pipeline_lugares.py` y `src/generar_max_articulos_por_departamento.py` siguen con
+  cortes 1/3–2/3 y agregación MAX (rechazada). Fuera del camino por defecto.
+- `experimentos_radar.jsonl` registra `"promedio_simple_36_indicadores"` y
+  `"calibracion": "zscore_media31.4_std7.6"` para la operación "bloques": son 26
+  indicadores y no hay z-score.
+
+**Errores de documentación corregidos** (afectaban a `10_combinaciones_y_rumbo.md`,
+`09_riesgos_y_limites.md` y `07_backlog.md`):
+
+- **El modelo nulo da 28.1%, no 31.2%.** El 31.2% de `09_riesgos_y_limites.md` salió de
+  re-tercilar el número crudo del DANE — el mismo bug corregido en `src/`.
+- **La etiqueta "tres indicadores muertos" es inexacta a escala nacional.** El "0.0000
+  incluso en P90" solo vale para el corpus de 5 lugares. Nacional, P90:
+  `irregularidad_contractual` 21/32 deptos > 0 (max 0.3586), `debilidad_institucional`
+  7/32 (max 0.1419), `danos_ambientales` 3/32. El único realmente en cero en P75 es
+  `danos_ambientales`.
+- **San Andrés y Providencia tiene 79 artículos en el corpus, no 0.** El 0 fue solo el
+  resultado de la corrida de re-scraping del 31-08.
+- **El Spearman +0.067 del V0 no es reproducible desde V0+MAX** (da −0.18): corresponde a
+  la columna `Radar_completo_promedio_normalizado`, cuya procedencia
+  `09_riesgos_y_limites.md` ya declaraba sin resolver. O sea, el punto de partida de la
+  comparación "+0.067 → +0.42" es un radar no identificado.
+- `Spearman(nº artículos, radar oficial)` recalculado da −0.31, no −0.26.
+- El patrón de bug de timeout está en 15 clases de scraper, no en 10.
+
+**Argumentos rechazados por no sostenerse** (estaban en el borrador del documento):
+
+- *"E tiene el Spearman más alto"* como razón para preferir los cortes de E: el Spearman es
+  **invariante a los cortes**, así que no puede justificar un juego de cortes sobre otro.
+- *"E no rompe ninguna ancla"*: las cinco combinaciones pasan las anclas, y los cortes de E
+  se eligieron filtrando por esa condición — la cumple por construcción.
+- *Aplicar la regla 11 solo cuando conviene*: B (40.6%) menos E (25.0%) son **15.6 pp, por
+  encima** del umbral de ~15 pp del propio proyecto. B le gana a E en la métrica oficial de
+  forma distinguible, y hay que decirlo. La defensa de E se sostiene en que los terciles no
+  son desplegables y en la decisión sobre el pre-filtro, no en que E sea "mejor".
+- *"evidencia más fuerte que la accuracy"* para el AUC: son ejes distintos (discriminación
+  del indicador vs acuerdo del radar con el DANE), no una comparación de potencia.
+
+**Decisión:** ADOPTADAS las 5 correcciones de código y las correcciones de documentación.
+`py_compile` limpio y `test_integracion.py` (10 tests) pasa.
+**Cierra:** la idea de que la promoción del 2026-08-31 estaba verificada de punta a punta —
+no lo estaba: faltaba correr el comando documentado.
+**Abre:** decidir qué corpus debe cargar producción (punto 1 de los no corregidos), que
+bloquea el re-puntuado nacional.

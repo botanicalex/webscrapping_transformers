@@ -2,67 +2,116 @@ Retomamos el proyecto del radar de riesgo territorial. Trabajo en la rama `prueb
 (carpeta pruebas/, no desarrollo/).
 
 Antes de proponer o ejecutar nada, lee en este orden:
+
+  contexto/10_combinaciones_y_rumbo.md  <- EMPIEZA AQUÍ. Qué combinación funciona
+                                           mejor, qué se probó ya, cómo se calcula el
+                                           radar hoy, y qué está roto en src/.
   contexto/00_estado_actual.md
-  contexto/08_log_decisiones.md   <- lo que ya está cerrado, no relitigar
+  contexto/08_log_decisiones.md         <- lo que ya está cerrado, no relitigar
   contexto/07_backlog.md
-  contexto/09_riesgos_y_limites.md
+  contexto/09_riesgos_y_limites.md      <- el techo estructural, antes de optimizar
 
-## Qué cambió desde el arranque anterior (2026-08-30, misma sesión larga)
+## El estado en una línea, sin maquillaje
 
-Se cerraron, en este orden: 0b (líneas base en el script de métricas), 1 (scoring V2
-sobre los 32 departamentos, `datos/scores/scores_v2_32deptos.pkl`), y se midió lo más
-importante del proyecto — **el radar V2 sí correlaciona con el oficial**:
-`Spearman +0.384` (p=0.030, n=32) contra `+0.067` del V0, sin romper ninguna ancla de
-validez aparente y con la nula reservada dando ~0.0000 a escala nacional. Con eso se
-cerró también el punto 2 (cortes fijos `Bajo < 0.30 <= Medio < 0.35 <= Alto`). Detalle
-completo, con toda la evidencia, en `08_log_decisiones.md` — leerlo antes de remedir
-nada de esto.
+Producción corre V2 desde el 2026-08-31. **Su accuracy contra el DANE es 0.250: está por
+debajo de las cinco líneas base** (azar 0.333, "siempre Bajo" 0.344, modelo nulo 0.281).
+La mejor accuracy medida de todas las combinaciones es 0.406, pero usa terciles, que no son
+desplegables en una vereda sola. Lo que sí mejoró es la **validez del instrumento**: el
+radar V0 era indistinguible de uno hecho con hipótesis absurdas, y el V2 no.
+Ver `contexto/10_combinaciones_y_rumbo.md` sección 1 para la comparación completa.
 
-**Nada de V2 está en `src/` todavía** (ni hipótesis, ni agregación P75, ni estos
-cortes). Producción sigue con V0. Promoverlo es un paso aparte (regla 9), no hecho.
+## Qué cambió el 2026-08-31 (tres commits + correcciones posteriores)
 
-De paso, probando la tarea 3b, se encontraron y corrigieron **dos bugs reales de
-producción** en `src/scrappers.py` (no hipótesis, bugs de scraping): el filtro de
-relevancia ignoraba el nombre completo de los departamentos compuestos (La Guajira,
-Norte de Santander, San Andrés y Providencia, Valle del Cauca), y ~20 de ~29 clases de
-scraper no tenían el workaround SSL/MITM (antivirus Norton local) que `ElTiempo` ya
-traía. Ambos corregidos y verificados contra red real — pero **quedaron 3 fallas de
-scraper sin resolver** (El Tiempo con 502 en el momento, parser de El País sin extraer
-resultados, timeouts en Corrillos/Enlace Televisión), así que el corpus de esos 4
-departamentos sigue con los conteos viejos (11/36/79/117). Ver backlog punto 1b.
+1. **Se rechazó el pre-filtro social** (`bb3e961`), umbral 0.85: cuesta AUC en los dos
+   indicadores con estándar de plata (−0.053 y −0.027, IC95% excluye cero). Alcance: solo
+   ese umbral, solo esos 2 indicadores.
 
-Sobre la tarea 0 del backlog (identificar cuál es el índice del DANE de referencia):
-sigue PENDIENTE, la trae el usuario.
+2. **Se corrigieron 4 fallas de scraper** (`2552567`) y se re-scrapearon 3 departamentos:
+   La Guajira 11→1.553, Norte de Santander 36→352, Valle del Cauca 117→145. **El corpus NO
+   se fusionó** a `datos/corpus/`. San Andrés y Providencia **tiene 79 artículos en el
+   corpus**; el 0 fue solo el resultado de esa corrida, con El Tiempo caído.
 
-Todo lo anterior ya está commiteado en `pruebas` (commit `78cd3b6`,
-"Mide correlacion V2 nacional (+0.384), corrige dos bugs de scraping"). `git status`
-debería salir limpio al retomar; si no, algo cambió fuera de esta sesión.
+3. **Se promovió V2 a producción** (`331f033`): hipótesis nuevas, sin pre-filtro, sesgo
+   descontado, P75 por rango más cercano, cortes fijos, clasificación oficial real del DANE.
+   Verificado sin GPU y con GPU (max|dif| ~5e-7 contra `nli_core`).
 
-## Arranque propuesto
+4. **Una revisión posterior encontró errores en esa promoción**, ya corregidos:
+   los cortes se habían calibrado sobre la distribución equivocada (P75 interpolado en vez
+   de rango cercano) → recalibrados a **0.2969 / 0.3527**; el camino legado de métricas
+   aplicaba los cortes V2 a columnas en escala 0–100; el comando por defecto reventaba
+   *después* de las 4 h de GPU por colisión de `EXPERIMENTO_1`; `pipeline_lugares.py`
+   reventaba por la columna `score_social` retirada; y la rama de scraping del orquestador
+   era código muerto.
 
-1. **Tarea 3 del backlog** (lo que pidió el usuario para esta sesión): A/B del
-   pre-filtro social, pero con **AUC y control absurdo por indicador** — no la
-   correlación agregada del radar completo, que ya se midió (+0.384 con vs +0.376 sin
-   pre-filtro) y la propia entrada del log dice que no alcanza para decidir. Usa el
-   skill `experimento-hipotesis` si aplica; no vuelve a tocar la GPU (los scores están
-   en `datos/scores/scores_v2_32deptos.pkl` sin enmascarar).
-2. En paralelo o después, según decida el usuario: tarea 1b (arreglar los 3 scrapers
-   que quedaron rotos, para poder limpiar el corpus de los 4 departamentos y retomar
-   3b/3c con datos confiables). No depende de nada técnico, se frenó por prioridad.
-3. Backlog libre para lo que siga: 3b/3c (repetir con corpus limpio una vez resuelto
-   1b), 4 (ampliar estándar de plata — no depende de nada), 5 (tres indicadores
-   muertos), 7 (cobertura de prensa desbalanceada).
+## Preferencias del usuario, ya expresadas
+
+- **Evitar re-scraping.** Consume demasiado tiempo. El foco está en radar, transformers e
+  indicadores.
+- **La GPU sí se puede usar para transformers.** Se corren por separado del scraping.
+- **No ir tan rápido:** explicar antes de avanzar y preguntar cuando haya una decisión de
+  diseño de por medio.
+
+## Arranque propuesto — elegir uno, no varios
+
+1. **Ampliar el estándar de plata** (backlog punto 4). Cubre **2 de 26** indicadores y todas
+   las conclusiones de calidad descansan en dos. No depende de nada. Conviene además
+   reservar un tercio de los positivos como conjunto de validación
+   (`09_riesgos_y_limites.md`). Usar el skill `experimento-hipotesis` si toca redacción.
+
+2. **Los indicadores débiles** (backlog punto 5). Ojo: la etiqueta "tres indicadores
+   muertos" del backlog es **inexacta a escala nacional** — ver el aviso al final de
+   `contexto/10_combinaciones_y_rumbo.md`. El que está realmente en cero es
+   `danos_ambientales`. Va mejor después del punto 1, porque ninguno tiene con qué medirse.
+
+3. **Decidir si se fusiona el corpus re-scrapeado** de los 3 departamentos. `datos/corpus/`
+   está enlazada por junction con `desarrollo/`, así que afecta a los dos worktrees.
+   **Esta decisión va ANTES de re-puntuar**, no después: al revés obliga a repetir las 4 h
+   de GPU (regla 8).
+
+4. **Re-puntuar los 32 departamentos con el código de `src/`** (~4 h GPU). **Antes de
+   lanzarlo, resolver el problema del cargador de corpus** (ver abajo): tal como está
+   produce 35 filas de radar, no 32.
+
+Lo que **no** conviene arrancar sin el usuario: la tarea 0 (identificar qué índice del DANE
+es), que la trae él, y la decisión entre los tres caminos de `09_riesgos_y_limites.md`.
+
+## Roto o pendiente en `src/` — leer antes de una corrida larga
+
+- **`CargadorCorpus` carga TODOS los `df_corpus_*.pkl`**: una corrida real levanta 12.592
+  artículos y 35 valores de `departamento` (incluye "Municipio Maicao", "Vereda
+  Paraguachón", "Antioquia (2023)"), no 11.439 / 32.
+- **`src/pipeline_lugares.py` y `src/generar_max_articulos_por_departamento.py`** siguen con
+  cortes 1/3–2/3 y agregación MAX (rechazada). No están en el camino por defecto.
+- **`experimentos_radar.jsonl` registra metadatos falsos** para la operación "bloques"
+  ("36 indicadores", "zscore"): son 26 y no hay z-score.
+- **El camino legado de pesos aleatorios** (`--operaciones-radar indicadores_transformers`)
+  sigue invocable y poda al top-N por accuracy contra el propio DANE — riesgo de
+  sobreajuste documentado. **No usarlo.** El default sin flags es el único validado.
 
 ## Recordatorios que ya costaron tiempo
 
-- Ninguna variante se adopta sin pasar el control absurdo. El AUC solo, no decide.
-- Optimiza mirando Spearman contra radar_oficial_promedio; reporta la accuracy.
-- Con n=32 no persigas mejoras menores a ~15 pp: son ruido.
-- Si cambias lo que se mide, recalibra el umbral que lo corta.
-- Este entorno tiene un MITM SSL local (antivirus Norton) que rompe cualquier request
-  HTTPS sin workaround. Cualquier scraper NUEVO que se agregue necesita
-  `verify=False` (requests) o `TCPConnector(ssl=False)` (aiohttp) — si no, falla con
-  `CERTIFICATE_VERIFY_FAILED`. Ver `08_log_decisiones.md` [2026-08-30].
-- El Bash tool a veces no conserva el cwd esperado entre llamadas (sobre todo después
-  de un comando en background que falla al arrancar) — usar rutas absolutas en
-  operaciones de scraping/GPU largas evita corridas fallidas por directorio equivocado.
+- **Ninguna variante se adopta sin pasar el control absurdo.** El AUC solo no decide.
+- **AUC y accuracy son ejes distintos.** El AUC mide discriminación del indicador contra el
+  estándar de plata; la accuracy mide acuerdo del radar con el DANE. No mezclarlos ni usar
+  uno para anular al otro "por potencia estadística".
+- **Optimizar mirando Spearman, reportar la accuracy.** Pero el Spearman es **invariante a
+  los cortes**: no sirve para justificar un juego de cortes sobre otro.
+- **Con n=32, diferencias menores a ~15 pp son ruido — y la regla aplica en las dos
+  direcciones**, también cuando el número que sale perjudica la decisión ya tomada.
+- **Si cambias lo que se mide, recalibra el umbral.** Ya falló tres veces; la última, hoy:
+  los cortes se calibraron sobre P75 interpolado y producción usa rango más cercano.
+- **No optimizar los cortes contra la accuracy.** Se leen de la distribución y se verifican
+  contra las anclas.
+- **Antes de cualquier experimento**, `nli_core.verificar_contra_produccion_v2()` contra
+  `datos/scores/df_procesado_baseline_v2.pkl` debe dar OK. La función sin sufijo es legado.
+- Este entorno tiene un **MITM SSL local (Norton)**: cualquier scraper nuevo necesita
+  `verify=False` (requests) o `TCPConnector(ssl=False)` (aiohttp); `newspaper.Article` usa
+  su **propia** sesión y necesita su propio `Config` — ya está en `_NEWSPAPER_CONFIG`.
+- Los scripts de `src/` se corren **desde la raíz**; los de `experimentos/`, **desde
+  `experimentos/`**.
+
+## Pendiente de entregable
+
+`ESTADO_DEL_PROYECTO.md` solo existe en `master` y **sigue describiendo el estado del
+2026-08-30** (V0 en producción). Actualizarlo es parte de fusionar `pruebas` a `master`
+(regla 13), que no se ha hecho.

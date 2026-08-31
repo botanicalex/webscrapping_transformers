@@ -35,7 +35,7 @@ def _ejecutar_etapa(nombre: str, fn: Any) -> Any:
 
 def ejecutar_pipeline(skip_scraping: bool, ruta_pkl: str, salida: str) -> Tuple[str, str, str]:
     if not skip_scraping:
-        tf.correr_scraping(tf.sc.FECHA_DESDE, tf.sc.FECHA_HASTA, ruta_pkl, temas=None)
+        tf.correr_scraping(cfg.FECHA_DESDE, cfg.FECHA_HASTA, ruta_pkl, temas=None)
 
     ruta_procesado_pkl, _ = tf.run_pipeline_transformers(ruta_pkl, salida)
     ruta_indicadores_csv = os.path.join(salida, "indicadores_transformers_departamento.csv")
@@ -45,7 +45,7 @@ def ejecutar_pipeline(skip_scraping: bool, ruta_pkl: str, salida: str) -> Tuple[
         ruta_radar_csv=ruta_radar_csv,
         excel=cfg.ARCHIVO_COMPARACION_EXCEL,
         salida=salida,
-        nombre_experimento="experimento_1",
+        nombre_experimento="",   # siguiente EXPERIMENTO_N libre
         numero_iteraciones=1,
         desactivar_aleatoriedad=True,
         operaciones_radar=[rd.CalculadorRadar.OPERACION_BLOQUES],
@@ -207,9 +207,17 @@ def ejecutar_radar_experimentos(
     salida_metricas: Optional[str] = None,
     archivo_metricas_excel: str = "",
 ) -> List[Dict[str, Any]]:
-    nombre_normalizado = _normalizar_nombre_experimento(nombre_experimento)
-    sufijo = nombre_normalizado[len("experimento_"):]
-    experimento_id = f"EXPERIMENTO_{sufijo}"
+    # nombre_experimento vacio -> que radar.ejecutar_experimentos_radar elija
+    # el siguiente indice libre (_siguiente_indice_experimento). Antes el
+    # default era "experimento_1", que ya existe en el Excel de referencia:
+    # _actualizar_excel_experimento levantaba ValueError y el orquestador moria
+    # con sys.exit(1) DESPUES de las ~4 h de GPU de la etapa transformers.
+    if not str(nombre_experimento).strip():
+        experimento_id = None
+    else:
+        nombre_normalizado = _normalizar_nombre_experimento(nombre_experimento)
+        sufijo = nombre_normalizado[len("experimento_"):]
+        experimento_id = f"EXPERIMENTO_{sufijo}"
     archivo_log = archivo_log_experimentos.strip() if archivo_log_experimentos else ""
     if not archivo_log:
         archivo_log = os.path.join(salida, "experimentos_radar.jsonl")
@@ -379,7 +387,10 @@ def main() -> None:
     parser.add_argument("--ruta-pkl", default=cfg.RUTA_CORPUS_PKL)
     parser.add_argument("--salida", default=cfg.RUTA_SALIDA_PIPELINE)
     parser.add_argument("--excel", default=cfg.ARCHIVO_COMPARACION_EXCEL)
-    parser.add_argument("--nombre-experimento", default="experimento_1")
+    # Vacio por defecto = elegir el siguiente EXPERIMENTO_N libre. Con
+    # "experimento_1" (el default viejo) la etapa excel moria con ValueError
+    # porque esa columna ya existe en datos/referencia/comparacion_radares.xlsx.
+    parser.add_argument("--nombre-experimento", default="")
     parser.add_argument("--iteraciones-radar", type=int, default=1)
     parser.add_argument("--usar-pesos-fijos", action="store_true")
     parser.add_argument("--pesos-fijos-json", default="")
@@ -424,7 +435,7 @@ def main() -> None:
         _ejecutar_etapa(
             "scraping",
             lambda: tf.correr_scraping(
-                tf.sc.FECHA_DESDE, tf.sc.FECHA_HASTA, args.ruta_pkl, temas=None
+                cfg.FECHA_DESDE, cfg.FECHA_HASTA, args.ruta_pkl, temas=None
             ),
         )
 

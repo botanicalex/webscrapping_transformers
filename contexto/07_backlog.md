@@ -262,10 +262,18 @@ Dos caminos:
 
 **No depende de nada.** Se puede hacer ya.
 
-## 5. Los tres indicadores muertos
+## 5. Los tres indicadores muertos — la etiqueta es inexacta, ver corrección
 
 `debilidad_institucional`, `danos_ambientales`, `irregularidad_contractual` dan 0.0000
 incluso en el percentil 90.
+
+> **Corrección [2026-08-31]:** eso solo es cierto sobre el **corpus de 5 lugares**. A escala
+> nacional (`scores_v2_32deptos.pkl`, P90 por rango más cercano):
+> `irregularidad_contractual` 21/32 departamentos > 0 (max 0.3586), `debilidad_institucional`
+> 7/32 (max 0.1419), `danos_ambientales` 3/32 (max 0.0247). En P75 —lo que usa el radar—
+> sí quedan casi mudos (1/32, 1/32, 0/32). El único verdaderamente en cero a escala
+> nacional es `danos_ambientales`, junto con `deficit_participacion_comunitaria`.
+> Diagnosticar sobre el corpus nacional, no sobre el de 5 lugares.
 
 No es problema de agregación: ya eran los más débiles antes de la reescritura. Hipótesis a
 distinguir: (a) redacción mala, (b) fenómeno genuinamente raro en prensa regional,

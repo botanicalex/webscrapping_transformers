@@ -274,7 +274,11 @@ def generar_comparacion_experimento(
     col_norm = f"{experimento_id}_normalizado"
     col_clas = f"Clasificacion_{experimento_id}"
     df_exp[col_norm] = _normalizar_minmax(df_exp["radar_propio"])
-    df_exp[col_clas] = _clasificar(df_exp["radar_propio"]).values
+    # Cortes fijos, igual que `calcular_metricas_experimento` (que es quien
+    # llama a esta funcion): antes clasificaba con terciles, de modo que la
+    # columna guardada en el Excel podia discrepar de la clasificacion con la
+    # que se calculaba la accuracy en la misma llamada.
+    df_exp[col_clas] = _categoria_cortes_fijos(df_exp["radar_propio"]).values
 
     df_exp["_dep_lower"] = df_exp["departamento"].str.casefold()
     df_oficial["_dep_lower"] = df_oficial["Departamento"].str.casefold()
@@ -672,7 +676,14 @@ def procesar_metricas_multi_experimento(ruta_excel: str, salida: str) -> Dict[st
 
         cat_of = (temp["clasificacion_oficial"].astype(str).str.strip() if col_clasif_oficial
                   else _clasificar(temp["radar_oficial_promedio"]))
-        cat_ex = _categoria_cortes_fijos(temp["radar_experimento"])
+        # cat_ex con TERCILES, no con los cortes fijos V2: las columnas
+        # EXPERIMENTO_* de este Excel ancho son historicas y estan en escala
+        # 0-100 (min 0.00, max 100.00), mientras que los cortes fijos estan
+        # calibrados para la escala P75 natural (0-~0.4). Aplicarles los cortes
+        # fijos manda casi todo a "Alto" (medido: 20 de 21 en EXPERIMENTO_1) y
+        # produce accuracies sin sentido. El camino V2 con cortes fijos es
+        # `calcular_metricas_experimento`, que recibe el radar en su escala.
+        cat_ex = _clasificar(temp["radar_experimento"])
         res, det, cm = _metricas_par(cat_of, cat_ex, eid)
         if res is None:
             sin_datos.append(eid)
@@ -729,7 +740,8 @@ def procesar_metricas_multi_experimento(ruta_excel: str, salida: str) -> Dict[st
         temp_c = df[cols_c].dropna(subset=[col_oficial, col]).copy()
         cat_of_c = (temp_c[col_clasif_oficial].astype(str).str.strip() if col_clasif_oficial
                     else _clasificar(_to_numeric_series(temp_c[col_oficial])))
-        cat_ex_c = _categoria_cortes_fijos(_to_numeric_series(temp_c[col]))
+        # terciles, no cortes fijos -- misma razon de escala que arriba
+        cat_ex_c = _clasificar(_to_numeric_series(temp_c[col]))
         cm_c = confusion_matrix(cat_of_c.tolist(), cat_ex_c.tolist(), labels=LABELS_CAT)
         filas_cm.append({"experimento": eid, "real \\ predicho": "---", **{c: "" for c in LABELS_CAT}})
         for ri, label_r in enumerate(LABELS_CAT):

@@ -7,12 +7,17 @@ sobre 26 hipótesis → agregación por lugar → clase Bajo/Medio/Alto.
 grupos armados, ausencia de Estado). No es un índice de "cuánto pasa", es uno de
 "cuánto estorba".
 
-**Métrica oficial:** accuracy de clasificación en terciles contra el radar DANE
+**Métrica oficial:** accuracy de clasificación contra el radar DANE
 (`datos/referencia/comparacion_radares_V3.xlsx`, 32 departamentos). Objetivo 0.70.
-**Estado real: 0.312 — empata con el modelo nulo (predecir por nº de artículos) y pierde
-contra un predictor constante ("siempre Bajo" da 0.344).** Su correlación con el objetivo es
-+0.067: cero. **Leer `contexto/09_riesgos_y_limites.md` antes de invertir más trabajo en
-optimizar indicadores** — hay un techo estructural y una decisión de diseño pendiente.
+
+**Estado real (2026-08-31, producción ya corre V2):** el Spearman contra el objetivo subió
+de **+0.067 (cero) a +0.42** — señal real, medida y verificada. **Pero la accuracy sigue sin
+superar de forma concluyente a las líneas base**: la configuración en producción da 0.250 y
+la mejor medida de todas (no desplegable) 0.406, contra "siempre Bajo" 0.344 y azar 0.333.
+Con n=32 nada de eso se distingue del ruido. **El indicador de trabajo es el Spearman, no la
+accuracy.** Leer `contexto/10_combinaciones_y_rumbo.md` para la comparación completa entre
+configuraciones, y `contexto/09_riesgos_y_limites.md` antes de invertir más trabajo en
+optimizar indicadores — hay un techo estructural y una decisión de diseño pendiente.
 
 ## Reglas duras
 
@@ -29,10 +34,13 @@ optimizar indicadores** — hay un techo estructural y una decisión de diseño 
    configuración): solo son comparables mediciones con el mismo contenido absurdo.
 4. **`NULA_TEST` no entra jamás en la calibración del sesgo.** Para eso están las 4 de
    `NULAS_CALIBRACION`. Mezclarlas destruye la única evaluación honesta que queda.
-5. **`experimentos/hipotesis_base.py` es de solo lectura.** Son las 26 cadenas V0 de
-   producción, el punto de comparación. Las variantes van en archivos nuevos.
-6. **Antes de cualquier experimento, `nli_core.verificar_contra_produccion()` debe dar OK**
-   (max|dif| = 0.00e+00). Si no, `nli_core` se desvió y nada es comparable.
+5. **`experimentos/hipotesis_base.py` es de solo lectura.** Son las 26 cadenas V0, que
+   fueron producción hasta el 2026-08-31 y quedan como punto de comparación histórico. Las
+   variantes van en archivos nuevos.
+6. **Antes de cualquier experimento, `nli_core.verificar_contra_produccion_v2()` contra
+   `datos/scores/df_procesado_baseline_v2.pkl` debe dar OK** (max|dif| < 1e-4; hoy da
+   ~5e-7). Si no, `nli_core` se desvió y nada es comparable. La función sin sufijo
+   (`verificar_contra_produccion`) verifica contra V0 y es legado.
 7. **Un experimento aísla UNA variable.** Dos cambios a la vez no se pueden atribuir.
 8. **No repetir GPU.** Puntuar los 32 departamentos son ~4 h. Se guardan `ent_` y `neu_`
    **sin enmascarar** en un pkl y todo el análisis posterior se hace sobre el pkl.
@@ -64,18 +72,24 @@ La revisión NLI encontró **tres defectos independientes**, cada uno medido y c
    comparten el defecto.
 
 Score corregido en uso: `clip(clip(ent − sesgo, 0) * (1 − neu), 0, 1)`, agregado por lugar
-con P75.
+con P75 (por rango más cercano).
 
-**Abierto:** recalibrar los cortes Bajo/Medio/Alto sobre la distribución nacional; decidir si
-el pre-filtro sigue haciendo falta; ampliar el estándar de plata (cubre 2 de 26); validar
-sobre los 32 departamentos.
+**Los tres están corregidos EN PRODUCCIÓN desde el 2026-08-31.** `src/` corre: hipótesis V2,
+**sin pre-filtro social** (rechazado: cuesta AUC), sesgo descontado, P75 por rango más
+cercano, cortes fijos `Bajo < 0.2969 <= Medio < 0.3527 <= Alto`, y la clasificación oficial
+del DANE leída de su columna (antes se recalculaba con terciles propios — era un bug).
+
+**Abierto:** ampliar el estándar de plata (cubre 2 de 26 — es la mayor debilidad, todas las
+conclusiones de calidad descansan en dos); los tres indicadores muertos; re-puntuar los 32
+departamentos con el código de `src/` ya promovido (~4 h GPU, nunca se corrió a escala
+nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos.
 
 ## Mapa
 
 | Ruta | Qué es |
 |---|---|
 | `src/` | Producción: `Transformer_optimo.py`, `radar.py`, `scrappers.py`, `config_pipeline.py`, `orquestador_pipeline.py`, `metricas_y_calculo_de_error.py`. Se ejecuta desde la raíz: `python src/<script>.py` |
-| `experimentos/nli_core.py` | Motor NLI que reproduce producción bit a bit sin importar `scrappers`/playwright. `NLIScorer.score(premisas, hipotesis, devolver_todo=)`, `verificar_contra_produccion()`, dict `PREMISAS` |
+| `experimentos/nli_core.py` | Motor NLI que reproduce producción sin importar `scrappers`/playwright. `NLIScorer.score(premisas, hipotesis, devolver_todo=)`, `verificar_contra_produccion_v2()` (vigente) y `verificar_contra_produccion()` (legado V0), dict `PREMISAS` |
 | `experimentos/silver.py` | Estándar de plata por keywords: `etiquetar()`, `auc()`, `evaluar()`. Cubre 2 de 26 indicadores |
 | `experimentos/hipotesis_v2.py` | Las 26 reescritas, `HIPOTESIS_SOCIAL`, `NULAS_CALIBRACION` (4), `NULA_TEST` (reservada) |
 | `datos/corpus/` | Texto crudo. `df_corpus_combinado_32deptos.pkl` (11.439) y `df_corpus_5lugares.pkl` (1.647) |
@@ -101,8 +115,11 @@ Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`); los de
 - `contexto/08_log_decisiones.md` — **decisiones cerradas con su evidencia.** Leer antes de
   proponer cualquier cosa.
 - `contexto/09_riesgos_y_limites.md` — **el techo estructural del proyecto.** Leer antes de
-  optimizar indicadores: el radar no correlaciona con el objetivo y hay una decisión de
-  diseño pendiente que no es técnica.
+  optimizar indicadores: la cobertura de prensa va en contra del objetivo y hay una decisión
+  de diseño pendiente que no es técnica.
+- `contexto/10_combinaciones_y_rumbo.md` — **el documento de orientación.** Las 5
+  combinaciones medidas lado a lado con su accuracy y Spearman, qué se probó y qué falta, y
+  cómo se calcula el radar hoy paso a paso. Empezar por aquí al retomar.
 
 ## Convenciones
 
@@ -111,4 +128,7 @@ Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`); los de
   de correr: la pregunta, qué sería evidencia a favor y qué sería evidencia en contra.
 - Todo número citado lleva su archivo de origen. Si no está medido, se dice "no medido".
 - Para probar variantes de hipótesis, usar el skill `experimento-hipotesis`.
-- Para decidir el siguiente paso, usar el agente `orquesta-lead`.
+- Para decidir el siguiente paso, usar el agente `orquesta-lead`
+  (`.claude/agents/orquesta-lead.md`). Si el harness no lo registra como subagente
+  invocable, seguir su protocolo a mano: leer 08, 07 y 00 antes de proponer, y entregar un
+  solo siguiente paso con su costo y su criterio de fracaso fijado de antemano.
