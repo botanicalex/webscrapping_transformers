@@ -1,9 +1,14 @@
 # 09 — Riesgos y límites estructurales
 
-*Medido el 2026-08-27. **Leer antes de invertir más trabajo en optimizar indicadores.***
+*Medido el 2026-08-27, actualizado 2026-08-30. **Leer antes de invertir más trabajo en
+optimizar indicadores.***
 
-Este documento existe para que nadie redescubra desde cero lo que ya está medido: hay un
-techo estructural que ningún ajuste de hipótesis va a levantar.
+Este documento existe para que nadie redescubra desde cero lo que ya está medido. Al
+27-08 había un techo estructural aparente (el radar V0 no correlacionaba con el
+oficial); al 30-08, con el V2 corregido medido a escala nacional, ese techo resultó ser
+del radar V0 específicamente, no del proyecto — ver la actualización en "El hallazgo".
+Sigue habiendo un techo (0.38 de Spearman no es 0.70 de accuracy), pero es más alto de
+lo que parecía.
 
 ---
 
@@ -97,9 +102,29 @@ indistinguible de uno construido con hipótesis absurdas (brecha 0.0004, ver
 `04_hallazgos_revision_nli.md`).
 
 Así que el 0.067 **no prueba** que un radar corregido no vaya a correlacionar. Prueba que el
-actual no lleva ninguna señal. **Medir la correlación del radar V2 corregido es la pregunta
-abierta más importante del proyecto** — y es barata una vez exista
-`datos/scores/scores_v2_32deptos.pkl`.
+actual no lleva ninguna señal.
+
+### ACTUALIZACIÓN [2026-08-30]: el V2 sí correlaciona
+
+Con `datos/scores/scores_v2_32deptos.pkl` ya generado, se midió
+(`experimentos/exp_correlacion_v2_nacional.py`, evidencia completa en
+`08_log_decisiones.md`):
+
+```
+Spearman(radar_V2, radar_oficial_promedio) = +0.384  (p=0.030, n=32)
+Accuracy en terciles vs oficial            = 37.5%
+```
+
+Frente al +0.067 (cero) del V0. El control de sanidad —el radar de la nula reservada
+agregado con P75 a escala nacional— sigue dando ~0.0000, así que el salto no es un
+artefacto de la agregación. Tampoco rompe ninguna de las anclas de validez aparente de
+más abajo.
+
+**No es una correlación fuerte** (0.38 es moderada) y la accuracy sigue lejos del 0.70
+objetivo — pero es la primera evidencia de que los indicadores V2 sí llevan algo de
+señal hacia el constructo que mide el DANE, no solo hacia conflicto. Cambia el peso de
+los tres caminos de más abajo: el camino (B) —sumar indicadores de déficit
+estructural— parte ahora de una base que funciona parcialmente, no de cero.
 
 ---
 

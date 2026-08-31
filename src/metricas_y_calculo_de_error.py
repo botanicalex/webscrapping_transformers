@@ -75,6 +75,64 @@ def _clasificar(serie: pd.Series) -> pd.Series:
     return _terciles(serie)
 
 
+# ---------------------------------------------------------------------------
+# Líneas base — ver contexto/07_backlog.md punto 0b y 01_objetivo_y_radar.md
+# ---------------------------------------------------------------------------
+
+def _lineas_base(y_true: pd.Series, n_articulos: Optional[pd.Series]) -> Dict[str, Any]:
+    """
+    Referencias contra las que una accuracy sola no dice nada:
+      - azar: 1/3 analítico (3 clases equiprobables), no depende de los datos.
+      - clase_mayoritaria: acertar siempre la clase más frecuente de y_true.
+      - modelo_nulo_articulos: clasificar por terciles del número de artículos
+        del corpus, sin leer una sola noticia. Usa el mismo departamento y el
+        mismo n que la comparación real, así que es directamente comparable
+        con `resumen['accuracy']` de la misma corrida.
+    Cada línea se recalcula sobre la intersección vigente, no se cita de memoria.
+    """
+    yt = y_true.dropna()
+    yt = yt[~yt.astype(str).str.strip().isin({"", "nan"})]
+    n = len(yt)
+
+    base: Dict[str, Any] = {
+        "baseline_azar": round(1 / 3, 4),
+        "baseline_clase_mayoritaria": None,
+        "baseline_clase_mayoritaria_cual": None,
+        "baseline_modelo_nulo_articulos": None,
+    }
+    if n == 0:
+        return base
+
+    conteo = yt.astype(str).value_counts()
+    base["baseline_clase_mayoritaria"] = round(float(conteo.iloc[0] / n), 4)
+    base["baseline_clase_mayoritaria_cual"] = str(conteo.index[0])
+
+    if n_articulos is not None:
+        na = pd.to_numeric(n_articulos, errors="coerce")
+        comun = yt.index.intersection(na.dropna().index)
+        if len(comun) >= 3:
+            cat_articulos = _clasificar(na.loc[comun])
+            acc_nulo = (cat_articulos.values == yt.loc[comun].astype(str).values).mean()
+            base["baseline_modelo_nulo_articulos"] = round(float(acc_nulo), 4)
+
+    return base
+
+
+def _imprimir_lineas_base(base: Dict[str, Any], accuracy_actual: float) -> None:
+    ancho = 42
+    print("  Lineas base (no se citan de memoria, se recalculan cada corrida):")
+    print(f"    {'Azar (3 clases)':<{ancho}}: {base['baseline_azar']*100:.1f}%")
+    if base["baseline_clase_mayoritaria"] is not None:
+        etiqueta = f"Predecir siempre '{base['baseline_clase_mayoritaria_cual']}'"
+        print(f"    {etiqueta:<{ancho}}: {base['baseline_clase_mayoritaria']*100:.1f}%")
+    if base["baseline_modelo_nulo_articulos"] is not None:
+        print(f"    {'Modelo nulo (terciles por n_articulos)':<{ancho}}: "
+              f"{base['baseline_modelo_nulo_articulos']*100:.1f}%")
+    else:
+        print(f"    {'Modelo nulo (terciles por n_articulos)':<{ancho}}: no disponible (falta n_articulos)")
+    print(f"    {'Comparacion actual':<{ancho}}: {accuracy_actual*100:.1f}%")
+
+
 def _normalizar_minmax(s: pd.Series) -> pd.Series:
     """Min-max normalization [0, 1] sobre valores no-NaN."""
     mn, mx = s.min(), s.max()
@@ -246,7 +304,9 @@ def _actualizar_metricas_acumulado(
 
     # Resumen
     cols_resumen = ["comparacion", "n_departamentos", "accuracy",
-                    "precision_macro", "recall_macro", "f1_macro", "cohen_kappa"]
+                    "precision_macro", "recall_macro", "f1_macro", "cohen_kappa",
+                    "baseline_azar", "baseline_clase_mayoritaria",
+                    "baseline_clase_mayoritaria_cual", "baseline_modelo_nulo_articulos"]
     nueva_fila = {k: resumen.get(k) for k in cols_resumen}
     df_res_new = pd.DataFrame([nueva_fila])
     df_res = pd.concat([df_res, df_res_new], ignore_index=True)
@@ -364,6 +424,8 @@ def calcular_metricas_experimento(
     df_radar = pd.read_csv(ruta_radar_csv)
     df_radar["departamento"] = df_radar["departamento"].astype(str).str.strip()
     df_radar["radar_propio"] = pd.to_numeric(df_radar["radar_propio"], errors="coerce")
+    if "n_articulos" in df_radar.columns:
+        df_radar["n_articulos"] = pd.to_numeric(df_radar["n_articulos"], errors="coerce")
 
     df_oficial = _leer_oficial_v3(ruta_v3)
 
@@ -374,8 +436,11 @@ def calcular_metricas_experimento(
     # 2. Calcular metricas sobre interseccion
     df_oficial["_dep_lower"] = df_oficial["Departamento"].str.casefold()
     df_radar["_dep_lower"] = df_radar["departamento"].str.casefold()
+    cols_radar = ["_dep_lower", "departamento", "radar_propio"]
+    if "n_articulos" in df_radar.columns:
+        cols_radar.append("n_articulos")
     df_joined = df_oficial.merge(
-        df_radar[["_dep_lower", "departamento", "radar_propio"]],
+        df_radar[cols_radar],
         on="_dep_lower", how="inner"
     ).drop(columns=["_dep_lower"])
 
@@ -393,6 +458,10 @@ def calcular_metricas_experimento(
     if resumen is None:
         raise ValueError(f"No se pudieron calcular metricas para {experimento_id}")
 
+    n_articulos_joined = df_joined["n_articulos"] if "n_articulos" in df_joined.columns else None
+    base = _lineas_base(cat_oficial, n_articulos_joined)
+    resumen.update(base)
+
     # Consola
     print(f"\n========== METRICAS: {comparacion_label} ==========")
     print(f"  n={resumen['n_departamentos']}  "
@@ -400,6 +469,7 @@ def calcular_metricas_experimento(
           f"F1={resumen['f1_macro']:.3f}  "
           f"kappa={resumen['cohen_kappa']:.3f}  "
           f"({resumen['n_correctos']}/{resumen['n_departamentos']})")
+    _imprimir_lineas_base(base, resumen["accuracy"])
 
     errores = df_joined.copy()
     errores["cat_oficial"] = cat_oficial.values

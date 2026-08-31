@@ -1,26 +1,25 @@
 # 00 — Estado actual
 
-*Última actualización: 2026-08-27*
+*Última actualización: 2026-08-30*
 
 Es el primer documento a leer al retomar. Responde: dónde estamos, qué corre, qué no.
 
 ## Dónde estamos
 
-El pipeline funciona de extremo a extremo y produce un radar por departamento. **El
-problema no es que falle: es que su salida no discrimina.** Una revisión de seis
-experimentos (agosto 2026) midió que el radar de producción es indistinguible de uno
-construido con hipótesis absurdas — la diferencia entre el MAX de un indicador real y el de
-"hay osos polares en este territorio" es de **0.0004**.
+El pipeline funciona de extremo a extremo y produce un radar por departamento.
+Producción (`src/`) sigue con las hipótesis **V0**, que son indistinguibles de un radar
+construido con hipótesis absurdas (brecha 0.0004 en el MAX) y no correlacionan con el
+oficial DANE (Spearman +0.067, cero).
 
-Se identificaron tres defectos, todos con corrección propuesta y validada sobre un corpus de
-1.647 artículos. **Ninguna de esas correcciones está aplicada a `src/` todavía.** Viven en
-`experimentos/` y esperan la validación nacional.
+Las correcciones (V2) ya se midieron a escala nacional el 2026-08-30, y **sí llevan
+señal**: `Spearman(radar_V2, radar_oficial) = +0.384` (p=0.030, n=32), frente a +0.067
+del V0, con el control de la nula reservada dando ~0.0000 y ninguna ancla de validez
+rota. No es una correlación fuerte y la accuracy en terciles (37.5%) sigue lejos del
+0.70 objetivo, pero es la primera evidencia de que el problema no es solo el radar V0:
+los indicadores V2 apuntan, al menos parcialmente, al constructo correcto. Detalle
+completo en `08_log_decisiones.md` [2026-08-30] y `09_riesgos_y_limites.md`.
 
-**Y hay un cuarto problema, de otra naturaleza, medido al cerrar agosto:** el radar tiene
-correlación **+0.067** con el índice oficial contra el que se evalúa —o sea cero— y su
-accuracy (31.2%) empata con el modelo nulo y pierde contra predecir "siempre Bajo" (34.4%).
-Eso no se arregla puliendo hipótesis: es una decisión de diseño de la investigación.
-**Leer `09_riesgos_y_limites.md` antes de invertir más trabajo en los indicadores.**
+**Ninguna corrección V2 está aplicada a `src/` todavía.** Viven en `experimentos/`.
 
 ## Qué está hecho
 
@@ -34,16 +33,26 @@ Eso no se arregla puliendo hipótesis: es una decisión de diseño de la investi
   `experimentos/RESULTADOS.md`.
 - **Las 26 hipótesis reescritas** (V2) en `experimentos/hipotesis_v2.py`, validadas en los
   dos indicadores que tienen estándar de plata.
+- **Scoring V2 sobre los 32 departamentos** (`datos/scores/scores_v2_32deptos.pkl`,
+  2026-08-30, ~4 h GPU). Es el insumo de la medición de correlación de arriba y de todo
+  lo que sigue en el backlog (puntos 2, 3, 6).
+- **Cortes Bajo/Medio/Alto recalibrados** sobre el radar V2 nacional: `Bajo < 0.30 <=
+  Medio < 0.35 <= Alto` (backlog punto 2, ver `08_log_decisiones.md` [2026-08-30]).
 
 ## Qué NO está hecho
 
-- **El scoring V2 sobre los 32 departamentos.** Es el insumo de todo lo demás. Se intentó,
-  la corrida se perdió al apagar el equipo (el script guarda solo al final). Son ~4 h.
-  Relanzar con `cd experimentos && python generar_scores_32deptos.py`.
-- **Recalibrar los cortes Bajo/Medio/Alto.** Con P75 los valores caen entre 0.12 y 0.32 y
-  los cortes 1/3–2/3 mandan todo a "Bajo".
-- **Decidir la suerte del pre-filtro social.** Ver `07_backlog.md`.
+- **Decidir la suerte del pre-filtro social.** El A/B (con vs sin umbral 0.85) dio
+  +0.384 vs +0.376 de Spearman — diferencia dentro del ruido, apunta a que es
+  prescindible pero falta confirmar con AUC/control absurdo por indicador antes de
+  tocar producción. Ver `07_backlog.md` punto 3.
 - **Aplicar nada de V2 a `src/`.** Producción sigue con las hipótesis V0.
+- **Re-scrapear del todo los 4 departamentos de nombre compuesto** (La Guajira, Norte de
+  Santander, San Andrés y Providencia, Valle del Cauca): dos bugs de scraping ya se
+  corrigieron (filtro de relevancia, SSL/MITM), pero quedan 3 fallas de scraper sin
+  resolver (El Tiempo caído, parser de El País, timeouts de Corrillos/Enlace). Ver
+  `07_backlog.md` punto 1b. El scoring V2 nacional ya corrido usa el corpus viejo para
+  esos 4 (11/36/79/117 artículos), así que la medición de correlación de arriba
+  subestima si acaso — no la infla.
 
 ## Alcance actual
 

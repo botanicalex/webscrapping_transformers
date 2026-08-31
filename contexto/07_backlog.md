@@ -45,9 +45,10 @@ cd experimentos && python generar_scores_32deptos.py
 ```
 
 **Desbloquea:** todo lo demás. Los puntos 2, 3 y 6 dependen de este pkl.
-**Estado:** el script está listo y **guarda por checkpoint tras cada hipótesis**, así que
-una interrupción ya no cuesta la corrida entera. Reanuda solo; `--reiniciar` empieza de
-cero.
+**Estado:** en curso desde 2026-08-30 (sobre el corpus viejo, con el bug del punto 1b
+sin corregir en los datos — ver ahí). El script **guarda por checkpoint tras cada
+hipótesis**, así que una interrupción ya no cuesta la corrida entera. Reanuda solo;
+`--reiniciar` empieza de cero.
 **Produce:** `datos/scores/scores_v2_32deptos.pkl` con `ent_` y `neu_` sin enmascarar, de
 modo que después se puede analizar todo offline sin volver a la GPU.
 
@@ -56,18 +57,44 @@ oficial. El radar V0 daba +0.067 (cero), pero se midió sobre un radar que ya sa
 Si el V2 tampoco correlaciona, el problema no está en los indicadores — ver
 `09_riesgos_y_limites.md`.
 
-## 2. Recalibrar los cortes Bajo/Medio/Alto
+## 1b. Terminar de limpiar el corpus de los 4 departamentos de nombre compuesto
 
-Con P75 los valores caen entre 0.12 y 0.32 y los cortes 1/3–2/3 mandan **todo** a "Bajo".
-Los cortes se calibraron para una escala saturada y ya no significan lo mismo.
+Al probar 3b se encontraron y corrigieron dos bugs reales en `src/scrappers.py` (ver
+`08_log_decisiones.md` [2026-08-30]): el filtro de relevancia ignoraba el nombre completo
+de los departamentos compuestos (`La Guajira`, `Norte de Santander`,
+`San Andrés y Providencia`, `Valle del Cauca`), y ~20 de las ~29 clases de scraper no
+tenían el workaround SSL/MITM (antivirus Norton local) que `ElTiempo` ya traía. Ambos
+corregidos y verificados contra red real.
 
-**Enfoque acordado:** cortes fijos recalibrados **una sola vez** sobre la distribución de
-los 32 departamentos, y congelados. Respeta la restricción de "umbrales fijos, no terciles"
-pero calibrados sobre datos. Dos anclajes lo hacen defendible: el suelo lo pone el radar de
-la nula (con P75 da exactamente 0.0000), y los cortes salen de la distribución nacional, no
-de 4 lugares.
+**Pendiente, sin relación con lo anterior — 3 fallas de scraper distintas:**
+- El Tiempo devolvía `502 Bad Gateway` para cualquier búsqueda (afecta 100% a San
+  Andrés y Providencia, que depende solo de `eltiempo`). Reintentar más tarde.
+- `elpais.com.co` (Valle del Cauca) responde 200 pero el parser no extrae resultados —
+  posible carga de resultados por JS/AJAX no capturada por el scraper actual.
+- `Corrillos` / `Enlace Televisión` (Norte de Santander, Playwright) y
+  `diariooccidente` (Valle del Cauca) acumulan timeouts.
 
-**Depende de:** punto 1.
+**Estado del corpus:** `datos/corpus/df_corpus_combinado_32deptos.pkl` sigue con los
+conteos viejos (11, 36, 79, 117) — no se fusionó nada todavía. El resultado parcial del
+re-scraping (solo La Guajira: 1.561, Norte de Santander: 15) está en
+`experimentos/resultados/re_scrape_bugfix_relevancia/`.
+**Costo:** minutos-horas por scraper, más lo que tome esperar a El Tiempo.
+**Depende de:** nada técnico; se frenó por decisión de priorizar el punto 1 (GPU).
+
+## 2. Recalibrar los cortes Bajo/Medio/Alto — HECHO 2026-08-30
+
+Con P75 nacional los valores caen entre 0.22 y 0.41 y los cortes 1/3–2/3 mandaban casi
+todo a "Bajo"/"Medio".
+
+**Cortes adoptados** (`experimentos/exp_cortes_fijos_v2.py`, ver
+`08_log_decisiones.md` [2026-08-30]): `Bajo < 0.30 <= Medio < 0.35 <= Alto`, leídos de
+huecos naturales en la distribución del radar V2 (sin mirar el oficial), verificados
+después contra las anclas de validez aparente (ninguna rota) y la accuracy (31.2%,
+dentro del ruido de la de terciles ad hoc 40.6%).
+
+**Pendiente:** promover a `src/` (hoy `radar.py`/`metricas_y_calculo_de_error.py`
+clasifican con terciles empíricos) — paso de promoción aparte, regla 9, no hecho
+todavía. Recalibrar si cambia la decisión del pre-filtro (punto 3).
 
 ## 3. A/B del pre-filtro social — con y sin
 
@@ -78,8 +105,12 @@ irrelevantes ya puntúan ~0 por sí solos.
 `grupos_etnicos_existentes` y el 17.7% de `presencia_grupos_armados`, y costaba −0.074 y
 −0.024 de AUC. El V2 con umbral 0.85 retiene 92.4% / 95.0% pero solo filtra el 12%.
 
-**Costo:** minutos, si los scores están guardados sin enmascarar.
-**Depende de:** punto 1.
+**Medido 2026-08-30 (nivel radar, no por indicador):** con vs sin el umbral 0.85, sobre
+los 32 departamentos, Spearman contra el oficial da +0.376 vs +0.384 — diferencia
+dentro del ruido. Apunta a que es prescindible, pero esto es una medición agregada del
+radar completo, no el AUC/control absurdo por indicador que pide la regla 1 antes de
+tocar producción. **No cerrar la decisión solo con este número.**
+**Depende de:** punto 1 — YA CUMPLIDO. Falta el AUC por indicador antes de decidir.
 
 ## 3b. Los términos de búsqueda apuntan a conflicto, el objetivo mide déficit
 
@@ -198,19 +229,30 @@ apuntan a la dimensión *ausencia de Estado*, que es la que el índice oficial p
 **Bloqueo parcial:** ninguno de los tres tiene estándar de plata, así que el punto 4 debería
 ir antes o en paralelo.
 
-## 6. Medir la accuracy de V2 contra el oficial
+## 6. Medir la accuracy de V2 contra el oficial — MEDIDO 2026-08-30, ver matiz
 
-Comparar con el 31.2% histórico.
+Comparado con el 31.2% histórico del V0.
 
-**Advertencia importante:** son dos afirmaciones distintas y no hay que mezclarlas.
-"Los indicadores discriminan mejor" está demostrado (AUC, control absurdo). "El radar
-predice mejor el índice oficial" no se ha medido, y hay razones estructurales para dudarlo
-—el objetivo mide vulnerabilidad socioeconómica y los indicadores miden conflicto—.
-Ver `01_objetivo_y_radar.md`.
+**Medido:** accuracy en terciles (sin recalibrar cortes, punto 2 todavía pendiente):
+**37.5%** sin pre-filtro, **40.6%** con pre-filtro. Con n=32 y error estándar ~8 pp, la
+diferencia frente a las líneas base (azar 33.3%, clase mayoritaria 34.4%) es **menor a
+~15 pp — no concluyente por accuracy sola**, tal como advertía esta entrada.
 
-Con n = 32 y error estándar ~8 pp, no perseguir mejoras menores a ~15 pp.
+**Lo que sí es concluyente:** el Spearman contra `radar_oficial_promedio` (el valor
+continuo, la métrica de trabajo que pide `01_objetivo_y_radar.md`) subió de +0.067 a
++0.384 — un salto de +0.32, muy por encima del ruido, y que sobrevive el control de la
+nula reservada (~0.0000) y las anclas de validez aparente (ninguna rota). Ver
+`08_log_decisiones.md` [2026-08-30].
 
-**Depende de:** puntos 1 y 2.
+**Advertencia que sigue vigente:** "los indicadores discriminan mejor" (AUC, control
+absurdo, ya demostrado) y "el radar predice mejor el índice oficial" (ahora con
+evidencia real, +0.384) son afirmaciones distintas — pero ya no hay que tratarlas como
+independientes: la segunda deja de ser dudosa a la luz de la primera. El desajuste de
+constructo (conflicto vs vulnerabilidad) sigue siendo real — 0.38 no es 0.70 — pero es
+menor de lo que el V0 hacía parecer.
+
+**Depende de:** punto 1 (cumplido) y punto 2 (recalibrar cortes — pendiente, mejoraría
+la accuracy en terciles aunque no cambie el Spearman).
 
 ## 7. Cobertura de prensa desbalanceada
 

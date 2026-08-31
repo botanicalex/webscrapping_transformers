@@ -93,6 +93,12 @@ class ScraperPeriodico(ABC):
         self.fecha_desde = fecha_desde
         self.fecha_hasta = fecha_hasta
         self.session = requests.Session()
+        # Mismo MITM de Norton que ScraperElTiempo/ScraperWordPressAPI ya parchaban
+        # por separado (ver contexto/08_log_decisiones.md, 2026-08-30): sin esto,
+        # cualquier scraper basado en requests.Session falla con
+        # CERTIFICATE_VERIFY_FAILED. Se aplica en la base para cubrirlos a todos.
+        self.session.verify = False
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         self.session.headers.update({
         })
 
@@ -512,7 +518,11 @@ class ScraperElQuindiano(ScraperPeriodico):
 
         # Concurrencia con asyncio y aiohttp
         async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
+            # Mismo MITM de Norton que ScraperElTiempo ya parchaba (ver contexto/
+            # 08_log_decisiones.md, 2026-08-30). Sin esto, aiohttp falla con
+            # CERTIFICATE_VERIFY_FAILED igual que requests sin verify=False.
+            conector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=conector) as session:
                 # Primera página para obtener X-WP-TotalPages
                 try:
                     params = {
@@ -610,7 +620,7 @@ class ScraperElQuindiano(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -1093,7 +1103,11 @@ class ScraperDiarioDelCauca(ScraperPeriodico):
 
         # Concurrencia con asyncio y aiohttp
         async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
+            # Mismo MITM de Norton que ScraperElTiempo ya parchaba (ver contexto/
+            # 08_log_decisiones.md, 2026-08-30). Sin esto, aiohttp falla con
+            # CERTIFICATE_VERIFY_FAILED igual que requests sin verify=False.
+            conector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=conector) as session:
                 # Primera página para obtener X-WP-TotalPages
                 try:
                     params = {
@@ -1191,7 +1205,7 @@ class ScraperDiarioDelCauca(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -1261,7 +1275,11 @@ class ScraperChoco7Dias(ScraperPeriodico):
 
         # Concurrencia con asyncio y aiohttp
         async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
+            # Mismo MITM de Norton que ScraperElTiempo ya parchaba (ver contexto/
+            # 08_log_decisiones.md, 2026-08-30). Sin esto, aiohttp falla con
+            # CERTIFICATE_VERIFY_FAILED igual que requests sin verify=False.
+            conector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=conector) as session:
                 # Primera página para obtener X-WP-TotalPages
                 try:
                     params = {
@@ -1360,7 +1378,7 @@ class ScraperChoco7Dias(ScraperPeriodico):
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
         # choco7dias.com es lento — 5 conexiones evitan timeouts masivos con limit=50
-        connector = aiohttp.TCPConnector(limit=5)
+        connector = aiohttp.TCPConnector(limit=5, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -1462,7 +1480,11 @@ class ScraperLlanoAlMundo(ScraperPeriodico):
 
         # Concurrencia con asyncio y aiohttp
         async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
+            # Mismo MITM de Norton que ScraperElTiempo ya parchaba (ver contexto/
+            # 08_log_decisiones.md, 2026-08-30). Sin esto, aiohttp falla con
+            # CERTIFICATE_VERIFY_FAILED igual que requests sin verify=False.
+            conector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=conector) as session:
                 # Primera página para obtener X-WP-TotalPages
                 try:
                     params = {
@@ -1561,7 +1583,7 @@ class ScraperLlanoAlMundo(ScraperPeriodico):
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
         # llanoalmundo.com responde con "Database Error" cuando se satura — limit=5 evita rate limiting
-        connector = aiohttp.TCPConnector(limit=5)
+        connector = aiohttp.TCPConnector(limit=5, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -1630,7 +1652,11 @@ class ScraperDiarioDeCasanare(ScraperPeriodico):
 
         # Concurrencia con asyncio y aiohttp
         async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
+            # Mismo MITM de Norton que ScraperElTiempo ya parchaba (ver contexto/
+            # 08_log_decisiones.md, 2026-08-30). Sin esto, aiohttp falla con
+            # CERTIFICATE_VERIFY_FAILED igual que requests sin verify=False.
+            conector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=conector) as session:
                 # Primera página para obtener X-WP-TotalPages
                 try:
                     params = {
@@ -1730,7 +1756,7 @@ class ScraperDiarioDeCasanare(ScraperPeriodico):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
         # diariodecasanare.com es un servidor lento — 5 conexiones concurrentes
         # reducen los TimeoutError que ocurrían con limit=50
-        connector = aiohttp.TCPConnector(limit=5)
+        connector = aiohttp.TCPConnector(limit=5, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -1799,7 +1825,11 @@ class ScraperLaVozDelCinaruco(ScraperPeriodico):
 
         # Concurrencia con asyncio y aiohttp
         async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
+            # Mismo MITM de Norton que ScraperElTiempo ya parchaba (ver contexto/
+            # 08_log_decisiones.md, 2026-08-30). Sin esto, aiohttp falla con
+            # CERTIFICATE_VERIFY_FAILED igual que requests sin verify=False.
+            conector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=conector) as session:
                 # Primera página para obtener X-WP-TotalPages
                 try:
                     params = {
@@ -1899,7 +1929,7 @@ class ScraperLaVozDelCinaruco(ScraperPeriodico):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
         # lavozdelcinaruco.com es un servidor lento — 5 conexiones concurrentes
         # evitan el 93 % de TimeoutError que ocurría con limit=50
-        connector = aiohttp.TCPConnector(limit=5)
+        connector = aiohttp.TCPConnector(limit=5, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -1968,7 +1998,11 @@ class ScraperElMorichal(ScraperPeriodico):
 
         # Concurrencia con asyncio y aiohttp
         async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
+            # Mismo MITM de Norton que ScraperElTiempo ya parchaba (ver contexto/
+            # 08_log_decisiones.md, 2026-08-30). Sin esto, aiohttp falla con
+            # CERTIFICATE_VERIFY_FAILED igual que requests sin verify=False.
+            conector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=conector) as session:
                 # Primera página para obtener X-WP-TotalPages
                 try:
                     params = {
@@ -2066,7 +2100,7 @@ class ScraperElMorichal(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -2136,7 +2170,11 @@ class ScraperMiPutumayo(ScraperPeriodico):
 
         # Concurrencia con asyncio y aiohttp
         async def fetch_wp_pages():
-            async with aiohttp.ClientSession() as session:
+            # Mismo MITM de Norton que ScraperElTiempo ya parchaba (ver contexto/
+            # 08_log_decisiones.md, 2026-08-30). Sin esto, aiohttp falla con
+            # CERTIFICATE_VERIFY_FAILED igual que requests sin verify=False.
+            conector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=conector) as session:
                 # Primera página para obtener X-WP-TotalPages
                 try:
                     params = {
@@ -2235,7 +2273,7 @@ class ScraperMiPutumayo(ScraperPeriodico):
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
         # miputumayo.com.co es lento — 5 conexiones reducen el 86% de TimeoutError con limit=50
-        connector = aiohttp.TCPConnector(limit=5)
+        connector = aiohttp.TCPConnector(limit=5, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -2770,7 +2808,7 @@ class ScraperPortafolio(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [
                 self._descargar_articulo_async(session, info)
@@ -3056,7 +3094,7 @@ class ScraperPublimetro(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [
                 self._descargar_articulo_async(session, info)
@@ -3378,7 +3416,7 @@ class ScraperLas2Orillas(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [
                 self._descargar_articulo_async(session, info)
@@ -4029,7 +4067,7 @@ class ScraperElPilon(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -4398,7 +4436,7 @@ class ScraperElMeridiano(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -4661,7 +4699,7 @@ class ScraperVanguardia(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -4968,7 +5006,7 @@ class ScraperTrochandoSinFronteras(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -5269,7 +5307,7 @@ class ScraperEnlaceTelevision(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
             resultados = await asyncio.gather(*tareas)
@@ -5606,7 +5644,7 @@ class ScraperCorrillos(ScraperPeriodico):
 
     async def _ejecutar_descargas_async(self, links: List[str]):
         links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10)
+        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
         async with aiohttp.ClientSession(connector=connector) as session:
             tareas = [
                 self._descargar_articulo_async(session, info)
@@ -5707,10 +5745,19 @@ class GestorScraping:
     _MAX_WORKERS_FAST = 8
     _MAX_WORKERS_RATE_LIMITED = 1   # El Tiempo: 1 worker local + semáforo global(2)
 
-    def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str):
+    def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str,
+                 territorio: str = None):
         self.termino = termino
         self.fecha_desde = fecha_desde
         self.fecha_hasta = fecha_hasta
+        # Nombre del territorio (departamento/municipio) para el filtro de
+        # relevancia. Si no se pasa explicito, se infiere de la primera
+        # palabra de `termino` — correcto solo para territorios de una sola
+        # palabra. Ver contexto/08_log_decisiones.md [2026-08-30]: con nombres
+        # compuestos ("La Guajira", "Norte de Santander", "Valle del Cauca",
+        # "San Andrés y Providencia") esa inferencia daba "la"/"norte"/"valle"/
+        # "san" — palabras genéricas que no filtraban nada.
+        self.territorio = (territorio if territorio is not None else termino.split()[0]).lower()
 
     @classmethod
     def periodicos_disponibles(cls) -> List[str]:
@@ -5720,7 +5767,7 @@ class GestorScraping:
 
     def _es_relevante(self, texto: str, titulo: str,
                       min_menciones: int = 3) -> bool:
-        territorio = self.termino.split()[0].lower()
+        territorio = self.territorio
         texto_lower  = (texto  or "").lower()
         titulo_lower = (titulo or "").lower()
         menciones_texto = texto_lower.count(territorio)
@@ -5741,7 +5788,7 @@ class GestorScraping:
         )
         df_filtrado = df[mascara].reset_index(drop=True)
         descartados = len(df) - len(df_filtrado)
-        print(f"   Filtro relevancia ({self.termino.split()[0]}, "
+        print(f"   Filtro relevancia ({self.territorio}, "
               f"umbral={min_menciones}): "
               f"{len(df)} → {len(df_filtrado)} artículos "
               f"({descartados} descartados)")
@@ -5939,9 +5986,16 @@ class GestorScraping:
 def scrape_periodicos(termino: str, fecha_desde: str, fecha_hasta: str,
                       periodicos: List[str] = None,
                       region: str = None,
-                      min_menciones: int = 3) -> pd.DataFrame:
-    """Función base para webscraping con filtro de relevancia integrado."""
-    gestor = GestorScraping(termino, fecha_desde, fecha_hasta)
+                      min_menciones: int = 3,
+                      territorio: str = None) -> pd.DataFrame:
+    """Función base para webscraping con filtro de relevancia integrado.
+
+    `territorio`: nombre completo del departamento/municipio para el filtro
+    de relevancia (puede ser de varias palabras, ej. "La Guajira"). Si no se
+    pasa, `GestorScraping` cae a la primera palabra de `termino` — correcto
+    solo para territorios de una palabra.
+    """
+    gestor = GestorScraping(termino, fecha_desde, fecha_hasta, territorio=territorio)
     if periodicos is not None:
         lista_final = periodicos
     elif region is not None:
@@ -5985,6 +6039,7 @@ def _buscar_multi_termino(territorio: str, fecha_desde: str, fecha_hasta: str,
                 fecha_hasta=fecha_hasta,
                 periodicos=periodicos,
                 min_menciones=min_menciones,
+                territorio=territorio,
             )
         except Exception as e:
             print(f"  ✗ Error en '{termino}': {e}")

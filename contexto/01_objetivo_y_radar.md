@@ -89,8 +89,20 @@ Radar propio actual                    : 31.2%
 Objetivo del proyecto                  : 70.0%
 ```
 
-**El radar empata con el modelo nulo y pierde contra un predictor constante.** Y su
+**El radar V0 empata con el modelo nulo y pierde contra un predictor constante.** Y su
 correlación con el objetivo es **+0.067 (Spearman): cero**.
+
+**Actualización 2026-08-30 — radar V2, medido a escala nacional:**
+
+```
+Spearman(radar_V2, radar_oficial_promedio) = +0.384  (p=0.030, n=32)
+Accuracy en terciles (V2, sin recalibrar cortes)      = 37.5%
+```
+
+El salto de +0.067 a +0.384 sobrevive el control de la nula reservada (que sigue dando
+~0.0000 con P75 a escala nacional) y no rompe las anclas de validez aparente. La
+accuracy (37.5%) sigue sin distinguirse de las líneas base con n=32 — pero el Spearman,
+que es el indicador de trabajo, sí. Detalle en `08_log_decisiones.md` [2026-08-30].
 
 Esto es lo primero que hay que mirar antes de invertir esfuerzo en optimizar indicadores.
 El análisis completo, con los tres caminos posibles, está en `09_riesgos_y_limites.md`.

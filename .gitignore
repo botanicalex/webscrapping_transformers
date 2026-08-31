@@ -15,7 +15,9 @@ resultados/*
 ~$*.xlsx
 
 # Los resultados de los experimentos SI se versionan (~50 KB): son la evidencia
-# de las conclusiones documentadas en contexto/04_hallazgos_revision_nli.md.
+# de las conclusiones documentadas en contexto/04_hallazgos_revision_nli.md. Los
+# pkl (datos parciales, ej. corridas de scraping) no, a cualquier profundidad: pesan
+# MB y se regeneran. La regla original solo cubria el nivel superior de la carpeta.
 !experimentos/resultados/
-!experimentos/resultados/*.xlsx
-experimentos/resultados/*.pkl
+!experimentos/resultados/**/*.xlsx
+experimentos/resultados/**/*.pkl
