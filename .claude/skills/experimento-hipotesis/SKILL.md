@@ -19,17 +19,22 @@ Todo se ejecuta **desde `experimentos/`**.
 ## Paso 0 — Verificación bloqueante
 
 ```python
-from nli_core import NLIScorer, verificar_contra_produccion
-import hipotesis_base as HB
+from nli_core import NLIScorer, verificar_contra_produccion_v2
+import hipotesis_v2 as V2
 
 s = NLIScorer()   # imprime id2label; confirma el mapeo de etiquetas
-assert verificar_contra_produccion(
-    s, "../datos/scores/df_procesado_baseline.pkl",
-    "presencia_grupos_armados", HB.TODAS["presencia_grupos_armados"])
+assert verificar_contra_produccion_v2(
+    s, "../datos/scores/df_procesado_baseline_v2.pkl",
+    "presencia_grupos_armados", V2.TODAS["presencia_grupos_armados"])
 ```
 
-Si no da `max|dif| = 0.00e+00`, **parar**: `nli_core` se desvió de producción y ninguna
+Si no da `max|dif| < 1e-4`, **parar**: `nli_core` se desvió de producción y ninguna
 medición sería comparable.
+
+Producción es V2 desde el 2026-08-31 (`contexto/08_log_decisiones.md`): sin pre-filtro,
+score corregido (`clip(clip(ent-sesgo,0)*(1-neu),0,1)`), no `P(entailment)` crudo. La
+función `verificar_contra_produccion()` (sin sufijo) y `df_procesado_baseline.pkl`
+verifican contra V0 y son legado — no usarlos para nada nuevo.
 
 ## Paso 1 — Declarar la pregunta antes de correr
 

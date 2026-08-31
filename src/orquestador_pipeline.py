@@ -384,7 +384,12 @@ def main() -> None:
     parser.add_argument("--usar-pesos-fijos", action="store_true")
     parser.add_argument("--pesos-fijos-json", default="")
     parser.add_argument("--desactivar-aleatoriedad", action="store_true")
-    parser.add_argument("--operaciones-radar", default="bloques,indicadores_transformers")
+    # Default = solo "bloques": es el camino de producción V2 (P75, cortes
+    # fijos, sin pesos aleatorios, promovido 2026-08-31). "indicadores_transformers"
+    # (pesos aleatorios + poda top-N por accuracy contra el propio DANE) sigue
+    # disponible pasando este flag a mano — no se usa por defecto porque es el
+    # riesgo de sobreajuste que contexto/09_riesgos_y_limites.md señala.
+    parser.add_argument("--operaciones-radar", default="bloques")
     parser.add_argument("--semilla-radar", type=int, default=None)
     parser.add_argument("--log-experimentos-radar", default="")
     parser.add_argument("--salida-metricas", default=".")

@@ -616,3 +616,165 @@ el AUC por indicador antes de decidir" (backlog punto 3, ya no está pendiente p
   regla 2 — recalibrar sobre la distribución sin pre-filtro.
 - Backlog punto 4 (ampliar el estándar de plata) ahora importa más: esta decisión
   descansa en 2 de 26 indicadores.
+
+## [2026-08-31] Cortes fijos Bajo/Medio/Alto recalibrados SIN pre-filtro — ADOPTADA
+
+**Pregunta:** el pre-filtro se rechazó (entrada anterior). Regla 2: si cambia lo que se
+mide, recalibrar el umbral — los cortes 0.30/0.35 del 2026-08-30 se calibraron "con
+pre-filtro" y ya no aplican.
+
+**Método:** igual que `exp_cortes_fijos_v2.py` (huecos naturales en la distribución de
+`radar_propio`, sin mirar el oficial; verificar después contra anclas y accuracy), pero
+con `con_prefiltro=False`. Script nuevo:
+`experimentos/exp_cortes_fijos_v2_sin_prefiltro.py`
+(`resultados/exp_cortes_fijos_v2_sin_prefiltro.xlsx`). La primera pasada (los 2 huecos más
+grandes sin más) rompió la ancla "Putumayo nunca Bajo" — se corrigió la selección para
+buscar, entre los pares de huecos genuinos (>0.008) que no rompen ninguna ancla, el de
+clasificación más balanceada (no solo el hueco más grande: maximizar el hueco a secas
+eligió una combinación técnicamente válida pero degenerada, 25 Medio/4 Alto/3 Bajo).
+
+**Cortes adoptados:**
+
+```
+Bajo   : radar_propio <  0.3074
+Medio  : 0.3074 <= radar_propio < 0.3524
+Alto   : radar_propio >= 0.3524
+```
+
+Distribución: 8 Bajo / 15 Medio / 9 Alto. Ninguna ancla rota.
+
+**Accuracy: 25.0%**, contra 37.5% de los terciles ad hoc de la misma distribución. Es más
+baja que el histórico V0 (31.2%) y que los cortes "con prefiltro" del 2026-08-30 (31.2%).
+**Se registra tal como salió, sin buscar otro punto que mejore el número** — hacerlo sería
+exactamente el sobreajuste contra el conjunto de evaluación que
+`09_riesgos_y_limites.md` señala, y el propio precedente del 2026-08-30 ya estableció que
+la diferencia con los terciles ad hoc es "el costo esperado de no optimizar directamente
+contra el oficial", no una señal de que el corte esté mal. Con n=32 (regla 11, SE~8pp) la
+diferencia entre 25.0% y 37.5% (12.5pp) no es concluyente por sí sola.
+
+**Decisión:** ADOPTADA. Estos cortes (no los del 2026-08-30) son los que se promovieron a
+`src/config_pipeline.py` (`CORTE_BAJO_MEDIO_RADAR`/`CORTE_MEDIO_ALTO_RADAR`) en la entrada
+siguiente.
+**Cierra:** qué cortes corresponden a la receta V2 sin pre-filtro.
+**Abre:** si se fusiona el corpus re-scrapeado de la tarea 1b y se vuelve a puntuar con
+GPU, estos cortes también quedan pendientes de recalibrar (regla 2).
+
+## [2026-08-31] Promoción de V2 a `src/` — producción deja de ser V0
+
+**Contexto:** con el radar V2 corregido (hipótesis sin marco metalingüístico, sesgo por
+artículo descontado, P75 en vez de MAX, pre-filtro rechazado, cortes fijos recalibrados)
+todo medido en `experimentos/` desde el 2026-08-27, nada se había promovido a `src/`
+(regla 9). El usuario pidió avanzar en "radar, transformers e indicadores" evitando
+scraping nuevo; autorizó GPU para transformers.
+
+**Hallazgo antes de tocar nada — `radar.py` no tenía UN cálculo de radar, tenía tres,**
+mutuamente inconsistentes, y ninguno coincidía con la fórmula P75+cortes fijos ya
+validada:
+1. `CalculadorRadar.calcular()` — promedio simple de scores crudos por artículo (usado
+   por `test_integracion.py`).
+2. El flujo por defecto de `orquestador_pipeline.py --only todo` — exporta el MÁXIMO por
+   indicador a un CSV (`exportar_indicadores_transformers_por_departamento`) y lo
+   re-agrega con la operación "bloques" (en la práctica, MAX + z-score + terciles).
+3. La operación "indicadores_transformers" — pondera por bloques con pesos ALEATORIOS y
+   un sistema de poda al top-N por accuracy contra el propio DANE
+   (`ejecutar_experimentos_radar`), el mismo riesgo de sobreajuste que
+   `09_riesgos_y_limites.md` señala para la revisión de indicadores de agosto. Era además
+   el default de `orquestador_pipeline.py` sin flags (`--operaciones-radar` default
+   incluía ambas operaciones, con `rng.choice` entre ellas).
+
+**Segundo hallazgo — `metricas_y_calculo_de_error.py` no usaba la clasificación oficial
+real del DANE.** `_leer_oficial_v3` lee `Clasificacion_radar_oficial_promedio` (la
+columna oficial de `comparacion_radares_V3.xlsx`), pero tanto
+`calcular_metricas_experimento` como el camino legado
+`procesar_metricas_multi_experimento` la ignoraban y hacían
+`cat_oficial = _clasificar(radar_oficial_promedio)` — re-tercilaban el número crudo del
+DANE con una función propia, en vez de usar la columna que el DANE ya trae. Verificado
+que para los departamentos comprobados a mano (Caquetá, Sucre, Putumayo) el resultado
+coincidía por casualidad, pero nada en el código garantizaba eso — es distinto de lo que
+hacen TODOS los scripts de `experimentos/`, que siempre usan la columna oficial
+directamente.
+
+**Decisión de arquitectura (confirmada con el usuario):** un solo camino limpio con P75 y
+cortes fijos, sin pesos aleatorios. El sistema de pesos/poda-top-N se deja intacto pero
+deja de ser el default — no se borra, no se toca su lógica interna, sigue disponible
+pasando `--operaciones-radar indicadores_transformers` a mano.
+
+**Cambios en `src/`:**
+
+- **`Transformer_optimo.py`:** hipótesis V0 → V2 (verificado byte a byte idéntico a
+  `experimentos/hipotesis_v2.py` antes de correr nada — ver script de verificación más
+  abajo). Pre-filtro social retirado (`self.umbral_social`, `self.hipotesis_social`, el
+  descarte de artículos en `procesar()`): se puntúan los 26 indicadores sobre TODOS los
+  artículos. Se agregó la calibración de sesgo (4 `NULAS_CALIBRACION`, nunca la nula
+  reservada) y la fórmula corregida `clip(clip(ent-sesgo,0)*(1-neu),0,1)` — antes no
+  existían en producción. `_nli_batch` ahora puede devolver también `P(neutral)`
+  (`devolver_neutral=True`), necesario para la fórmula. `exportar_indicadores_transformers_por_departamento`
+  cambia de MAX (`idxmax`) a **P75 por rango más cercano** (no interpolado: el valor
+  siempre es el de un artículo real, así que el CSV de "fuentes" para verificación manual
+  sigue teniendo sentido).
+- **`radar.py`:** `_calcular_bloques_desde_tasas` (el camino por defecto) y `calcular()`
+  ya no llaman a `_calibrar_escala` (z-score hacia media=31.4/std=7.6 del DANE — monótona,
+  no cambiaba el orden, pero los cortes fijos están calibrados sobre la escala P75
+  natural, no sobre esa) ni a `_categoria_terciles`; usan la nueva
+  `_categoria_cortes_fijos` con `CORTE_BAJO_MEDIO`/`CORTE_MEDIO_ALTO` (leídos de
+  `config_pipeline.py`, ver abajo). `calcular()` además cambia su agregación de `.mean()`
+  a P75 por rango más cercano (`_p75_rango_cercano`), consistente con
+  `Transformer_optimo.py`. `_calcular_indicadores_transformers` (pesos aleatorios) **no
+  se tocó** — sigue con terciles + z-score, es el camino legado.
+- **`config_pipeline.py`:** nuevas `CORTE_BAJO_MEDIO_RADAR = 0.3074` /
+  `CORTE_MEDIO_ALTO_RADAR = 0.3524` (entrada anterior) — viven aquí, no en `radar.py`,
+  para que `metricas_y_calculo_de_error.py` los use sin crear un import circular
+  (`radar.py` ya importa `metricas_y_calculo_de_error`).
+- **`orquestador_pipeline.py`:** default de `--operaciones-radar` cambiado de
+  `"bloques,indicadores_transformers"` a `"bloques"` — con una sola operación en la
+  lista, `rng.choice` siempre la devuelve, así que el CLI sin flags queda determinista
+  sin tocar `--desactivar-aleatoriedad`.
+- **`metricas_y_calculo_de_error.py`:** `cat_oficial` ahora usa la columna
+  `Clasificacion_radar_oficial_promedio` real (con fallback a `_clasificar` + aviso
+  impreso si el Excel no la trae, solo en el camino legado de Excel ancho). `cat_exp`
+  (nuestra clasificación) usa la nueva `_categoria_cortes_fijos` en vez de terciles, en
+  los dos caminos (`calcular_metricas_experimento` y el legado
+  `procesar_metricas_multi_experimento`).
+
+**Verificación — dos niveles, siguiendo la regla 6 adaptada a un cambio de fórmula:**
+
+1. **Offline, sin GPU** (`experimentos/exp_verificar_promocion_v2.py`): la receta completa
+   traducida a `src/` (V2 + sesgo + P75 rango-más-cercano + cortes fijos + clasificación
+   oficial real), recalculada sobre `scores_v2_32deptos.pkl` (ya existente).
+   `Spearman(radar_V2_producción, radar_oficial) = +0.4208` (p=0.017) — no se aleja de
+   +0.384 (P75 lineal, `exp_correlacion_v2_nacional.py`), la diferencia es consistente con
+   el cambio de interpolación lineal a rango-más-cercano. Ninguna ancla rota. Accuracy
+   25.0%, igual que la entrada anterior (mismos cortes, misma fuente).
+2. **Con GPU, sobre el corpus de 5 lugares (1.647 artículos, ya existente — sin scraping
+   nuevo)** (`experimentos/exp_smoke_test_produccion_v2.py`, log en
+   `resultados/log_smoke_test_v2.txt`): se corrió `src/Transformer_optimo.py` REAL de
+   punta a punta (32.3 min GPU) y se comparó contra `nli_core` calculando lo mismo de
+   forma independiente — sesgo y los 2 indicadores con estándar de plata, max\|dif\| ~5e-7,
+   muy por debajo de la tolerancia (1e-4). El resultado se guardó como el nuevo baseline
+   de verificación, `datos/scores/df_procesado_baseline_v2.pkl` — el baseline V0
+   (`df_procesado_baseline.pkl`) queda obsoleto para verificar producción, se conserva
+   como referencia histórica. `nli_core.py` gana `verificar_contra_produccion_v2()`
+   (aplica la fórmula corregida, sin la máscara del pre-filtro V0); el skill
+   `experimento-hipotesis` (Paso 0) se actualizó para usarla.
+3. `python -m py_compile` limpio en los 5 archivos tocados. `src/test_integracion.py`
+   (10 tests, sin GPU) sigue pasando sin modificarlo — no afirma valores exactos de
+   `radar_propio`/`categoria_riesgo`/`accuracy`, solo estructura y tipos.
+
+**Decisión:** ADOPTADA. Producción (`src/`) deja de correr V0. `python src/orquestador_pipeline.py`
+(sin flags) ahora corre: hipótesis V2, sin pre-filtro, P75, cortes fijos, clasificación
+oficial real. El sistema de pesos aleatorios/poda sigue existiendo pero ya no es el
+default de nada.
+**Cierra:** "nada de V2 está en `src/`" (backlog punto 2 y toda la revisión de agosto,
+regla 9 — se registra la promoción). El bug de clasificación oficial en
+`metricas_y_calculo_de_error.py`.
+**Abre:**
+- **No se re-puntuó con GPU el corpus nacional completo** (32 departamentos): el pkl que
+  produciría `src/` corriendo de verdad sobre los 32 departamentos todavía no existe;
+  `scores_v2_32deptos.pkl` (de `experimentos/`, vía `nli_core`) sigue siendo el único
+  insumo nacional. Correrlo con el código de `src/` ya promovido es un paso aparte, de
+  ~4h GPU, no hecho — el usuario pidió minimizar costo esta sesión.
+- La fusión del corpus re-scrapeado (backlog 1b) sigue pendiente y, cuando se decida,
+  invalida de nuevo los cortes fijos (regla 2) y el baseline de verificación.
+- El sistema de pesos aleatorios/poda-top-N sigue sin resolver como deuda técnica: es
+  código funcional pero con un riesgo metodológico documentado, no usado por defecto,
+  sin plan de retirarlo ni de arreglarlo.

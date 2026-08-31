@@ -111,20 +111,29 @@ Valle del Cauca                 117     145
 **Depende de:** nada técnico; ya no bloquea nada — 3 de 4 departamentos tienen datos
 mucho más ricos que antes, disponibles para 3b/3c en cuanto se decida el paso de fusión.
 
-## 2. Recalibrar los cortes Bajo/Medio/Alto — HECHO 2026-08-30
+## 2. Recalibrar los cortes Bajo/Medio/Alto y promover V2 a `src/` — HECHO 2026-08-31
 
 Con P75 nacional los valores caen entre 0.22 y 0.41 y los cortes 1/3–2/3 mandaban casi
 todo a "Bajo"/"Medio".
 
-**Cortes adoptados** (`experimentos/exp_cortes_fijos_v2.py`, ver
-`08_log_decisiones.md` [2026-08-30]): `Bajo < 0.30 <= Medio < 0.35 <= Alto`, leídos de
-huecos naturales en la distribución del radar V2 (sin mirar el oficial), verificados
-después contra las anclas de validez aparente (ninguna rota) y la accuracy (31.2%,
-dentro del ruido de la de terciles ad hoc 40.6%).
+**Cortes del 2026-08-30** (`Bajo < 0.30 <= Medio < 0.35 <= Alto`, con pre-filtro)
+quedaron invalidados el 2026-08-31 al rechazarse el pre-filtro (punto 3, regla 2).
+**Recalibrados sin pre-filtro** (`experimentos/exp_cortes_fijos_v2_sin_prefiltro.py`, ver
+`08_log_decisiones.md` [2026-08-31]): `Bajo < 0.3074 <= Medio < 0.3524 <= Alto`.
 
-**Pendiente:** promover a `src/` (hoy `radar.py`/`metricas_y_calculo_de_error.py`
-clasifican con terciles empíricos) — paso de promoción aparte, regla 9, no hecho
-todavía. Recalibrar si cambia la decisión del pre-filtro (punto 3).
+**Promovidos a `src/` el 2026-08-31** junto con el resto de la receta V2 (hipótesis,
+sesgo, sin pre-filtro, P75) — ver la entrada "Promoción de V2 a `src/`" en
+`08_log_decisiones.md` [2026-08-31] para el detalle completo (incluye dos hallazgos no
+anticipados: `radar.py` tenía 3 caminos de cálculo mutuamente inconsistentes, y
+`metricas_y_calculo_de_error.py` no usaba la clasificación oficial real del DANE — ambos
+corregidos). Verificado offline (sin GPU, sobre `scores_v2_32deptos.pkl`) y con GPU
+(smoke test de `src/Transformer_optimo.py` real contra `nli_core`, sobre el corpus de 5
+lugares — sin re-scrapear ni re-puntuar los 32 departamentos).
+
+**Pendiente:** re-puntuar los 32 departamentos con el código de `src/` ya promovido
+(~4h GPU) — no hecho esta sesión por pedido explícito del usuario de minimizar costo.
+Hasta entonces, `scores_v2_32deptos.pkl` (de `experimentos/`) sigue siendo el único
+insumo nacional; producción nunca corrió sobre los 32 departamentos con la receta V2.
 
 ## 3. A/B del pre-filtro social — RESUELTO 2026-08-31 (RECHAZADO, umbral 0.85)
 

@@ -150,8 +150,14 @@ PREMISAS = {
 def verificar_contra_produccion(scorer: "NLIScorer", ruta_baseline: str, indicador: str,
                                 hipotesis: str, tol: float = 1e-4) -> bool:
     """
-    Recalcula UN indicador sobre los articulos relevantes del baseline y lo compara
-    con los valores guardados. Debe coincidir dentro de `tol`.
+    LEGADO (V0, producción hasta 2026-08-30) — usar
+    `verificar_contra_produccion_v2()` para verificar contra la producción
+    vigente (ver contexto/08_log_decisiones.md [2026-08-31]).
+
+    Recalcula UN indicador sobre los articulos relevantes del baseline (con
+    el pre-filtro V0, score_social>=0.65) y lo compara con los valores
+    guardados (P(entailment) crudo, sin corregir). Debe coincidir dentro de
+    `tol`.
     """
     import pandas as pd
     df = pd.read_pickle(ruta_baseline)
@@ -161,4 +167,31 @@ def verificar_contra_produccion(scorer: "NLIScorer", ruta_baseline: str, indicad
     dif = np.abs(np.array(nuevos) - sub[indicador].astype(float).values)
     ok = bool(dif.max() < tol)
     print(f"Verificacion '{indicador}': max|dif| = {dif.max():.2e} -> {'OK' if ok else 'DESVIACION'}")
+    return ok
+
+
+def verificar_contra_produccion_v2(scorer: "NLIScorer", ruta_baseline: str, indicador: str,
+                                   hipotesis: str, tol: float = 1e-4) -> bool:
+    """
+    Verifica contra la producción VIGENTE desde el 2026-08-31 (V2, ver
+    contexto/08_log_decisiones.md): sin pre-filtro (se puntúan TODOS los
+    artículos, no solo los que pasan score_social), y el valor guardado es
+    el score CORREGIDO -- clip(clip(ent-sesgo,0)*(1-neu),0,1) -- no P(entailment)
+    crudo. `ruta_baseline` debe traer las columnas 'texto' y 'sesgo' (media de
+    las 4 NULAS_CALIBRACION por artículo, ya calculada).
+
+    Ejemplo: datos/scores/df_procesado_baseline_v2.pkl, generado corriendo
+    src/Transformer_optimo.py real sobre datos/corpus/df_corpus_5lugares.pkl.
+    """
+    import pandas as pd
+    df = pd.read_pickle(ruta_baseline)
+    textos = df["texto"].fillna("").astype(str).tolist()
+    p = scorer.score(textos, hipotesis, devolver_todo=True)
+    ent = np.asarray(p["entailment"], dtype=float)
+    neu = np.asarray(p["neutral"], dtype=float)
+    sesgo = df["sesgo"].astype(float).values
+    corregido = np.clip(np.clip(ent - sesgo, 0, None) * (1 - neu), 0, 1)
+    dif = np.abs(corregido - df[indicador].astype(float).values)
+    ok = bool(dif.max() < tol)
+    print(f"Verificacion V2 '{indicador}': max|dif| = {dif.max():.2e} -> {'OK' if ok else 'DESVIACION'}")
     return ok

@@ -74,6 +74,12 @@ class CalculadorRadar:
         "vulneracion": 0.40,
     }
 
+    # Cortes fijos Bajo/Medio/Alto del radar V2 -- ver config_pipeline.py
+    # (fuente unica, la comparten radar.py y metricas_y_calculo_de_error.py
+    # sin crear un import circular entre los dos).
+    CORTE_BAJO_MEDIO = cfg.CORTE_BAJO_MEDIO_RADAR
+    CORTE_MEDIO_ALTO = cfg.CORTE_MEDIO_ALTO_RADAR
+
     def calcular(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         if 'departamento' not in df.columns or not df['departamento'].notna().any():
@@ -85,7 +91,7 @@ class CalculadorRadar:
                 df[c] = df[c].astype(float)
             else:
                 df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0.0)
-        df_tasas = df.groupby('departamento')[cols].mean()
+        df_tasas = df.groupby('departamento')[cols].agg(self._p75_rango_cercano)
         n_articulos_serie = df.groupby('departamento').size()
         for c in [c for c in cols if c in self.VARS_INVERTIR]:
             df_tasas[c] = 1 - df_tasas[c]
@@ -100,8 +106,8 @@ class CalculadorRadar:
 
         df_sub['corrupcion_score'] = df_sub[['bloque_A', 'bloque_B', 'bloque_C']].mean(axis=1)
         df_sub['vulneracion_score'] = df_sub[['bloque_D', 'bloque_E']].mean(axis=1)
-        df_sub['radar_propio'] = self._calibrar_escala(radar_raw)
-        df_sub['categoria_riesgo'] = self._categoria_terciles(df_sub['radar_propio'])
+        df_sub['radar_propio'] = radar_raw.round(4)
+        df_sub['categoria_riesgo'] = self._categoria_cortes_fijos(df_sub['radar_propio'])
         out = df_sub.reset_index().rename(columns={'index': 'departamento'})
         return out[['departamento', 'n_articulos', 'bloque_A', 'bloque_B', 'bloque_C', 'bloque_D', 'bloque_E', 'corrupcion_score', 'vulneracion_score', 'radar_propio', 'categoria_riesgo']].sort_values('radar_propio', ascending=False)
 
@@ -146,6 +152,18 @@ class CalculadorRadar:
         return valores.astype(float)
 
     def _calcular_bloques_desde_tasas(self, df_tasas: pd.DataFrame, n_articulos: pd.Series) -> pd.DataFrame:
+        """
+        Camino de producción por defecto (V2, promovido 2026-08-31). `df_tasas`
+        viene de `indicadores_transformers_departamento.csv`
+        (`exportar_indicadores_transformers_por_departamento`), que ya trae el
+        P75 por indicador y departamento — una fila por departamento, así que
+        el groupby/mean de `_preparar_tasas_indicadores` es un no-op. Aquí solo
+        se promedia entre los 26 indicadores (sin pesos) y se clasifica con
+        cortes fijos, sin calibración z-score (ver `CORTE_BAJO_MEDIO`/
+        `CORTE_MEDIO_ALTO` — están calibrados sobre la escala P75 natural, no
+        sobre la escala z-score, que además es monótona y no cambiaba la
+        clasificación).
+        """
         df_tasas = df_tasas.copy()
         cols = [c for c in self.COLUMNAS_BINARIAS if c in df_tasas.columns]
         for c in [c for c in cols if c in self.VARS_INVERTIR]:
@@ -161,8 +179,8 @@ class CalculadorRadar:
 
         df_sub['corrupcion_score'] = df_sub[['bloque_A', 'bloque_B', 'bloque_C']].mean(axis=1)
         df_sub['vulneracion_score'] = df_sub[['bloque_D', 'bloque_E']].mean(axis=1)
-        df_sub['radar_propio'] = self._calibrar_escala(radar_raw)
-        df_sub['categoria_riesgo'] = self._categoria_terciles(df_sub['radar_propio'])
+        df_sub['radar_propio'] = radar_raw.round(4)
+        df_sub['categoria_riesgo'] = self._categoria_cortes_fijos(df_sub['radar_propio'])
         out = df_sub.reset_index().rename(columns={'index': 'departamento'})
         return out[['departamento', 'n_articulos', 'bloque_A', 'bloque_B', 'bloque_C', 'bloque_D', 'bloque_E', 'corrupcion_score', 'vulneracion_score', 'radar_propio', 'categoria_riesgo']].sort_values('radar_propio', ascending=False)
 
@@ -230,18 +248,54 @@ class CalculadorRadar:
 
     @staticmethod
     def _categoria_terciles(s: pd.Series) -> pd.Series:
-        """Terciles: menor valor → 'Bajo', mayor → 'Alto' (alto valor = alto riesgo)."""
+        """Terciles: menor valor → 'Bajo', mayor → 'Alto' (alto valor = alto riesgo).
+        Camino LEGADO (operación 'indicadores_transformers', pesos aleatorios) —
+        el camino por defecto usa `_categoria_cortes_fijos`."""
         try:
             return pd.qcut(s.rank(method="first"), q=3, labels=["Bajo", "Medio", "Alto"]).astype(str)
         except Exception:
             p33, p67 = s.quantile(1 / 3), s.quantile(2 / 3)
             return s.apply(lambda x: "Bajo" if x <= p33 else ("Alto" if x >= p67 else "Medio"))
 
+    @classmethod
+    def _categoria_cortes_fijos(cls, s: pd.Series) -> pd.Series:
+        """
+        Cortes fijos Bajo/Medio/Alto (V2, ver `CORTE_BAJO_MEDIO`/
+        `CORTE_MEDIO_ALTO`) — no terciles recalculados por lote: el radar debe
+        poder clasificar un lugar solo (una vereda), sin otros 31 lugares con
+        qué hacer terciles (contexto/08_log_decisiones.md [2026-06]).
+        """
+        def _clasificar(v: float) -> str:
+            if pd.isna(v):
+                return "None"
+            if v < cls.CORTE_BAJO_MEDIO:
+                return "Bajo"
+            if v < cls.CORTE_MEDIO_ALTO:
+                return "Medio"
+            return "Alto"
+        return s.apply(_clasificar)
+
+    @staticmethod
+    def _p75_rango_cercano(s: pd.Series) -> float:
+        """
+        Percentil 75 por RANGO MAS CERCANO (no interpolado): el valor
+        devuelto es siempre el de una observación real del grupo. Reemplaza
+        al MAX de V0 (contexto/04_hallazgos_revision_nli.md: el MAX está
+        dominado por el tamaño del corpus, razón señal/artefacto 0.91 vs
+        49.0 del P75).
+        """
+        ordenado = s.sort_values(kind="mergesort")
+        pos = round(0.75 * (len(ordenado) - 1))
+        return float(ordenado.iloc[pos])
+
     @staticmethod
     def _calibrar_escala(s: pd.Series,
                          media_obj: float = 31.4,
                          std_obj: float = 7.6) -> pd.Series:
-        """Mapea el score a la distribución del radar oficial (z-score match)."""
+        """Mapea el score a la distribución del radar oficial (z-score match).
+        Camino LEGADO — el camino por defecto reporta radar_propio en su
+        escala P75 natural (ver `_calcular_bloques_desde_tasas`), porque los
+        cortes fijos V2 están calibrados sobre esa escala, no sobre esta."""
         mu, sigma = s.mean(), s.std()
         if sigma > 0:
             return ((s - mu) / sigma * std_obj + media_obj).round(2)

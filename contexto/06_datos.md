@@ -44,24 +44,18 @@ Ver `01_objetivo_y_radar.md`.
 
 | Archivo | Filas × cols | Qué es |
 |---|---|---|
-| `df_procesado_32deptos.pkl` | 11.439 × 38 | **Único resultado nacional vigente.** 26 indicadores V0 + `score_social` + dims. Junio 2026 |
-| `df_procesado_baseline.pkl` | 1.647 × 38 | **Baseline de los experimentos.** V0 con los 4 cambios manuales. Agosto 2026 |
-| `scores_v2.pkl` | 1.647 × 58 | **El más valioso.** `ent_*` y `neu_*` por indicador **sin enmascarar**, más `sesgo` y `score_social_v2`. Salida de las hipótesis V2 |
+| `df_procesado_32deptos.pkl` | 11.439 × 38 | Resultado nacional de V0 (producción hasta el 2026-08-31). 26 indicadores V0 + `score_social` + dims. Junio 2026 |
+| `df_procesado_baseline.pkl` | 1.647 × 38 | Baseline de los experimentos **V0** (legado — producción ya no es V0). Agosto 2026 |
+| `df_procesado_baseline_v2.pkl` | 1.647 × ~35 | **Baseline de verificación vigente** (`nli_core.verificar_contra_produccion()`), V2 real, generado corriendo `src/Transformer_optimo.py` sobre el corpus de 5 lugares — no un cálculo de `nli_core`. Verificado contra `nli_core` independiente, max\|dif\| ~5e-7. 2026-08-31 |
+| `scores_v2.pkl` | 1.647 × 58 | `ent_*` y `neu_*` por indicador V2 **sin enmascarar**, más `sesgo` y `score_social_v2`, sobre el corpus de 5 lugares |
+| `scores_v2_32deptos.pkl` | 11.439 × 58 | El equivalente nacional de `scores_v2.pkl`. Es el insumo de la correlación V2 nacional (+0.384), del rechazo del pre-filtro y de los cortes fijos promovidos a `src/`. 2026-08-30 |
 
-`scores_v2.pkl` permite recalcular offline cualquier corrección, umbral o agregación **sin
-tocar la GPU**. Usarlo antes de puntuar nada de nuevo.
+`scores_v2.pkl` y `scores_v2_32deptos.pkl` permiten recalcular offline cualquier corrección,
+umbral o agregación **sin tocar la GPU**. Usarlos antes de puntuar nada de nuevo.
 
-### Lo que falta
-
-`scores_v2_32deptos.pkl` — el equivalente nacional. **No existe**: la corrida se perdió al
-apagar el equipo. Son ~4 h:
-
-```bash
-cd experimentos && python generar_scores_32deptos.py
-```
-
-Ese script guarda **solo al final**. Si hay riesgo de interrupción, conviene modificarlo
-para que guarde por lotes.
+**Producción es V2 desde el 2026-08-31** (`08_log_decisiones.md` [2026-08-31], promoción a
+`src/`): hipótesis V2, sin pre-filtro, agregación P75, cortes fijos. `df_procesado_32deptos.pkl`
+y `df_procesado_baseline.pkl` (V0) quedan como referencia histórica, no como "lo vigente".
 
 ## `resultados/`
 

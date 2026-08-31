@@ -71,6 +71,18 @@ GRUPOS_DEPARTAMENTOS = [
 # Umbral por debajo del cual se activa la busqueda de respaldo en El Tiempo
 MIN_ARTICULOS_RESPALDO = 50
 
+# ── Cortes fijos Bajo/Medio/Alto del radar V2 ───────────────────────────────
+# Promovido 2026-08-31 (contexto/08_log_decisiones.md). Leidos de huecos
+# naturales en la distribucion nacional de radar_propio (P75, sin pre-filtro
+# social -- el pre-filtro fue rechazado el 2026-08-31, ver el mismo log),
+# verificados contra las anclas de validez aparente, no contra la accuracy.
+# Vive aqui (no en radar.py) para que metricas_y_calculo_de_error.py pueda
+# usar el mismo corte sin crear un import circular con radar.py (que ya
+# importa metricas_y_calculo_de_error). experimentos/exp_cortes_fijos_v2_sin_prefiltro.py
+# tiene el detalle completo de como se calibraron.
+CORTE_BAJO_MEDIO_RADAR = 0.3074
+CORTE_MEDIO_ALTO_RADAR = 0.3524
+
 # ── Rutas (relativas a la raiz de desarrollo/) ───────────────────────────────
 RUTA_CORPUS_PKL = "datos/corpus"        # entrada: df_corpus_*.pkl
 RUTA_SALIDA_PIPELINE = "resultados"     # salida del pipeline

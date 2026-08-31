@@ -71,8 +71,29 @@ def _terciles(serie: pd.Series) -> pd.Series:
 
 
 def _clasificar(serie: pd.Series) -> pd.Series:
-    """Terciles: mayor valor → 'Alto' riesgo."""
+    """Terciles: mayor valor → 'Alto' riesgo.
+    LEGADO -- usado solo por el camino de pesos aleatorios
+    ('indicadores_transformers'). El camino de producción (V2, promovido
+    2026-08-31) clasifica con cortes fijos, ver `_categoria_cortes_fijos`."""
     return _terciles(serie)
+
+
+def _categoria_cortes_fijos(serie: pd.Series) -> pd.Series:
+    """
+    Cortes fijos Bajo/Medio/Alto del radar V2 (`config_pipeline.py`, fuente
+    única compartida con `radar.CalculadorRadar._categoria_cortes_fijos` --
+    duplicada aquí en vez de importada para evitar un import circular:
+    `radar.py` ya importa este módulo).
+    """
+    def _clasificar_uno(v):
+        if pd.isna(v):
+            return "None"
+        if v < cfg.CORTE_BAJO_MEDIO_RADAR:
+            return "Bajo"
+        if v < cfg.CORTE_MEDIO_ALTO_RADAR:
+            return "Medio"
+        return "Alto"
+    return serie.apply(_clasificar_uno)
 
 
 # ---------------------------------------------------------------------------
@@ -450,8 +471,14 @@ def calcular_metricas_experimento(
             "entre radar oficial y experimento"
         )
 
-    cat_oficial = _clasificar(_to_numeric_series(df_joined["radar_oficial_promedio"]))
-    cat_exp = _clasificar(df_joined["radar_propio"])
+    # cat_oficial usa la clasificación que el DANE YA TRAE
+    # (Clasificacion_radar_oficial_promedio), no una re-tercilada del número
+    # crudo -- corregido 2026-08-31 (ver contexto/08_log_decisiones.md):
+    # re-tercilar con nuestra propia función podía no coincidir con el corte
+    # que el DANE realmente usa, e hizo que la accuracy reportada nunca fuera
+    # comparable con la de experimentos/, que siempre usó la columna oficial.
+    cat_oficial = df_joined[COL_CLASIFICACION_OFICIAL].astype(str).str.strip()
+    cat_exp = _categoria_cortes_fijos(df_joined["radar_propio"])
 
     comparacion_label = f"{experimento_id}_vs_radar_oficial"
     resumen, detalle_df, cm = _metricas_par(cat_oficial, cat_exp, comparacion_label)
@@ -591,7 +618,18 @@ def procesar_metricas_multi_experimento(ruta_excel: str, salida: str) -> Dict[st
     for col in experimentos:
         df[col] = _to_numeric_series(df[col])
 
-    dist_oficial = _clasificar(df[col_oficial]).value_counts().to_dict()
+    # cat_oficial usa la clasificación real del DANE (columna
+    # Clasificacion_radar_oficial_promedio) cuando está disponible, no una
+    # re-tercilada del número crudo -- corregido 2026-08-31, ver
+    # contexto/08_log_decisiones.md. _asegurar_clasificacion_oficial() ya la
+    # agrega si falta, así que este fallback es solo defensivo.
+    if col_clasif_oficial:
+        cat_oficial_serie = df[col_clasif_oficial].astype(str).str.strip()
+    else:
+        print("[metricas] AVISO: no hay columna de clasificación oficial en el Excel, "
+              "re-tercilando el número crudo (legado, puede no coincidir con el DANE real)")
+        cat_oficial_serie = _clasificar(df[col_oficial])
+    dist_oficial = cat_oficial_serie.value_counts().to_dict()
     print(f"\nDistribucion oficial: {dist_oficial}")
 
     ids_exp: Dict[str, str] = {}
@@ -619,15 +657,22 @@ def procesar_metricas_multi_experimento(ruta_excel: str, salida: str) -> Dict[st
 
     for col in experimentos:
         eid = ids_exp[col]
-        temp = df[[col_dep, col_oficial, col]].copy()
-        temp.columns = ["departamento", "radar_oficial_promedio", "radar_experimento"]
+        cols_temp = [col_dep, col_oficial, col]
+        if col_clasif_oficial:
+            cols_temp.append(col_clasif_oficial)
+        temp = df[cols_temp].copy()
+        if col_clasif_oficial:
+            temp.columns = ["departamento", "radar_oficial_promedio", "radar_experimento", "clasificacion_oficial"]
+        else:
+            temp.columns = ["departamento", "radar_oficial_promedio", "radar_experimento"]
         temp = temp.dropna(subset=["radar_oficial_promedio", "radar_experimento"])
         if len(temp) < 3:
             sin_datos.append(eid)
             continue
 
-        cat_of = _clasificar(temp["radar_oficial_promedio"])
-        cat_ex = _clasificar(temp["radar_experimento"])
+        cat_of = (temp["clasificacion_oficial"].astype(str).str.strip() if col_clasif_oficial
+                  else _clasificar(temp["radar_oficial_promedio"]))
+        cat_ex = _categoria_cortes_fijos(temp["radar_experimento"])
         res, det, cm = _metricas_par(cat_of, cat_ex, eid)
         if res is None:
             sin_datos.append(eid)
@@ -680,9 +725,11 @@ def procesar_metricas_multi_experimento(ruta_excel: str, salida: str) -> Dict[st
         eid = ids_exp[col]
         if eid not in [r.get("experimento") for r in resumenes]:
             continue
-        temp_c = df[[col_dep, col_oficial, col]].dropna(subset=[col_oficial, col]).copy()
-        cat_of_c = _clasificar(_to_numeric_series(temp_c[col_oficial]))
-        cat_ex_c = _clasificar(_to_numeric_series(temp_c[col]))
+        cols_c = [col_dep, col_oficial, col] + ([col_clasif_oficial] if col_clasif_oficial else [])
+        temp_c = df[cols_c].dropna(subset=[col_oficial, col]).copy()
+        cat_of_c = (temp_c[col_clasif_oficial].astype(str).str.strip() if col_clasif_oficial
+                    else _clasificar(_to_numeric_series(temp_c[col_oficial])))
+        cat_ex_c = _categoria_cortes_fijos(_to_numeric_series(temp_c[col]))
         cm_c = confusion_matrix(cat_of_c.tolist(), cat_ex_c.tolist(), labels=LABELS_CAT)
         filas_cm.append({"experimento": eid, "real \\ predicho": "---", **{c: "" for c in LABELS_CAT}})
         for ri, label_r in enumerate(LABELS_CAT):

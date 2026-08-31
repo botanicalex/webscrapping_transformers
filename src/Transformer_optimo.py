@@ -103,54 +103,76 @@ class PipelineTransformers:
         #     device=PIPELINE_DEVICE
         # )
 
+        # ------------------------------------------------------------------
+        # V2 (promovido 2026-08-31, ver contexto/08_log_decisiones.md).
+        # V0 usaba un marco metalinguistico ("Este texto reporta que X") que
+        # inflaba los scores: el 78% de las noticias "implicaba" una hipotesis
+        # de contenido imposible (control absurdo con pinguinos emperador,
+        # ver contexto/04_hallazgos_revision_nli.md). V2 describe el
+        # territorio o el hecho directamente, sin ese marco. Las 26 claves son
+        # identicas a V0 -- solo cambia el texto de la hipotesis.
+        # ------------------------------------------------------------------
         self.eventos = {
-            "desplazamiento_forzado": "Este texto reporta que OCURRIÓ un desplazamiento forzado, expulsión o éxodo de comunidades",
-            "reasentamiento": "Este texto reporta que SE REALIZÓ un reasentamiento, reubicación o traslado planificado de población",
-            "protesta_social": "Este texto reporta que OCURRIÓ una protesta social, manifestación, bloqueo, movilización o paro",
-            "amenaza_intimidacion": "Este texto reporta que OCURRIERON amenazas, intimidación, hostigamiento o violencia contra personas",
-            "conflicto_territorial": "Este texto reporta una disputa activa y documentada por el control, uso o propiedad de un territorio o tierras específicas, con comunidades, grupos o actores plenamente identificados en conflicto directo entre sí por ese territorio.",
+            "desplazamiento_forzado": "Hubo un desplazamiento forzado o éxodo de comunidades.",
+            "reasentamiento": "Se realizó un reasentamiento o reubicación de población.",
+            "protesta_social": "Hubo una protesta, manifestación, bloqueo o paro.",
+            "amenaza_intimidacion": "Hubo amenazas, intimidación u hostigamiento contra personas.",
+            "conflicto_territorial": "Hay una disputa por el control, el uso o la propiedad de un territorio.",
         }
 
         self.posturas = {
-            "rechazo_proyecto": "Este artículo reporta oposición explícita de comunidades, organizaciones o autoridades frente a un proyecto energético, minero, vial, ambiental o de infraestructura.",
-            "derechos_vulnerados": "Este artículo afirma explícitamente que se vulneraron derechos humanos, territoriales, colectivos, ambientales, étnicos o sociales de una comunidad o grupo poblacional identificado e identifica el derecho o la afectación denunciada.",
-            "conflicto_activo": "Este artículo reporta un conflicto activo con hechos recientes como protestas, bloqueos, enfrentamientos, amenazas, denuncias o disputas territoriales.",
-            "resistencia_territorial": "Este texto expresa resistencia activa, conflictividad o reivindicacion del territorio, los recursos naturales o el medio ambiente frente a una amenaza concreta.",
-            "exclusion_comunidades": "Este texto exige participacion, consulta o inclusion porque las comunidades han sido excluidas de decisiones que las afectan directamente.",
+            "rechazo_proyecto": "Hay oposición de comunidades o autoridades a un proyecto.",
+            "derechos_vulnerados": "Se vulneraron los derechos de una comunidad.",
+            "conflicto_activo": "Hay un conflicto activo en este territorio.",
+            "resistencia_territorial": "Hay resistencia comunitaria en defensa del territorio o el medio ambiente.",
+            # EXIGENCIA de inclusión (se diferencia de deficit_participacion_comunitaria)
+            "exclusion_comunidades": "Las comunidades exigen ser consultadas o incluidas en las decisiones.",
         }
 
         self.indicadores = {
-            # Ex zero-shot: convertidos a NLI (indicador) para detectar el tema
-            # aunque no sea el tema dominante del artículo
-            "deficit_participacion_comunitaria": "Este artículo denuncia explícitamente que comunidades, ciudadanos, veedurías u organizaciones sociales fueron excluidos de procesos de participación, consulta, socialización o toma de decisiones sobre un proyecto, obra, política pública o intervención territorial específica que la afecta.",
-            "incentivos_economicos_inequitativos": "Este artículo reporta explícitamente una distribución inequitativa de compensaciones, regalías, pagos o beneficios económicos de un proyecto, identificando a una comunidad o población perjudicada.",
-            "debilidad_institucional": "Este texto evidencia una debilidad institucional grave y documentada: entidades con déficit de recursos o incapacidad demostrada para cumplir su mandato.",
-            "danos_ambientales": "Este articulo reporta danos ambientales verificables, contaminacion, perdida de biodiversidad o degradacion de ecosistemas.",
-            "conflictos_socioambientales": "Este artículo reporta disputas entre comunidades, empresas o instituciones relacionadas explícitamente con daños ambientales, uso del territorio, minería, agua, energía o infraestructura.",
-            # NLI indicadores originales
-            "violacion_derechos_humanos": "Este texto reporta una denuncia formal o explicita de violaciones de derechos humanos, abusos o incumplimientos graves de acuerdos, presentada por comunidades, organizaciones o defensores identificados.",
-            "exclusion_servicios_derechos": "Este texto describe brechas concretas de exclusión en acceso a servicios, derechos u oportunidades",
-            "grupos_etnicos_existentes": "Este artículo menciona explícitamente comunidades étnicas, pueblos indígenas, comunidades afrodescendientes, raizales, palenqueras o grupos étnicos que tienen presencia o participación relevante en el territorio.",
-            "movimientos_sociales": "Este texto reporta movilizaciones, protestas, paros, plantones o acciones colectivas convocadas por movimientos sociales, organizaciones comunitarias o plataformas ciudadanas en defensa de derechos, territorio o condiciones de vida.",
-            "poblacion_afectada": "Este artículo reporta explícitamente comunidades, familias o grupos poblacionales afectados negativamente por violencia, conflicto, desastre, proyecto o decisión institucional.",
-            "exclusion_beneficios_economicos": "Este artículo reporta explícitamente que una comunidad o población identificada fue excluida de compensaciones, regalías, empleo, pagos u otros beneficios económicos generados por un proyecto o actividad productiva específica.",
-            "irregularidad_contractual": "Este texto reporta irregularidades, sobreprecios, corrupción, desvío de fondos, favoritismos o incumplimientos detectados en contratos, compras o adjudicaciones públicas de obras, servicios o proyectos financiados por el Estado.",
-            "zonas_proteccion_alimentaria": "Este texto menciona cultivos, tierras de siembra, parcelas agrícolas, producción de alimentos, acceso a comida, soberanía alimentaria o seguridad alimentaria de familias o comunidades rurales.",
-            "dano_territorios": "Este texto reporta destrucción, ocupación ilegal, contaminación o despojo de territorios, tierras o recursos naturales pertenecientes a comunidades o pueblos identificados, causado por actores externos, actividades extractivas o proyectos específicos.",
-            "presencia_grupos_armados": "Este artículo menciona explícitamente la presencia, acción, control o intervención de grupos armados ilegales en un territorio.",
-            "amenaza_lideres": "Este texto reporta amenazas directas, hostigamiento, asesinato, desaparición o agresión física contra líderes sociales, defensores de derechos humanos o líderes comunitarios identificados por nombre o cargo.",
+            # AUSENCIA de proceso participativo
+            "deficit_participacion_comunitaria": "No hubo consulta ni participación de la comunidad en un proyecto o decisión.",
+            "incentivos_economicos_inequitativos": "El reparto de compensaciones o regalías de un proyecto fue desigual.",
+            "debilidad_institucional": "Las instituciones carecen de recursos o de capacidad para cumplir su función.",
+            "danos_ambientales": "Hubo daños ambientales, contaminación o pérdida de biodiversidad.",
+            "conflictos_socioambientales": "Hay un conflicto por el uso del territorio, el agua o los recursos naturales.",
+            "violacion_derechos_humanos": "Se denunciaron violaciones de derechos humanos.",
+            "exclusion_servicios_derechos": "Hay población sin acceso a servicios básicos o a sus derechos.",
+            "grupos_etnicos_existentes": "En este territorio hay comunidades étnicas o pueblos indígenas.",
+            "movimientos_sociales": "Hay movilizaciones u organizaciones sociales activas.",
+            "poblacion_afectada": "Hay comunidades o familias afectadas.",
+            "exclusion_beneficios_economicos": "Una comunidad quedó excluida de los beneficios económicos de un proyecto.",
+            "irregularidad_contractual": "Hubo irregularidades o corrupción en contratos públicos.",
+            "zonas_proteccion_alimentaria": "Hay cultivos, tierras de siembra o producción de alimentos.",
+            "dano_territorios": "Hubo destrucción, ocupación ilegal o despojo de territorios.",
+            "presencia_grupos_armados": "En este territorio hay presencia de grupos armados ilegales.",
+            "amenaza_lideres": "Hubo amenazas o agresiones contra líderes sociales.",
         }
 
         # ------------------------------------------------------------------
-        # Pre-filtro de relevancia social (NLI).
-        # score_social = P(entailment) del articulo contra esta hipotesis.
-        # Los articulos con score_social < umbral_social NO aportan señal a
-        # los 26 indicadores NLI (ver procesar()).
+        # Calibracion del sesgo "si-decidor" por articulo (V2). Hay artículos
+        # que puntúan alto contra CUALQUIER hipótesis, incluidas las
+        # imposibles (contexto/04_hallazgos_revision_nli.md). Se estima ese
+        # sesgo con 4 hipótesis nulas de dominios variados y se descuenta de
+        # los 26 indicadores reales (ver procesar()). Una 5ª nula
+        # ("hay colonias de osos polares") queda reservada para evaluar el
+        # control absurdo honestamente y NUNCA entra aquí (regla del proyecto).
         # ------------------------------------------------------------------
-        self.umbral_social = 0.65
-        self.hipotesis_social = (
-            "Este texto reporta conflictos, afectaciones, riesgos, protestas, vulneraciones de derechos, tensiones comunitarias, impactos territoriales o problemas institucionales que afectan a comunidades o poblaciones."
-        )
+        self.nulas_calibracion = [
+            "En este territorio hay presencia de pingüinos emperador.",
+            "En este territorio hay yacimientos de helio-3 lunar.",
+            "En este territorio se practica la caligrafía medieval japonesa.",
+            "En este territorio hay glaciares de metano líquido.",
+        ]
+
+        # ------------------------------------------------------------------
+        # Pre-filtro de relevancia social: RETIRADO (2026-08-31).
+        # Costaba AUC de forma clara y estadísticamente significativa en los
+        # 2 indicadores con estándar de plata (-0.053 y -0.027, IC95% excluye
+        # cero) sin que el control absurdo lo explicara — ver
+        # contexto/08_log_decisiones.md [2026-08-31]. Los 26 indicadores se
+        # puntúan sobre TODOS los artículos, sin descartar ninguno antes.
+        # ------------------------------------------------------------------
 
         # --- NER/entidades desactivado (2026-06-24) ---
         # self.ref_entidades = {
@@ -235,9 +257,17 @@ class PipelineTransformers:
     # Métodos batch (procesan N textos de una vez, ~30x más rápido)
     # ------------------------------------------------------------------
 
-    def _nli_batch(self, textos: List[str], hipotesis: str, batch_size: int = 32) -> List[float]:
-        """Calcula P(entailment) de N textos contra UNA hipótesis en chunks."""
-        scores: List[float] = []
+    def _nli_batch(
+        self, textos: List[str], hipotesis: str, batch_size: int = 32,
+        devolver_neutral: bool = False,
+    ):
+        """
+        Calcula P(entailment) de N textos contra UNA hipótesis en chunks.
+        Con devolver_neutral=True devuelve (ent, neu) -- necesario para la
+        fórmula corregida V2: clip(clip(ent-sesgo,0)*(1-neu),0,1).
+        """
+        ent: List[float] = []
+        neu: List[float] = []
         for start in range(0, len(textos), batch_size):
             chunk = textos[start: start + batch_size]
             inputs = self.tokenizer_nli(
@@ -250,8 +280,12 @@ class PipelineTransformers:
             ).to(self.device)
             with torch.no_grad():
                 probs = torch.softmax(self.modelo_nli(**inputs).logits, dim=1)
-            scores.extend(probs[:, self.label_ent].cpu().tolist())
-        return scores
+            ent.extend(probs[:, self.label_ent].cpu().tolist())
+            if devolver_neutral:
+                neu.extend(probs[:, self.label_neu].cpu().tolist())
+        if devolver_neutral:
+            return ent, neu
+        return ent
 
     def _sentimiento_batch(self, textos: List[str], batch_size: int = 32) -> Tuple[List[str], List[float]]:
         """Análisis de sentimiento en batch sobre todos los textos."""
@@ -313,27 +347,30 @@ class PipelineTransformers:
             if col not in df.columns:
                 df[col] = 0.0
 
-        # 1. Pre-filtro de relevancia social (ANTES de los indicadores)
-        score_social = self._nli_batch(textos, self.hipotesis_social, batch_size)
-        df["score_social"] = [round(float(s), 6) for s in score_social]
-        relevante = df["score_social"] >= self.umbral_social
-        n_rel = int(relevante.sum())
-        print(f"[batch] Pre-filtro social: {n_rel}/{N} relevantes (>= {self.umbral_social}); "
-              f"{N - n_rel} articulos descartados (no se procesan)")
+        # 1. Sesgo "si-decidor" por articulo: media de las 4 nulas de
+        #    calibracion (V2, ver __init__). Se descuenta de los 26
+        #    indicadores reales mas abajo -- nunca se usa la nula reservada.
+        print(f"[batch] Calibrando sesgo por articulo (4 nulas)...")
+        sesgo_nulas = [self._nli_batch(textos, h, batch_size) for h in self.nulas_calibracion]
+        sesgo = np.mean(sesgo_nulas, axis=0)
+        df["sesgo"] = np.round(sesgo, 6)
 
-        # 2. NLI en batch: solo sobre articulos relevantes
-        textos_rel = [t for t, r in zip(textos, relevante) if r]
-        idx_rel = df.index[relevante].tolist()
+        # 2. NLI en batch sobre TODOS los articulos (sin pre-filtro, ver
+        #    __init__), aplicando la formula corregida V2:
+        #    clip(clip(ent - sesgo, 0) * (1 - neu), 0, 1)
         todos = {**self.eventos, **self.posturas, **self.indicadores}
         n_hip = len(todos)
         for i_hip, (clave, hipotesis) in enumerate(todos.items(), 1):
-            scores = self._nli_batch(textos_rel, hipotesis, batch_size)
-            df.loc[idx_rel, clave] = scores
+            ent, neu = self._nli_batch(textos, hipotesis, batch_size, devolver_neutral=True)
+            ent = np.asarray(ent, dtype=float)
+            neu = np.asarray(neu, dtype=float)
+            corregido = np.clip(np.clip(ent - sesgo, 0, None) * (1 - neu), 0, 1)
+            df[clave] = np.round(corregido, 6)
             if i_hip % 5 == 0 or i_hip == n_hip:
-                print(f"[batch] NLI hipotesis {i_hip}/{n_hip} completada ({len(textos_rel)} articulos)")
+                print(f"[batch] NLI hipotesis {i_hip}/{n_hip} completada ({N} articulos)")
 
         self._crear_scores_dimension(df)
-        print(f"[batch] Procesamiento completado: {N} articulos ({n_rel} procesados, {N - n_rel} descartados)")
+        print(f"[batch] Procesamiento completado: {N} articulos")
         return df
 
     def _crear_scores_dimension(self, df: pd.DataFrame) -> None:
@@ -416,13 +453,20 @@ class ValidadorPrecondiciones:
 
 def exportar_indicadores_transformers_por_departamento(df_procesado: pd.DataFrame, salida: str) -> Tuple[str, str]:
     """
-    Agrega los indicadores por departamento usando el VALOR MAXIMO entre todos
-    los articulos del departamento (no el promedio): un promedio diluiria/anularia
-    señales reales que solo aparecen en uno o pocos articulos.
+    Agrega los indicadores por departamento usando el PERCENTIL 75 entre
+    todos los articulos del departamento (promovido 2026-08-31, reemplaza el
+    MAXIMO de V0). El MAX esta dominado por el tamaño del corpus: un
+    departamento con mas articulos tiene mas oportunidades de que algo
+    puntue alto, con independencia del riesgo real (razon señal/artefacto
+    0.91 medida en contexto/04_hallazgos_revision_nli.md). El P75 corrige la
+    mayor parte de ese efecto (razon 49.0) sin diluir la señal como haria un
+    promedio.
 
-    Para cada indicador y departamento, ademas del valor maximo, se registra el
-    articulo que produjo ese maximo (titulo, url, periodico, fecha) en un CSV
-    separado de "fuentes" para permitir la verificacion manual de que el
+    Se usa el percentil por RANGO MAS CERCANO (no interpolado): el valor
+    resultante es siempre el de un articulo real, así que se conserva la
+    trazabilidad — para cada indicador y departamento se registra el
+    artículo que produjo ese valor (titulo, url, periodico, fecha) en un CSV
+    separado de "fuentes", para permitir la verificacion manual de que el
     indicador refleja algo real en el articulo de origen.
 
     Retorna (ruta_indicadores_csv, ruta_fuentes_csv).
@@ -438,25 +482,28 @@ def exportar_indicadores_transformers_por_departamento(df_procesado: pd.DataFram
         else:
             df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0.0)
 
-    # Columnas de identificacion del articulo, para trazabilidad del valor maximo
+    # Columnas de identificacion del articulo, para trazabilidad del P75
     cols_identificacion = [c for c in ['titulo', 'url', 'periodico', 'fecha'] if c in df.columns]
 
     filas_valores: List[dict] = []
     filas_fuentes: List[dict] = []
     for depto, grupo in df.groupby('departamento'):
         fila_valores = {'departamento': depto}
+        n = len(grupo)
         for c in cols:
-            idx_max = grupo[c].idxmax()
-            valor_max = grupo.loc[idx_max, c]
-            fila_valores[c] = valor_max
+            orden = grupo[c].sort_values(kind="mergesort")
+            pos_p75 = round(0.75 * (n - 1))
+            idx_p75 = orden.index[pos_p75]
+            valor_p75 = grupo.loc[idx_p75, c]
+            fila_valores[c] = valor_p75
 
             fila_fuente = {
                 'departamento': depto,
                 'indicador': c,
-                'valor_maximo': valor_max,
+                'valor_p75': valor_p75,
             }
             for ci in cols_identificacion:
-                fila_fuente[ci] = grupo.loc[idx_max, ci]
+                fila_fuente[ci] = grupo.loc[idx_p75, ci]
             filas_fuentes.append(fila_fuente)
         filas_valores.append(fila_valores)
 
