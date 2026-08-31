@@ -34,13 +34,9 @@ departamentos sigue con los conteos viejos (11/36/79/117). Ver backlog punto 1b.
 Sobre la tarea 0 del backlog (identificar cuál es el índice del DANE de referencia):
 sigue PENDIENTE, la trae el usuario.
 
-**Cambios sin commitear** al cerrar esta sesión (confirmar con el usuario si
-commitear antes de seguir, o seguir encima de lo no commiteado):
-`git status` muestra 5 docs de `contexto/` modificados, `src/metricas_y_calculo_de_error.py`
-y `src/scrappers.py` modificados, y nuevos en `experimentos/`:
-`exp_terminos_deficit.py`, `exp_terminos_deficit_choco.py`,
-`exp_rescrape_fix_relevancia.py`, `exp_correlacion_v2_nacional.py`,
-`exp_cortes_fijos_v2.py`, más sus resultados en `experimentos/resultados/`.
+Todo lo anterior ya está commiteado en `pruebas` (commit `78cd3b6`,
+"Mide correlacion V2 nacional (+0.384), corrige dos bugs de scraping"). `git status`
+debería salir limpio al retomar; si no, algo cambió fuera de esta sesión.
 
 ## Arranque propuesto
 
