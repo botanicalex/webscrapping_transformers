@@ -38,13 +38,11 @@ optimizar indicadores — hay un techo estructural y una decisión de diseño pe
    configuración): solo son comparables mediciones con el mismo contenido absurdo.
 4. **`NULA_TEST` no entra jamás en la calibración del sesgo.** Para eso están las 4 de
    `NULAS_CALIBRACION`. Mezclarlas destruye la única evaluación honesta que queda.
-5. **`experimentos/hipotesis_base.py` es de solo lectura.** Son las 26 cadenas V0, que
-   fueron producción hasta el 2026-08-31 y quedan como punto de comparación histórico. Las
-   variantes van en archivos nuevos.
-6. **Antes de cualquier experimento, `nli_core.verificar_contra_produccion_v2()` contra
-   `datos/scores/df_procesado_baseline_v2.pkl` debe dar OK** (max|dif| < 1e-4; hoy da
-   ~5e-7). Si no, `nli_core` se desvió y nada es comparable. La función sin sufijo
-   (`verificar_contra_produccion`) verifica contra V0 y es legado.
+5. **En esta rama no existe `experimentos/`** (se eliminó en la poda). Las 26 hipótesis V2
+   viven únicamente en `src/Transformer_optimo.py`; no hay copia V0 aquí.
+6. **En esta rama no existe `nli_core`** (se eliminó con `experimentos/`), así que la
+   verificación `verificar_contra_produccion_v2()` no aplica aquí. Para validar cambios,
+   correr `python src/test_integracion.py` (10 tests, sin GPU).
 7. **Un experimento aísla UNA variable.** Dos cambios a la vez no se pueden atribuir.
 8. **No repetir GPU.** Puntuar los 32 departamentos son ~4 h. Se guardan `ent_` y `neu_`
    **sin enmascarar** en un pkl y todo el análisis posterior se hace sobre el pkl.
@@ -68,7 +66,7 @@ La revisión NLI encontró **tres defectos independientes**, cada uno medido y c
 
 1. El marco metalingüístico (`"Este artículo reporta que X"`) infla los scores: el 78% de
    las noticias "implica" que menciona pingüinos emperador. → 26 hipótesis reescritas
-   describiendo el territorio, no el documento (`experimentos/hipotesis_v2.py`).
+   describiendo el territorio, no el documento (viven en `src/Transformer_optimo.py`).
 2. Sesgo "sí-decidor" por artículo: el 6.5% afirma casi cualquier hipótesis. → descontar la
    línea base estimada con `NULAS_CALIBRACION`.
 3. El MAX está dominado por el tamaño del corpus: el artefacto por tamaño (0.3455) supera la
@@ -98,17 +96,13 @@ nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos.
 | Ruta | Qué es |
 |---|---|
 | `src/` | Producción: `Transformer_optimo.py`, `radar.py`, `scrappers.py`, `config_pipeline.py`, `orquestador_pipeline.py`, `metricas_y_calculo_de_error.py`. Se ejecuta desde la raíz: `python src/<script>.py` |
-| `experimentos/nli_core.py` | Motor NLI que reproduce producción sin importar `scrappers`/playwright. `NLIScorer.score(premisas, hipotesis, devolver_todo=)`, `verificar_contra_produccion_v2()` (vigente) y `verificar_contra_produccion()` (legado V0), dict `PREMISAS` |
-| `experimentos/silver.py` | Estándar de plata por keywords: `etiquetar()`, `auc()`, `evaluar()`. Cubre 2 de 26 indicadores |
-| `experimentos/hipotesis_v2.py` | Las 26 reescritas, `HIPOTESIS_SOCIAL`, `NULAS_CALIBRACION` (4), `NULA_TEST` (reservada) |
 | `datos/corpus/` | Texto crudo. `df_corpus_combinado_32deptos.pkl` (11.439) y `df_corpus_5lugares.pkl` (1.647) |
 | `datos/referencia/` | Radar oficial DANE |
 | `datos/scores/` | Matrices de scores ya calculadas — reutilizar antes de tocar la GPU |
 | `../pruebas/` | Worktree hermano en la rama `pruebas`, mismo historial. Ahí se experimenta; `datos/corpus/` y `datos/scores/` están enlazados por junction a los de `desarrollo/` (no duplicar los 107 MB), `resultados/` es independiente en cada worktree |
 | `ESTADO_DEL_PROYECTO.md` | Entregable para lector externo (jefe, profesora). Existe también en `pruebas` (copia, sincronizada por DSH el 2026-09-01); se actualiza al fusionar algo de `pruebas` a `master`, no durante los experimentos |
 
-Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`); los de
-`experimentos/`, **desde `experimentos/`**.
+Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`).
 
 ## Contexto bajo demanda — leer solo el que haga falta
 
@@ -133,10 +127,9 @@ Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`); los de
 ## Convenciones
 
 - Español, sin emojis. Los scripts imprimen tablas de texto y guardan un `.xlsx`.
-- Un experimento = un archivo `experimentos/exp_<tema>.py` cuyo docstring declara, **antes**
-  de correr: la pregunta, qué sería evidencia a favor y qué sería evidencia en contra.
+- En esta rama no hay carpeta `experimentos/`: los cambios se prueban directamente sobre
+  `src/` y se documentan en `explicacion_alexa.md`.
 - Todo número citado lleva su archivo de origen. Si no está medido, se dice "no medido".
-- Para probar variantes de hipótesis, usar el skill `experimento-hipotesis`.
 - Para decidir el siguiente paso, usar el agente `orquesta-lead`
   (`.claude/agents/orquesta-lead.md`). Si el harness no lo registra como subagente
   invocable, seguir su protocolo a mano: leer 08, 07 y 00 antes de proponer, y entregar un
