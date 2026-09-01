@@ -47,8 +47,6 @@ def ejecutar_pipeline(skip_scraping: bool, ruta_pkl: str, salida: str) -> Tuple[
         salida=salida,
         nombre_experimento="",   # siguiente EXPERIMENTO_N libre
         numero_iteraciones=1,
-        desactivar_aleatoriedad=True,
-        operaciones_radar=[rd.CalculadorRadar.OPERACION_BLOQUES],
     )
     ruta_radar_pkl = resultados_radar[-1]["RUTA_RADAR_ACTUAL_PKL"]
     return ruta_procesado_pkl, ruta_radar_pkl, ruta_radar_csv
@@ -194,20 +192,8 @@ def ejecutar_radar_experimentos(
     salida: str,
     nombre_experimento: str,
     numero_iteraciones: int = 1,
-    usar_pesos_fijos: bool = False,
-    pesos_fijos: Optional[Dict[str, float]] = None,
-    desactivar_aleatoriedad: bool = False,
-    operaciones_radar: Optional[List[str]] = None,
-    semilla_radar: Optional[int] = None,
-    archivo_log_experimentos: str = "",
-    aplicar_poda_top_n: bool = False,
-    top_n: int = 10,
-    criterio_ranking: str = "score_ranking",
-    conservar_log_completo: bool = True,
-    salida_metricas: Optional[str] = None,
-    archivo_metricas_excel: str = "",
 ) -> List[Dict[str, Any]]:
-    # nombre_experimento vacio -> que radar.ejecutar_experimentos_radar elija
+    # nombre_experimento vacio -> que radar.ejecutar_radar_bloques elija
     # el siguiente indice libre (_siguiente_indice_experimento). Antes el
     # default era "experimento_1", que ya existe en el Excel de referencia:
     # _actualizar_excel_experimento levantaba ValueError y el orquestador moria
@@ -218,31 +204,13 @@ def ejecutar_radar_experimentos(
         nombre_normalizado = _normalizar_nombre_experimento(nombre_experimento)
         sufijo = nombre_normalizado[len("experimento_"):]
         experimento_id = f"EXPERIMENTO_{sufijo}"
-    archivo_log = archivo_log_experimentos.strip() if archivo_log_experimentos else ""
-    if not archivo_log:
-        archivo_log = os.path.join(salida, "experimentos_radar.jsonl")
-    operaciones = None
-    if operaciones_radar is not None:
-        operaciones = [o.strip() for o in operaciones_radar if o and o.strip()]
-    resultados = rd.ejecutar_experimentos_radar(
+    resultados = rd.ejecutar_radar_bloques(
         ruta_indicadores_csv=ruta_indicadores_csv,
         ruta_radar_csv=ruta_radar_csv,
         numero_iteraciones=numero_iteraciones,
-        usar_pesos_fijos=usar_pesos_fijos,
-        pesos_fijos=pesos_fijos,
-        desactivar_aleatoriedad=desactivar_aleatoriedad,
         archivo_comparacion_excel=excel,
-        archivo_log_experimentos=archivo_log,
-        operaciones_habilitadas=operaciones,
-        semilla=semilla_radar,
         directorio_salida=salida,
         nombre_experimento_inicial=experimento_id,
-        aplicar_poda_top_n=aplicar_poda_top_n,
-        top_n=top_n,
-        criterio_ranking=criterio_ranking,
-        conservar_log_completo=conservar_log_completo,
-        salida_metricas=salida_metricas,
-        archivo_metricas_excel=archivo_metricas_excel,
     )
     if not resultados:
         raise ValueError("No se generaron resultados de radar para el experimento")
@@ -392,17 +360,6 @@ def main() -> None:
     # porque esa columna ya existe en datos/referencia/comparacion_radares.xlsx.
     parser.add_argument("--nombre-experimento", default="")
     parser.add_argument("--iteraciones-radar", type=int, default=1)
-    parser.add_argument("--usar-pesos-fijos", action="store_true")
-    parser.add_argument("--pesos-fijos-json", default="")
-    parser.add_argument("--desactivar-aleatoriedad", action="store_true")
-    # Default = solo "bloques": es el camino de producción V2 (P75, cortes
-    # fijos, sin pesos aleatorios, promovido 2026-08-31). "indicadores_transformers"
-    # (pesos aleatorios + poda top-N por accuracy contra el propio DANE) sigue
-    # disponible pasando este flag a mano — no se usa por defecto porque es el
-    # riesgo de sobreajuste que contexto/09_riesgos_y_limites.md señala.
-    parser.add_argument("--operaciones-radar", default="bloques")
-    parser.add_argument("--semilla-radar", type=int, default=None)
-    parser.add_argument("--log-experimentos-radar", default="")
     parser.add_argument("--salida-metricas", default=".")
     parser.add_argument(
         "--umbral-accuracy",
@@ -410,11 +367,6 @@ def main() -> None:
         default=0.70,
         help="Umbral de accuracy (clasificación) para criterio de parada (default: 0.70)",
     )
-    parser.add_argument("--aplicar-poda-top-n", action="store_true")
-    parser.add_argument("--top-n", type=int, default=10)
-    parser.add_argument("--criterio-ranking", default="score_ranking")
-    parser.add_argument("--conservar-log-completo", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--archivo-metricas-excel", default="")
     args = parser.parse_args()
 
     only = args.only
@@ -422,8 +374,6 @@ def main() -> None:
     ruta_indicadores_csv = os.path.join(args.salida, "indicadores_transformers_departamento.csv")
     ruta_procesado_pkl = os.path.join(args.salida, "df_procesado.pkl")
     ruta_radar_pkl = os.path.join(args.salida, "radar_departamentos.pkl")
-    pesos_fijos = rd._parsear_pesos_json(args.pesos_fijos_json)
-    operaciones_radar = [x.strip() for x in args.operaciones_radar.split(",") if x.strip()]
 
     correr_scraping = only == "scraping" or (only == "todo" and not args.skip_scraping)
     correr_transformers = only in ("transformers", "todo")
@@ -458,18 +408,6 @@ def main() -> None:
                 salida=args.salida,
                 nombre_experimento=args.nombre_experimento,
                 numero_iteraciones=args.iteraciones_radar,
-                usar_pesos_fijos=args.usar_pesos_fijos,
-                pesos_fijos=pesos_fijos,
-                desactivar_aleatoriedad=args.desactivar_aleatoriedad,
-                operaciones_radar=operaciones_radar,
-                semilla_radar=args.semilla_radar,
-                archivo_log_experimentos=args.log_experimentos_radar,
-                aplicar_poda_top_n=args.aplicar_poda_top_n,
-                top_n=args.top_n,
-                criterio_ranking=args.criterio_ranking,
-                conservar_log_completo=args.conservar_log_completo,
-                salida_metricas=args.salida_metricas,
-                archivo_metricas_excel=args.archivo_metricas_excel,
             ),
         )
         if resultados_radar:
