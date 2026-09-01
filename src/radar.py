@@ -91,7 +91,7 @@ class CalculadorRadar:
                 df[c] = df[c].astype(float)
             else:
                 df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0.0)
-        df_tasas = df.groupby('departamento')[cols].agg(self._p75_rango_cercano)
+        df_tasas = df.groupby('departamento')[cols].agg('max')
         n_articulos_serie = df.groupby('departamento').size()
         for c in [c for c in cols if c in self.VARS_INVERTIR]:
             df_tasas[c] = 1 - df_tasas[c]
@@ -153,16 +153,17 @@ class CalculadorRadar:
 
     def _calcular_bloques_desde_tasas(self, df_tasas: pd.DataFrame, n_articulos: pd.Series) -> pd.DataFrame:
         """
-        Camino de producción por defecto (V2, promovido 2026-08-31). `df_tasas`
-        viene de `indicadores_transformers_departamento.csv`
+        Camino de producción por defecto (V2, promovido 2026-08-31; esta rama
+        usa MAX en vez de P75). `df_tasas` viene de
+        `indicadores_transformers_departamento.csv`
         (`exportar_indicadores_transformers_por_departamento`), que ya trae el
-        P75 por indicador y departamento — una fila por departamento, así que
+        MAX por indicador y departamento — una fila por departamento, así que
         el groupby/mean de `_preparar_tasas_indicadores` es un no-op. Aquí solo
         se promedia entre los 26 indicadores (sin pesos) y se clasifica con
         cortes fijos, sin calibración z-score (ver `CORTE_BAJO_MEDIO`/
-        `CORTE_MEDIO_ALTO` — están calibrados sobre la escala P75 natural, no
-        sobre la escala z-score, que además es monótona y no cambiaba la
-        clasificación).
+        `CORTE_MEDIO_ALTO` — están calibrados sobre la escala MAX de esta
+        rama, no sobre la escala z-score, que además es monótona y no
+        cambiaba la clasificación).
         """
         df_tasas = df_tasas.copy()
         cols = [c for c in self.COLUMNAS_BINARIAS if c in df_tasas.columns]
@@ -276,26 +277,14 @@ class CalculadorRadar:
         return s.apply(_clasificar)
 
     @staticmethod
-    def _p75_rango_cercano(s: pd.Series) -> float:
-        """
-        Percentil 75 por RANGO MAS CERCANO (no interpolado): el valor
-        devuelto es siempre el de una observación real del grupo. Reemplaza
-        al MAX de V0 (contexto/04_hallazgos_revision_nli.md: el MAX está
-        dominado por el tamaño del corpus, razón señal/artefacto 0.91 vs
-        49.0 del P75).
-        """
-        ordenado = s.sort_values(kind="mergesort")
-        pos = round(0.75 * (len(ordenado) - 1))
-        return float(ordenado.iloc[pos])
-
-    @staticmethod
     def _calibrar_escala(s: pd.Series,
                          media_obj: float = 31.4,
                          std_obj: float = 7.6) -> pd.Series:
         """Mapea el score a la distribución del radar oficial (z-score match).
         Camino LEGADO — el camino por defecto reporta radar_propio en su
-        escala P75 natural (ver `_calcular_bloques_desde_tasas`), porque los
-        cortes fijos V2 están calibrados sobre esa escala, no sobre esta."""
+        escala MAX natural (ver `_calcular_bloques_desde_tasas`), porque los
+        cortes fijos de esta rama están calibrados sobre esa escala, no sobre
+        esta."""
         mu, sigma = s.mean(), s.std()
         if sigma > 0:
             return ((s - mu) / sigma * std_obj + media_obj).round(2)

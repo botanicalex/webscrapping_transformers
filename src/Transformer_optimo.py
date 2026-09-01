@@ -453,21 +453,21 @@ class ValidadorPrecondiciones:
 
 def exportar_indicadores_transformers_por_departamento(df_procesado: pd.DataFrame, salida: str) -> Tuple[str, str]:
     """
-    Agrega los indicadores por departamento usando el PERCENTIL 75 entre
-    todos los articulos del departamento (promovido 2026-08-31, reemplaza el
-    MAXIMO de V0). El MAX esta dominado por el tamaño del corpus: un
-    departamento con mas articulos tiene mas oportunidades de que algo
-    puntue alto, con independencia del riesgo real (razon señal/artefacto
-    0.91 medida en contexto/04_hallazgos_revision_nli.md). El P75 corrige la
-    mayor parte de ese efecto (razon 49.0) sin diluir la señal como haria un
-    promedio.
+    Agrega los indicadores por departamento usando el MAXIMO entre todos los
+    articulos del departamento (decision de esta rama, requisito de negocio).
+    El MAX esta dominado por el tamaño del corpus: un departamento con mas
+    articulos tiene mas oportunidades de que algo puntue alto, con
+    independencia del riesgo real (razon señal/artefacto 0.91 medida en
+    contexto/04_hallazgos_revision_nli.md). La decision tecnica del historial
+    del proyecto era el PERCENTIL 75 (razon 49.0, ver
+    contexto/08_log_decisiones.md) — esta rama vuelve al MAX de V0 a pedido
+    explicito, con esa limitacion conocida.
 
-    Se usa el percentil por RANGO MAS CERCANO (no interpolado): el valor
-    resultante es siempre el de un articulo real, así que se conserva la
-    trazabilidad — para cada indicador y departamento se registra el
-    artículo que produjo ese valor (titulo, url, periodico, fecha) en un CSV
-    separado de "fuentes", para permitir la verificacion manual de que el
-    indicador refleja algo real en el articulo de origen.
+    El valor resultante es siempre el de un articulo real, así que se
+    conserva la trazabilidad — para cada indicador y departamento se
+    registra el artículo que produjo ese valor (titulo, url, periodico,
+    fecha) en un CSV separado de "fuentes", para permitir la verificacion
+    manual de que el indicador refleja algo real en el articulo de origen.
 
     Retorna (ruta_indicadores_csv, ruta_fuentes_csv).
     """
@@ -482,28 +482,25 @@ def exportar_indicadores_transformers_por_departamento(df_procesado: pd.DataFram
         else:
             df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0.0)
 
-    # Columnas de identificacion del articulo, para trazabilidad del P75
+    # Columnas de identificacion del articulo, para trazabilidad del MAX
     cols_identificacion = [c for c in ['titulo', 'url', 'periodico', 'fecha'] if c in df.columns]
 
     filas_valores: List[dict] = []
     filas_fuentes: List[dict] = []
     for depto, grupo in df.groupby('departamento'):
         fila_valores = {'departamento': depto}
-        n = len(grupo)
         for c in cols:
-            orden = grupo[c].sort_values(kind="mergesort")
-            pos_p75 = round(0.75 * (n - 1))
-            idx_p75 = orden.index[pos_p75]
-            valor_p75 = grupo.loc[idx_p75, c]
-            fila_valores[c] = valor_p75
+            valor = grupo[c].max()
+            idx = grupo[c].idxmax()
+            fila_valores[c] = valor
 
             fila_fuente = {
                 'departamento': depto,
                 'indicador': c,
-                'valor_p75': valor_p75,
+                'valor_max': valor,
             }
             for ci in cols_identificacion:
-                fila_fuente[ci] = grupo.loc[idx_p75, ci]
+                fila_fuente[ci] = grupo.loc[idx, ci]
             filas_fuentes.append(fila_fuente)
         filas_valores.append(fila_valores)
 

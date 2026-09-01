@@ -72,27 +72,23 @@ GRUPOS_DEPARTAMENTOS = [
 MIN_ARTICULOS_RESPALDO = 50
 
 # ── Cortes fijos Bajo/Medio/Alto del radar V2 ───────────────────────────────
-# Promovido 2026-08-31 (contexto/08_log_decisiones.md). Leidos de huecos
-# naturales en la distribucion nacional de radar_propio (P75 por RANGO MAS
-# CERCANO, sin pre-filtro social -- el pre-filtro fue rechazado el 2026-08-31,
-# ver el mismo log), verificados contra las anclas de validez aparente, no
-# contra la accuracy.
+# Rama radar-max_Septiembre: agregacion MAX (requisito de negocio), no P75.
+# Recalibrados sobre la distribucion nacional de radar_propio con MAX (sin
+# pre-filtro social), leyendo huecos naturales (>0.008) sin mirar la
+# clasificacion oficial, verificados despues contra las anclas de validez
+# aparente (no se rompio ninguna) y reportando accuracy/Spearman solo como
+# constancia, no como criterio de eleccion -- ver explicacion_alexa.md.
 #
-# OJO (corregido el 2026-08-31, misma sesion): la primera version de estos
-# cortes (0.3074/0.3524) se calibro sobre el P75 INTERPOLADO (np.quantile),
-# que es una distribucion distinta de la que produccion realmente corta
-# (max|dif| 0.0219). En la distribucion buena, 0.3074 caia en un hueco de
-# 0.0071, por debajo del umbral de 0.008 que el propio script exige. Es el
-# caso literal de la regla 2 del CLAUDE.md. Recalibrados sobre la distribucion
-# correcta -> 0.2969/0.3527. La accuracy no cambio (25.0%) y las anclas siguen
-# intactas.
+# La decision tecnica del historial del proyecto era P75 (contexto/08_log_decisiones.md
+# [2026-08-31]: 0.2969/0.3527, razon senal/artefacto 49.0 contra 0.91 del MAX).
+# Esta rama vuelve al MAX de V0 a pedido explicito, con esa limitacion conocida:
+# favorece a los departamentos con mas articulos.
 #
 # Vive aqui (no en radar.py) para que metricas_y_calculo_de_error.py pueda
 # usar el mismo corte sin crear un import circular con radar.py (que ya
-# importa metricas_y_calculo_de_error). experimentos/exp_cortes_fijos_v2_sin_prefiltro.py
-# tiene el detalle completo de como se calibraron.
-CORTE_BAJO_MEDIO_RADAR = 0.2969
-CORTE_MEDIO_ALTO_RADAR = 0.3527
+# importa metricas_y_calculo_de_error).
+CORTE_BAJO_MEDIO_RADAR = 0.766
+CORTE_MEDIO_ALTO_RADAR = 0.9233
 
 # ── Rutas (relativas a la raiz de desarrollo/) ───────────────────────────────
 RUTA_CORPUS_PKL = "datos/corpus"        # entrada: df_corpus_*.pkl
