@@ -75,8 +75,13 @@ El radar de un lugar sub-departamental se calcula igual que el de un departament
 ### Tablas por departamento
 
 ```bash
+python src/generar_tablas_por_departamento.py           # con GPU, ~2 h
 python src/generar_max_articulos_por_departamento.py   # sin GPU, desde el pkl
 ```
+
+El primero genera `df_procesado_32deptos.pkl` y una `tabla_indicadores_<departamento>.xlsx`
+por artículo; el segundo lee ese mismo `df_procesado_32deptos.pkl` (sin GPU) y produce el
+resumen MAX + artículo de origen.
 
 ### Tests
 

@@ -66,10 +66,16 @@ clasificar en Bajo/Medio/Alto — no hay una receta distinta para escalas sub-de
   corregir un bug del scraper) al corpus nacional: reemplaza las filas viejas de ese
   departamento por las nuevas, deduplica por URL y descarta filas sin texto. No corre el
   modelo NLI.
-- **`src/generar_max_articulos_por_departamento.py`** — sin GPU: lee un `df_procesado` ya
-  calculado y genera un Excel con, por cada indicador y departamento, el valor MÁXIMO y el
-  artículo que lo produjo. Útil para verificar manualmente que un indicador alto refleja
-  algo real en el artículo de origen.
+- **`src/generar_tablas_por_departamento.py`** (con GPU, ~2 h) — corre el pipeline NLI
+  completo sobre el corpus combinado de 32 departamentos y escribe, por cada uno, una tabla
+  de los 26 indicadores **por artículo** (`tabla_indicadores_<departamento>.xlsx`), más un
+  respaldo `df_procesado_32deptos.pkl` del trabajo de GPU.
+- **`src/generar_max_articulos_por_departamento.py`** (sin GPU) — lee ese mismo
+  `df_procesado_32deptos.pkl` (el que produce el script anterior) y genera un Excel con, por
+  cada indicador y departamento, el valor MÁXIMO y el artículo que lo produjo. Útil para
+  verificar manualmente que un indicador alto refleja algo real en el artículo de origen.
+  Se corren en ese orden: primero `generar_tablas_por_departamento.py` (GPU), después
+  `generar_max_articulos_por_departamento.py` (sin GPU, reusando su `.pkl`).
 
 ## Cómo ejecutarlo
 
@@ -136,9 +142,6 @@ todo lo que era parte del *proceso* de llegar hasta acá, no del resultado:
   estándar de plata, y ~15 scripts de experimentos con sus resultados). Las 26 hipótesis
   V2 ya están incorporadas directamente en `src/Transformer_optimo.py`; `src/` nunca
   importó nada de `experimentos/`, así que el pipeline no pierde nada.
-- **`src/generar_tablas_por_departamento.py`** — usaba el pre-filtro social, que se
-  retiró de producción (rechazado, ver `contexto/08_log_decisiones.md`); queda fuera de
-  esta rama.
 - **Artefactos internos**: `PROMPT_ARRANQUE.md`, `AUDITORIA_2026-09-01.md` y
   `referencia_radar_simple.py` — notas y borradores de trabajo interno del equipo, no
   necesarios para correr o entender el pipeline.
