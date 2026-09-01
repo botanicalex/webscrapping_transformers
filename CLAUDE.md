@@ -76,12 +76,15 @@ La revisión NLI encontró **tres defectos independientes**, cada uno medido y c
    comparten el defecto.
 
 Score corregido en uso: `clip(clip(ent − sesgo, 0) * (1 − neu), 0, 1)`, agregado por lugar
-con P75 (por rango más cercano).
+con **MAX** (esta rama, `radar-max_Septiembre`, requisito de negocio del jefe — no la
+decisión técnica del historial, que fue P75 por rango más cercano; ver
+`contexto/08_log_decisiones.md` y `explicacion_alexa.md`).
 
-**Los tres están corregidos EN PRODUCCIÓN desde el 2026-08-31.** `src/` corre: hipótesis V2,
-**sin pre-filtro social** (rechazado: cuesta AUC), sesgo descontado, P75 por rango más
-cercano, cortes fijos `Bajo < 0.2969 <= Medio < 0.3527 <= Alto`, y la clasificación oficial
-del DANE leída de su columna (antes se recalculaba con terciles propios — era un bug).
+**Los tres están corregidos EN PRODUCCIÓN desde el 2026-08-31.** `src/` en `pruebas`/`master`
+corre P75; **en esta rama corre MAX**: hipótesis V2, **sin pre-filtro social** (rechazado:
+cuesta AUC), sesgo descontado, MAX por departamento, cortes fijos recalibrados sobre esa
+escala `Bajo < 0.766 <= Medio < 0.9233 <= Alto`, y la clasificación oficial del DANE leída de
+su columna (antes se recalculaba con terciles propios — era un bug).
 
 **Abierto:** ampliar el estándar de plata (cubre 2 de 26 — es la mayor debilidad, todas las
 conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos_ambientales`

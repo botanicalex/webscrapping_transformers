@@ -1,8 +1,9 @@
 # Estado del proyecto — Radar de riesgo territorial (Colombia)
 
-*Última actualización: 2026-09-01 (refleja la promoción V2 a `src/` del 2026-08-31 en la
-rama `pruebas`). Este documento está escrito para alguien que no ha seguido el proyecto
-día a día — un lector externo. Para trabajar en el código, ver `CLAUDE.md` y `contexto/`.*
+*Última actualización: 2026-08-31 (rama `radar-max_Septiembre`, derivada de `pruebas` a
+pedido del jefe: agregación **MAX** en vez de P75, ver "En qué estado está" abajo). Este
+documento está escrito para alguien que no ha seguido el proyecto día a día — un lector
+externo. Para trabajar en el código, ver `CLAUDE.md` y `contexto/`.*
 
 ## Qué es
 
@@ -40,27 +41,35 @@ validar el método antes de bajarlo a una escala donde no hay forma de verificar
 
 ## En qué estado está, honestamente
 
-**La accuracy contra el DANE sigue sin superar las líneas base de forma concluyente, pero
-el instrumento dejó de medir ruido.** Producción corre la receta V2 desde el 2026-08-31
-(hipótesis reescritas, sesgo descontado, agregación P75, cortes fijos) y su accuracy es
-**25.0%**; la mejor variante medida (con terciles ad hoc, no desplegable) da 40.6%, frente
-a un objetivo de 70%. Líneas base:
+**Esta rama (`radar-max_Septiembre`) usa agregación MAX en vez de P75, a pedido explícito
+del jefe.** El resto de la receta V2 no cambia (hipótesis reescritas, sesgo descontado,
+sin pre-filtro social). Es una decisión de negocio, no técnica: la evidencia medida en el
+historial del proyecto (`contexto/08_log_decisiones.md`, `contexto/04_hallazgos_revision_nli.md`)
+favorecía P75 sobre MAX (razón señal/artefacto 49.0 contra 0.91), porque el MAX favorece a
+los departamentos con más artículos en el corpus, con independencia del riesgo real.
+
+Recalibrando los cortes Bajo/Medio/Alto sobre la escala MAX (huecos naturales de la
+distribución, sin mirar el oficial, sin romper las anclas de validez aparente), la accuracy
+contra el DANE sobre los 32 departamentos da **34.4%** y la correlación de Spearman contra
+el valor oficial continuo da **−0.1653** (negativa, calculado offline desde
+`datos/scores/scores_v2_32deptos.pkl`, sin volver a tocar la GPU). Líneas base para
+contexto:
 
 | Método | Accuracy |
 |---|---|
 | Azar (3 clases) | 33.3% |
 | Predecir siempre "Bajo" sin leer nada | 34.4% |
 | Predecir solo por el número de artículos del corpus | 28.1% |
-| **Radar propio actual (cortes fijos)** | **25.0%** |
-| Mejor variante medida (terciles ad hoc) | 40.6% |
+| **Radar MAX de esta rama (cortes fijos recalibrados)** | **34.4%** |
+| Radar P75 en producción (`pruebas`/`master`) | 25.0% |
 | Objetivo del proyecto | 70.0% |
 
-Con solo 32 departamentos esas diferencias no son concluyentes por sí solas: el indicador
-de trabajo es la correlación de Spearman contra el valor oficial continuo, que subió de
-**+0.067 (cero) a +0.42** — señal real que sobrevive el control absurdo y no rompe las
-anclas de validez. Salvedad: el +0.067 histórico proviene de una columna del Excel de
-referencia cuya procedencia no está identificada (ver `contexto/08_log_decisiones.md`
-[2026-08-31]).
+Con solo 32 departamentos ninguna de esas diferencias es concluyente (error estándar ~8
+puntos porcentuales). El Spearman negativo de esta rama es consistente con lo ya medido en
+el historial: la variante V0+MAX (antes de las otras dos correcciones) también daba
+Spearman negativo (−0.18, ver `contexto/09_riesgos_y_limites.md`). La versión que sí
+mostró señal positiva (+0.42) usa P75, no MAX — ver `contexto/08_log_decisiones.md`
+[2026-08-31] para la comparación completa.
 
 Esto **no** significa que el radar no lleve ninguna señal: por criterio de conflicto
 armado, su ranking es razonable (Caquetá, Putumayo, Nariño, Arauca y Norte de Santander
@@ -90,11 +99,14 @@ corregido:
    Un departamento con más artículos tendía a sacar puntajes más altos solo por tener más
    oportunidades de que algo puntuara alto, no porque el riesgo fuera mayor. Cambiar la
    forma de agregar (de "el máximo" a "el percentil 75") corrige la mayor parte de este
-   efecto.
+   efecto. **Esta rama (`radar-max_Septiembre`) vuelve al máximo a pedido del jefe**, con
+   esa limitación conocida y sin corregirla — ver "En qué estado está" arriba.
 
-Las tres correcciones **están en producción desde el 2026-08-31** y fueron validadas a
-escala nacional sobre los 32 departamentos con el motor de experimentos (Spearman +0.42).
-Producción aún no se ha re-corrido sobre los 32 con su propio código (~4 h GPU, pendiente).
+Las tres correcciones **están en producción desde el 2026-08-31 en `pruebas`/`master`** y
+fueron validadas a escala nacional sobre los 32 departamentos con el motor de experimentos
+(Spearman +0.42, con P75). Producción aún no se ha re-corrido sobre los 32 con su propio
+código (~4 h GPU, pendiente). Esta rama reemplaza únicamente la agregación por MAX; las
+otras dos correcciones (hipótesis V2, sesgo descontado) se mantienen.
 
 ## Qué falta y qué lo bloquea
 
