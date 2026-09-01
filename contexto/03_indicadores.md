@@ -2,10 +2,11 @@
 
 **Las cadenas exactas viven en el código, no aquí**, para que no diverjan:
 
-- `experimentos/hipotesis_base.py` → **V0**, las 26 tal como están hoy en producción
-  (`src/Transformer_optimo.py`). De solo lectura.
+- `experimentos/hipotesis_base.py` → **V0**, las 26 hipótesis históricas (producción hasta
+  el 2026-08-31). De solo lectura.
 - `experimentos/hipotesis_v2.py` → **V2**, las 26 reescritas tras la revisión de agosto.
-  Validadas en los 2 indicadores con estándar de plata, **no aplicadas a producción**.
+  Validadas en los 2 indicadores con estándar de plata. **En producción desde el
+  2026-08-31** (`src/Transformer_optimo.py`, verificadas byte a byte antes de promover).
 - `src/radar.py` → `CalculadorRadar.COLUMNAS_BINARIAS`, la lista canónica de nombres.
 
 ## Composición
@@ -84,6 +85,15 @@ Nota: `debilidad_institucional` es de los pocos indicadores que apuntan a la dim
 *ausencia de Estado*, que es la que el índice oficial parece medir. Que no funcione es
 doblemente costoso. Ver `07_backlog.md`.
 
+> **Corrección [2026-09-01]:** la etiqueta "tres indicadores muertos" es inexacta a escala
+> nacional. Sobre `scores_v2_32deptos.pkl` (P90 por rango cercano):
+> `irregularidad_contractual` 21/32 departamentos > 0 (max 0.3586),
+> `debilidad_institucional` 7/32 (max 0.1419), `danos_ambientales` 3/32 (max 0.0247). En
+> P75 —lo que usa el radar— quedan casi mudos (1/32, 1/32, 0/32); el único en cero
+> absoluto es `danos_ambientales`, junto con `deficit_participacion_comunitaria`.
+> Diagnosticar sobre el corpus nacional, no el de 5 lugares. Ver `08_log_decisiones.md`
+> [2026-08-31].
+
 ## Cuatro hipótesis sin tildes
 
 `resistencia_territorial`, `exclusion_comunidades`, `danos_ambientales` y
@@ -93,13 +103,16 @@ distinto de "daños". Corregido en V2; el efecto aislado no se midió.
 
 ## Pre-filtro social
 
-Una hipótesis NLI aparte (`HIPOTESIS_SOCIAL`) con umbral 0.65. Los artículos que no la
-superan quedan con sus 26 indicadores en 0.
+**CERRADO 2026-08-31: RECHAZADO y retirado de producción.** Con la escala V2 se probó el
+umbral 0.85 (AUC por indicador + control absurdo): cuesta AUC de forma clara en los 2
+indicadores con estándar de plata (−0.053 y −0.027, IC95% excluye cero). Hoy los 26
+indicadores se puntúan sobre todos los artículos. Detalle en `08_log_decisiones.md`
+[2026-08-31].
 
-En V0 tenía la enfermedad de formato en forma extrema —metalingüística y con ocho disyuntos
-encadenados— y **anulaba el 33.6% de los positivos de plata** de `grupos_etnicos_existentes`
-y el 17.7% de `presencia_grupos_armados`. Reescrita en V2 a una sola frase.
-
-Su umbral 0.65 fue calibrado para la distribución de la hipótesis vieja y **ya no significa
-lo mismo**: con la hipótesis V2 deja pasar el 92.5% en vez del 65.5%. Pendiente decidir si
-el pre-filtro sigue haciendo falta.
+Histórico (V0): una hipótesis NLI aparte (`HIPOTESIS_SOCIAL`) con umbral 0.65; los
+artículos que no la superaban quedaban con sus 26 indicadores en 0. En V0 tenía la
+enfermedad de formato en forma extrema —metalingüística y con ocho disyuntos encadenados—
+y **anulaba el 33.6% de los positivos de plata** de `grupos_etnicos_existentes` y el 17.7%
+de `presencia_grupos_armados`. Reescrita en V2 a una sola frase. Su umbral 0.65 fue
+calibrado para la distribución de la hipótesis vieja; con la hipótesis V2 dejaba pasar el
+92.5% en vez del 65.5%.

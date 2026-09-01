@@ -1,8 +1,8 @@
 # Estado del proyecto — Radar de riesgo territorial (Colombia)
 
-*Última actualización: 2026-08-30. Este documento está escrito para alguien que no ha
-seguido el proyecto día a día — un lector externo. Para trabajar en el código, ver
-`CLAUDE.md` y `contexto/`.*
+*Última actualización: 2026-09-01 (refleja la promoción V2 a `src/` del 2026-08-31 en la
+rama `pruebas`). Este documento está escrito para alguien que no ha seguido el proyecto
+día a día — un lector externo. Para trabajar en el código, ver `CLAUDE.md` y `contexto/`.*
 
 ## Qué es
 
@@ -35,25 +35,32 @@ validar el método antes de bajarlo a una escala donde no hay forma de verificar
   1.647 artículos en 4 lugares sub-departamentales (para iterar rápido: Antioquia,
   Maicao, Oicatá, Paraguachón).
 - Una revisión de seis experimentos encontró y corrigió tres defectos de medición
-  distintos en cómo se calculan los indicadores (ver más abajo).
+  distintos en cómo se calculan los indicadores (ver más abajo; **aplicados a producción
+  desde el 2026-08-31**).
 
 ## En qué estado está, honestamente
 
-**El radar actual no predice el índice oficial mejor que no hacer nada.** Su accuracy
-contra el radar del DANE es **31.2%**, frente a un objetivo de 70%. Para dimensionar esa
-cifra:
+**La accuracy contra el DANE sigue sin superar las líneas base de forma concluyente, pero
+el instrumento dejó de medir ruido.** Producción corre la receta V2 desde el 2026-08-31
+(hipótesis reescritas, sesgo descontado, agregación P75, cortes fijos) y su accuracy es
+**25.0%**; la mejor variante medida (con terciles ad hoc, no desplegable) da 40.6%, frente
+a un objetivo de 70%. Líneas base:
 
 | Método | Accuracy |
 |---|---|
 | Azar (3 clases) | 33.3% |
 | Predecir siempre "Bajo" sin leer nada | 34.4% |
-| Predecir solo por el número de artículos del corpus | 31.2% |
-| **Radar propio actual** | **31.2%** |
+| Predecir solo por el número de artículos del corpus | 28.1% |
+| **Radar propio actual (cortes fijos)** | **25.0%** |
+| Mejor variante medida (terciles ad hoc) | 40.6% |
 | Objetivo del proyecto | 70.0% |
 
-El radar empata con adivinar por el tamaño del corpus y pierde contra la respuesta
-constante más simple. Su correlación con el índice oficial es +0.067 — estadísticamente
-cero.
+Con solo 32 departamentos esas diferencias no son concluyentes por sí solas: el indicador
+de trabajo es la correlación de Spearman contra el valor oficial continuo, que subió de
+**+0.067 (cero) a +0.42** — señal real que sobrevive el control absurdo y no rompe las
+anclas de validez. Salvedad: el +0.067 histórico proviene de una columna del Excel de
+referencia cuya procedencia no está identificada (ver `contexto/08_log_decisiones.md`
+[2026-08-31]).
 
 Esto **no** significa que el radar no lleve ninguna señal: por criterio de conflicto
 armado, su ranking es razonable (Caquetá, Putumayo, Nariño, Arauca y Norte de Santander
@@ -85,14 +92,17 @@ corregido:
    forma de agregar (de "el máximo" a "el percentil 75") corrige la mayor parte de este
    efecto.
 
-Las tres correcciones están escritas y validadas en un corpus pequeño, pero **todavía no
-se aplicaron a producción** ni se validaron en los 32 departamentos completos.
+Las tres correcciones **están en producción desde el 2026-08-31** y fueron validadas a
+escala nacional sobre los 32 departamentos con el motor de experimentos (Spearman +0.42).
+Producción aún no se ha re-corrido sobre los 32 con su propio código (~4 h GPU, pendiente).
 
 ## Qué falta y qué lo bloquea
 
-1. **Correr el scoring corregido sobre los 32 departamentos** (~4 horas de GPU, sin
-   supervisión: el script guarda avance y puede reanudarse). Es el insumo de todo lo
-   demás — sin esto no se sabe si las correcciones mejoran la comparación con el DANE.
+1. **Re-correr el scoring con el código de producción ya promovido sobre los 32
+   departamentos** (~4 horas de GPU, reanudable). Antes hay que decidir qué corpus debe
+   cargar producción (hoy levanta 12.592 artículos y 35 lugares, no 11.439/32) y si se
+   fusiona el corpus re-scrapeado de 3 departamentos. El scoring ya hecho con el motor de
+   experimentos sí muestra mejora real frente al DANE (Spearman +0.42).
 2. **Decidir qué hacer con el desajuste de fondo.** El radar mide conflicto; el índice
    oficial parece medir otra cosa. Hay tres caminos —cambiar contra qué se compara,
    cambiar los indicadores para que cubran también esa otra dimensión, o dejar de medir
@@ -102,9 +112,10 @@ se aplicaron a producción** ni se validaron en los 32 departamentos completos.
    con qué verificarse automáticamente; el resto se evalúa por inspección. Es la mayor
    debilidad de cara a defender los resultados.
 4. **Reforzar la cobertura de prensa en los departamentos que más importan.** De los 11
-   departamentos que el DANE marca como Alto riesgo, 5 tienen menos de 100 artículos
-   (Guainía, La Guajira, Vaupés, Sucre, Vichada) — son justamente los que más interesa
-   detectar bien y los que menos información tienen.
+   departamentos que el DANE marca como Alto riesgo, 5 tenían menos de 100 artículos
+   (Guainía, La Guajira, Vaupés, Sucre, Vichada). La Guajira ya tiene 1.553 artículos
+   re-scrapeados esperando la decisión de fusión; San Andrés depende 100% de El Tiempo
+   (caída intermitente externa).
 
 ## Qué se necesita de terceros
 

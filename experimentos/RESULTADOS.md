@@ -109,17 +109,16 @@ es de los departamentos menos afectados por el conflicto.
 
 ## Pendientes
 
-1. **Recalibrar los umbrales Bajo/Medio/Alto.** Los cortes 1/3–2/3 estaban
-   pensados para una escala saturada; con P75 todo cae en "Bajo". Los umbrales
-   no son transferibles entre agregaciones y hay que fijarlos de nuevo.
-2. **Decidir si el pre-filtro sigue haciendo falta.** Con la escala corregida
-   los artículos irrelevantes ya puntúan ~0 por sí solos. El pre-filtro V0
-   anulaba el 33.6% de los positivos de plata; el V2 a 0.85 retiene el 92–95%
-   pero solo filtra el 12%. Puede que su función ya esté cubierta.
-3. **Ampliar el estándar de plata.** Solo cubre 2 de los 26 indicadores. Para
-   los que no tienen marcadores léxicos hacen falta ~120–150 artículos anotados
-   a mano.
-4. **Validar sobre los 32 departamentos**, no solo estos 4 lugares.
+1. **HECHO 2026-08-31:** cortes recalibrados sin pre-filtro y promovidos:
+   `Bajo < 0.2969 <= Medio < 0.3527 <= Alto` (`contexto/08_log_decisiones.md`).
+2. **RESUELTO 2026-08-31:** pre-filtro RECHAZADO (umbral 0.85 cuesta AUC en los
+   2 indicadores con estándar de plata) y retirado de producción.
+3. **ABIERTO — ampliar el estándar de plata.** Solo cubre 2 de los 26
+   indicadores. Para los que no tienen marcadores léxicos hacen falta
+   ~120–150 artículos anotados a mano.
+4. **HECHO 2026-08-30/31:** validado sobre los 32 departamentos (Spearman +0.42,
+   accuracy 25.0% con cortes fijos). Pendiente solo el re-puntuado con el código
+   de `src/` ya promovido.
 
 ## Limitaciones
 

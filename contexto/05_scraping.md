@@ -9,8 +9,8 @@ en paralelo y el resultado se deduplica por URL, añadiendo la columna
 
 ## ⚠️ La trampa que hay que conocer
 
-El filtro de relevancia de `scrappers.py` (`GestorScraping._es_relevante`) usa **SOLO LA
-PRIMERA PALABRA** del término de búsqueda:
+El filtro de relevancia de `scrappers.py` (`GestorScraping._es_relevante`) usaba **SOLO LA
+PRIMERA PALABRA** del término de búsqueda (bug corregido 2026-08-30; ver nota abajo):
 
 ```python
 territorio = self.termino.split()[0].lower()
@@ -23,6 +23,11 @@ Buscar `"Vereda Paraguachón"` hace que el filtro cuente menciones de la palabra
 **"vereda"** → devuelve artículos irrelevantes y descarta los buenos, **sin lanzar ningún
 error**.
 
+> **Corregido 2026-08-30:** `GestorScraping` ahora recibe `territorio` explícito y
+> `_es_relevante` usa `self.territorio` (el nombre completo, p. ej. `"la guajira"`). El
+> fallback `.split()[0]` queda solo para llamadas sin `territorio` explícito
+> (retrocompatible). Ver `08_log_decisiones.md` [2026-08-30].
+
 **Nunca pasar prefijos.** `scrape_lugares.py` separa `nombre` (el término real de búsqueda,
 `"Paraguachón"`) de `etiqueta` (el nombre para reportar, `"Vereda Paraguachón"`).
 
@@ -30,7 +35,8 @@ Corolarios:
 - El matcheo es **literal y sensible a tildes**. Si los artículos escriben "Guintiva" u
   "Oicata" sin tilde, no hay match. Si un lugar da 0 artículos, probar la variante sin tilde
   antes de concluir que no hay cobertura.
-- Para nombres compuestos ("Valle del Cauca") el filtro solo mira "valle".
+- Para nombres compuestos ("Valle del Cauca") el filtro solo miraba "valle" — corregido con
+  `self.territorio` (2026-08-30).
 
 ## Umbrales de relevancia
 

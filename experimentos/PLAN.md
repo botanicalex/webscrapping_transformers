@@ -1,6 +1,8 @@
 # Plan de experimentos — formato de hipótesis NLI
 
-Estado: **Experimento 1 completado.** Diagnóstico establecido con evidencia.
+Estado: **Plan completado (2026-08-31) — instantánea histórica.** Los experimentos 1–6
+se corrieron y la receta V2 se promovió a producción. Para el estado actual, ver
+`contexto/10_combinaciones_y_rumbo.md` y `contexto/08_log_decisiones.md`.
 
 ---
 

@@ -14,24 +14,28 @@ experimentos. Mezclar ambas preguntas es lo que ha venido confundiendo el análi
 | Archivo | Rol |
 |---|---|
 | `nli_core.py` | Motor NLI mínimo. Replica el scoring de producción sin importar `scrappers`. Permite variar `max_length` y devolver las 3 probabilidades. |
-| `hipotesis_base.py` | Las 26 hipótesis actuales (V0), el pre-filtro social, el estándar de plata por keywords y el control absurdo. |
+| `hipotesis_base.py` | Las 26 hipótesis históricas (V0, producción hasta el 2026-08-31), el pre-filtro social (retirado de producción), el estándar de plata por keywords y el control absurdo. |
 | `datos/df_corpus_5lugares.pkl` | 1.647 artículos (Antioquia 2023, Maicao, Oicatá, Paraguachón) con `titulo` **y** `texto`. |
 | `datos/df_procesado_baseline.pkl` | Resultados de producción del 2026-08-25, para validar que `nli_core` reproduce los mismos scores. |
 | `resultados/` | Salidas de los experimentos. |
 
 ## Antes de correr cualquier experimento
 
-`nli_core.verificar_contra_produccion()` debe dar `OK`. Si no, este módulo se
-desvió de producción y las comparaciones no serían válidas.
+`nli_core.verificar_contra_produccion_v2()` debe dar `OK` contra el baseline vigente
+(`datos/scores/df_procesado_baseline_v2.pkl`, V2). Si no, este módulo se desvió de
+producción y las comparaciones no serían válidas.
 
 ```python
-from nli_core import NLIScorer, verificar_contra_produccion
-from hipotesis_base import TODAS
+from nli_core import NLIScorer, verificar_contra_produccion_v2
+import hipotesis_v2 as HV
 s = NLIScorer()
-verificar_contra_produccion(s, "../datos/scores/df_procesado_baseline.pkl",
-                            "presencia_grupos_armados",
-                            TODAS["presencia_grupos_armados"])
+verificar_contra_produccion_v2(s, "../datos/scores/df_procesado_baseline_v2.pkl",
+                               "presencia_grupos_armados",
+                               HV.TODAS["presencia_grupos_armados"])
 ```
+
+La función sin sufijo (`verificar_contra_produccion`, contra `df_procesado_baseline.pkl`)
+es legado V0.
 
 Ese mismo `NLIScorer()` imprime al cargar el `id2label` del modelo, lo que cierra
 de paso la duda sobre el mapeo de etiquetas.

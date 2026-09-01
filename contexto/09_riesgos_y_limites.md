@@ -91,6 +91,11 @@ de una corrida que **no es el pipeline actual**.
 **Implicación:** no se sabe con certeza qué radar produjo la accuracy de 31.2%. Identificarlo
 es barato y debe hacerse antes de interpretar esa cifra o de compararla con la de V2.
 
+> **Avance [2026-09-01]:** recalculando V0+MAX sobre `df_procesado_32deptos.pkl` da
+> **−0.18**, no +0.067: el punto de partida de la comparación "+0.067 → +0.42" es un
+> radar no identificado. Ver `08_log_decisiones.md` [2026-08-31] y
+> `10_combinaciones_y_rumbo.md`.
+
 Reproducir con:
 
 ```python

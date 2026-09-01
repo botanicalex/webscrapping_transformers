@@ -1,6 +1,6 @@
 # 00 — Estado actual
 
-*Última actualización: 2026-08-31*
+*Última actualización: 2026-09-01 (auditoría DSH: salvedades añadidas)*
 
 Es el primer documento a leer al retomar. Responde: dónde estamos, qué corre, qué no.
 
@@ -16,11 +16,13 @@ no usaba la clasificación oficial real) en `08_log_decisiones.md` [2026-08-31].
 
 V0 (la versión anterior) era indistinguible de un radar construido con hipótesis
 absurdas (brecha 0.0004 en el MAX) y no correlacionaba con el oficial DANE (Spearman
-+0.067, cero). La receta V2 ya promovida **sí lleva señal**: medida a escala nacional
++0.067, cero — salvedad: ese +0.067 proviene de una columna de procedencia no
+identificada, ver `08_log_decisiones.md` [2026-08-31]). La receta V2 ya promovida
+**sí lleva señal**: medida a escala nacional
 sobre `scores_v2_32deptos.pkl` (todavía el único insumo de 32 departamentos —
 **producción no se ha vuelto a correr sobre el corpus nacional completo**, ver "Qué NO
 está hecho"), `Spearman(radar_V2, radar_oficial) = +0.384` a +0.42 según la variante
-exacta de P75 (p<0.03, n=32), frente a +0.067 del V0, sin romper ninguna ancla de validez
+exacta de P75 (p<0.03, n=32), frente a +0.067 del V0 (misma salvedad), sin romper ninguna ancla de validez
 aparente. No es una correlación fuerte y la accuracy en cortes fijos (25-31%, según la
 entrada exacta) sigue lejos del 0.70 objetivo — con n=32 (regla 11) esas diferencias de
 accuracy no son concluyentes por sí solas; el indicador de trabajo es el Spearman.

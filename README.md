@@ -10,7 +10,7 @@ Para el contexto completo, ver `CLAUDE.md` y la carpeta `contexto/`.
 ```
 desarrollo/
 ├── CLAUDE.md            se carga solo en cada conversacion; reglas duras
-├── contexto/            documentacion bajo demanda (00 a 08)
+├── contexto/            documentacion bajo demanda (00 a 10)
 ├── src/                 pipeline de produccion — ejecutar DESDE LA RAIZ
 ├── experimentos/        revision de indicadores — ejecutar DESDE experimentos/
 ├── datos/
@@ -43,9 +43,10 @@ Los grupos están armados para que dos departamentos que usan el mismo periódic
 por el servidor. Leer el comentario de `GRUPOS_DEPARTAMENTOS` en `src/config_pipeline.py`
 antes de reordenarlos.
 
-**Trampa importante:** el filtro de relevancia usa solo la **primera palabra** del término
-de búsqueda. Nunca pasar `"Vereda Paraguachón"` — contaría menciones de "vereda". Ver
-`contexto/05_scraping.md`.
+**Trampa importante (histórica, corregida 2026-08-30):** el filtro de relevancia usaba solo
+la **primera palabra** del término de búsqueda; hoy usa el `territorio` completo salvo que
+no se le pase (fallback retrocompatible). Igual no pasar `"Vereda Paraguachón"` — nunca
+pasar prefijos. Ver `contexto/05_scraping.md`.
 
 ### Pipeline completo
 
@@ -87,15 +88,16 @@ python exp_agregacion_v2.py   # agregacion y umbrales, sin GPU (lee el pkl de sc
 Antes de cualquier experimento, verificar que el motor reproduce producción:
 
 ```python
-from nli_core import NLIScorer, verificar_contra_produccion
-import hipotesis_base as HB
+from nli_core import NLIScorer, verificar_contra_produccion_v2
+import hipotesis_v2 as HV
 s = NLIScorer()
-verificar_contra_produccion(s, "../datos/scores/df_procesado_baseline.pkl",
-                            "presencia_grupos_armados",
-                            HB.TODAS["presencia_grupos_armados"])
+verificar_contra_produccion_v2(s, "../datos/scores/df_procesado_baseline_v2.pkl",
+                               "presencia_grupos_armados",
+                               HV.TODAS["presencia_grupos_armados"])
 ```
 
-Debe dar `max|dif| = 0.00e+00`.
+Debe dar `max|dif| ~5e-7` (tolerancia 1e-4). La función sin sufijo verifica contra V0 y es
+legado.
 
 ## Herramientas de Claude Code
 
@@ -105,9 +107,11 @@ Debe dar `max|dif| = 0.00e+00`.
 ## Notas de rendimiento
 
 - 11.439 artículos × 26 hipótesis ≈ 125 min de GPU.
-- El pre-filtro social corre primero y solo se puntúan los artículos relevantes: ahorra ~38%.
-- `datos/scores/scores_v2.pkl` permite recalcular correcciones, umbrales y agregaciones
-  **sin GPU**. Mirar ahí antes de puntuar nada de nuevo.
+- El pre-filtro social fue **rechazado** (2026-08-31) y ya no corre: los 26 indicadores se
+  puntúan sobre todos los artículos.
+- `datos/scores/scores_v2.pkl` (5 lugares) y `scores_v2_32deptos.pkl` (nacional) permiten
+  recalcular correcciones, umbrales y agregaciones **sin GPU**. Mirar ahí antes de puntuar
+  nada de nuevo.
 - Los scripts que escriben `.xlsx` fallan con `PermissionError` si el archivo está abierto en
   Excel. Los que corren GPU guardan el `.pkl` antes de escribir los Excel, así que una
   interrupción no obliga a repetir la corrida.

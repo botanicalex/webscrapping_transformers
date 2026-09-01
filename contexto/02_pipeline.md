@@ -1,18 +1,20 @@
 # 02 — Pipeline
 
+*Actualizado 2026-09-01: refleja la promoción de V2 a `src/` (2026-08-31).*
+
 ## Flujo
 
 ```
 scraping          scrappers.py            -> datos/corpus/df_corpus_<depto>.pkl
    |                                         (periodico, titulo, fecha, texto, url, departamento)
    v
-transformers      Transformer_optimo.py   -> df_procesado (+26 indicadores, score_social, dims)
+transformers      Transformer_optimo.py   -> df_procesado (+26 indicadores, sesgo, dims)
    |                                         PipelineTransformers.procesar()
    v
 radar             radar.py                -> radar por departamento
    |                                         CalculadorRadar
    v
-metricas          metricas_y_calculo_...  -> accuracy en terciles vs oficial DANE
+metricas          metricas_y_calculo_...  -> accuracy (cortes fijos) vs oficial DANE
 ```
 
 `orquestador_pipeline.py` encadena las cuatro etapas con validación de precondiciones y
@@ -42,11 +44,12 @@ La composición de los grupos no es arbitraria — ver el comentario extenso en
 
 `PipelineTransformers.procesar(df)` en `Transformer_optimo.py`:
 
-1. **Pre-filtro social primero.** Calcula `score_social` (una hipótesis NLI) sobre todos los
-   artículos. Los que superan `umbral_social = 0.65` son "relevantes".
-2. **26 hipótesis NLI** solo sobre los relevantes. Los demás quedan en 0.0. Ahorra ~38% de
-   GPU.
-3. **Scores por dimensión** (`score_dim1..5`), agrupaciones temáticas de los 26.
+1. **26 hipótesis NLI (V2)** sobre todos los artículos, **sin pre-filtro social** (rechazado
+   el 2026-08-31: costaba AUC; ver `08_log_decisiones.md`).
+2. **Sesgo por artículo descontado**: media de P(entailment) contra 4 hipótesis nulas de
+   calibración (`NULAS_CALIBRACION`, nunca la nula reservada).
+3. **Score corregido**: `clip(clip(ent − sesgo, 0) * (1 − neu), 0, 1)`.
+4. **Scores por dimensión** (`score_dim1..5`), agrupaciones temáticas de los 26.
 
 NER y análisis de sentimiento están **comentados**, no borrados. No reactivarlos: no
 alimentaban ningún indicador y solo consumían GPU.
@@ -61,14 +64,16 @@ procesos que solo puntúan con GPU no arrastran playwright/aiohttp.
 `CalculadorRadar` en `radar.py`. `COLUMNAS_BINARIAS` es la **definición canónica de los 26
 indicadores** y la consumen casi todos los scripts: no duplicar esa lista en otro sitio.
 
-Producción agrega con **MAX** por departamento. La revisión de agosto demostró que el MAX
-está dominado por el tamaño del corpus y propone **P75** — ver
-`04_hallazgos_revision_nli.md`. **Ese cambio aún no está aplicado a `src/`.**
+Producción agrega con **P75 por rango más cercano** (promovido 2026-08-31; antes MAX). La
+revisión de agosto demostró que el MAX está dominado por el tamaño del corpus — ver
+`04_hallazgos_revision_nli.md` y `08_log_decisiones.md` [2026-08-27].
 
 ## Etapa 4 — Métricas
 
-`metricas_y_calculo_de_error.py` clasifica el radar propio y el oficial en terciles y calcula
-accuracy, precision/recall/F1 macro, Cohen-kappa y la matriz de confusión 3×3. Ver
+`metricas_y_calculo_de_error.py` clasifica el radar propio con **cortes fijos**
+(`Bajo < 0.2969 <= Medio < 0.3527 <= Alto`) y lee la clasificación oficial de su columna
+(`Clasificacion_radar_oficial_promedio`, sin re-tercilar), y calcula accuracy,
+precision/recall/F1 macro, Cohen-kappa y la matriz de confusión 3×3. Ver
 `01_objetivo_y_radar.md`.
 
 ## Runners de tareas concretas

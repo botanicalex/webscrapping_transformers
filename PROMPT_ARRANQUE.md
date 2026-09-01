@@ -112,6 +112,6 @@ es), que la trae él, y la decisión entre los tres caminos de `09_riesgos_y_lim
 
 ## Pendiente de entregable
 
-`ESTADO_DEL_PROYECTO.md` solo existe en `master` y **sigue describiendo el estado del
-2026-08-30** (V0 en producción). Actualizarlo es parte de fusionar `pruebas` a `master`
-(regla 13), que no se ha hecho.
+`ESTADO_DEL_PROYECTO.md` existe también en `pruebas` (sincronizado por DSH el 2026-09-01;
+antes describía el estado del 2026-08-30 con V0 en producción). Actualizarlo en `master`
+es parte de fusionar `pruebas` a `master` (regla 13), que no se ha hecho.

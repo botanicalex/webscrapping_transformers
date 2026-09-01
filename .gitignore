@@ -21,3 +21,8 @@ resultados/*
 !experimentos/resultados/
 !experimentos/resultados/**/*.xlsx
 experimentos/resultados/**/*.pkl
+
+# Brain de DSH (openwolf) y mapa de código inyectado: estado local por máquina,
+# no se versionan.
+.dshwolf/
+AGENTS.md

@@ -17,7 +17,7 @@ De ahí la clasificación en tres clases: **Bajo** (viable), **Medio**, **Alto**
 | `Departamento` | los 32 DANE |
 | `radar_oficial_promedio` | valor de referencia (rango observado 18.8 – 46.4) |
 | `radar_oficial_promedio_normalizado` | el anterior escalado a [0,1] |
-| `Clasificacion_radar_oficial_promedio` | Bajo / Medio / Alto por terciles |
+| `Clasificacion_radar_oficial_promedio` | Bajo / Medio / Alto — clasificación oficial del DANE, leída tal cual (no re-tercilada) |
 
 `comparacion_radares.xlsx` trae la misma columna oficial más 13 columnas
 `EXPERIMENTO_*` de corridas viejas; es la que consume la ruta legado del orquestador.
@@ -72,7 +72,8 @@ página daría el mapa completo contra el que se está comparando.
 
 ## La métrica
 
-**Accuracy de clasificación en terciles** contra el oficial. Se calcula en
+**Accuracy de clasificación** contra el oficial (cortes fijos para el radar propio; la
+columna de clasificación oficial del DANE para la referencia). Se calcula en
 `src/metricas_y_calculo_de_error.py`, junto con precision/recall/F1 macro, Cohen-kappa y la
 matriz de confusión 3×3.
 
@@ -84,10 +85,15 @@ Una accuracy sola no dice si el pipeline aporta algo. Medido el 2026-08-27:
 Azar (3 clases)                        : 33.3%
 Predecir siempre "Bajo"                : 34.4%
 Predecir siempre "Alto"                : 34.4%
-Predecir por nº de artículos solamente : 31.2%   <- modelo nulo
-Radar propio actual                    : 31.2%
+Predecir por nº de artículos solamente : 28.1%   <- modelo nulo (corregido 2026-09-01)
+Radar propio actual                    : 31.2%   <- V0 histórico, ya no vigente
 Objetivo del proyecto                  : 70.0%
 ```
+
+> **Corrección [2026-09-01]:** el modelo nulo real es **28.1%** (el 31.2% de arriba
+> re-tercilaba el DANE), y "radar propio actual" ya no es V0: producción corre V2 desde el
+> 2026-08-31 (cortes fijos, accuracy 25.0%). Ver `08_log_decisiones.md` [2026-08-31] y
+> `10_combinaciones_y_rumbo.md`.
 
 **El radar V0 empata con el modelo nulo y pierde contra un predictor constante.** Y su
 correlación con el objetivo es **+0.067 (Spearman): cero**.
@@ -103,6 +109,12 @@ El salto de +0.067 a +0.384 sobrevive el control de la nula reservada (que sigue
 ~0.0000 con P75 a escala nacional) y no rompe las anclas de validez aparente. La
 accuracy (37.5%) sigue sin distinguirse de las líneas base con n=32 — pero el Spearman,
 que es el indicador de trabajo, sí. Detalle en `08_log_decisiones.md` [2026-08-30].
+
+> **Salvedad [2026-09-01]:** el +0.067 de partida proviene de la columna
+> `Radar_completo_promedio_normalizado` del Excel de referencia, cuya procedencia no está
+> identificada; recalculando V0+MAX sobre `df_procesado_32deptos.pkl` da −0.18. La
+> comparación "+0.067 → +0.42" es indicativa, no exacta. Ver `08_log_decisiones.md`
+> [2026-08-31] y `10_combinaciones_y_rumbo.md`.
 
 Esto es lo primero que hay que mirar antes de invertir esfuerzo en optimizar indicadores.
 El análisis completo, con los tres caminos posibles, está en `09_riesgos_y_limites.md`.
@@ -120,7 +132,8 @@ continuos en 3 clases y cuenta aciertos. Un cambio que mejore el orden de verdad
 moverla ni un punto, y con n = 32 el ruido se come las diferencias pequeñas.
 
 Para trabajar hace falta una señal más fina: **correlación de Spearman contra
-`radar_oficial_promedio`** (el valor continuo, no la clase). Hoy está en **+0.067**.
+`radar_oficial_promedio`** (el valor continuo, no la clase). Hoy está en **+0.42**
+(P75 rango-cercano, producción) / +0.384 (interpolado).
 
 ```
 Optimizar mirando Spearman · Reportar la accuracy
@@ -134,7 +147,8 @@ es el instrumento de trabajo, porque responde cuando algo mejora de verdad.
 La cobertura de prensa está **negativamente correlacionada** con el objetivo:
 
 ```
-Correlación radar_oficial vs nº de artículos del corpus:  Spearman = -0.26
+Correlación radar_oficial vs nº de artículos del corpus:  Spearman = -0.26 (recalculado
+2026-08-31 sobre el corpus vigente: **−0.31**)
 ```
 
 Los departamentos que el índice marca como más vulnerables son los que menos prensa tienen:

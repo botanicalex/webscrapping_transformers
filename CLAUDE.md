@@ -11,7 +11,10 @@ grupos armados, ausencia de Estado). No es un índice de "cuánto pasa", es uno 
 (`datos/referencia/comparacion_radares_V3.xlsx`, 32 departamentos). Objetivo 0.70.
 
 **Estado real (2026-08-31, producción ya corre V2):** el Spearman contra el objetivo subió
-de **+0.067 (cero) a +0.42** — señal real, medida y verificada. **Pero la accuracy sigue sin
+de **+0.067 (cero) a +0.42** — señal real, medida y verificada (salvedad: el +0.067 de
+partida proviene de una columna del Excel de referencia cuya procedencia no está
+identificada; recalculado desde V0+MAX da −0.18 — ver `08_log_decisiones.md`
+[2026-08-31]). **Pero la accuracy sigue sin
 superar de forma concluyente a las líneas base**: la configuración en producción da 0.250 y
 la mejor medida de todas (no desplegable) 0.406, contra "siempre Bajo" 0.344 y azar 0.333.
 Con n=32 nada de eso se distingue del ruido. **El indicador de trabajo es el Spearman, no la
@@ -26,9 +29,10 @@ optimizar indicadores — hay un techo estructural y una decisión de diseño pe
    opción equivocada y solo el control la delató. Si el AUC sube y el control empeora, se
    rechaza.
 2. **Si cambia lo que se mide, hay que recalibrar el umbral.** Un umbral solo significa algo
-   respecto de la distribución para la que se calibró. Ya falló dos veces: se conservó el
-   0.65 del pre-filtro al cambiarle la hipótesis, y los cortes 1/3–2/3 al cambiar la
-   agregación.
+   respecto de la distribución para la que se calibró. Ya falló tres veces: se conservó el
+   0.65 del pre-filtro al cambiarle la hipótesis, los cortes 1/3–2/3 al cambiar la
+   agregación, y los cortes 0.3074/0.3524 calibrados sobre P75 interpolado cuando
+   producción usa rango-cercano.
 3. **El control absurdo se reescribe en el formato de la variante que prueba.** El nivel
    absoluto depende del absurdo elegido (pingüinos 20.5%, osos polares 8.6% en la misma
    configuración): solo son comparables mediciones con el mismo contenido absurdo.
@@ -80,7 +84,9 @@ cercano, cortes fijos `Bajo < 0.2969 <= Medio < 0.3527 <= Alto`, y la clasificac
 del DANE leída de su columna (antes se recalculaba con terciles propios — era un bug).
 
 **Abierto:** ampliar el estándar de plata (cubre 2 de 26 — es la mayor debilidad, todas las
-conclusiones de calidad descansan en dos); los tres indicadores muertos; re-puntuar los 32
+conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos_ambientales`
+queda en cero en P75 a escala nacional — la etiqueta "tres muertos" es del corpus de 5
+lugares); re-puntuar los 32
 departamentos con el código de `src/` ya promovido (~4 h GPU, nunca se corrió a escala
 nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos.
 
@@ -96,7 +102,7 @@ nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos.
 | `datos/referencia/` | Radar oficial DANE |
 | `datos/scores/` | Matrices de scores ya calculadas — reutilizar antes de tocar la GPU |
 | `../pruebas/` | Worktree hermano en la rama `pruebas`, mismo historial. Ahí se experimenta; `datos/corpus/` y `datos/scores/` están enlazados por junction a los de `desarrollo/` (no duplicar los 107 MB), `resultados/` es independiente en cada worktree |
-| `ESTADO_DEL_PROYECTO.md` | Entregable para lector externo (jefe, profesora). Solo existe en `master`; se actualiza al fusionar algo de `pruebas`, no durante los experimentos |
+| `ESTADO_DEL_PROYECTO.md` | Entregable para lector externo (jefe, profesora). Existe también en `pruebas` (copia, sincronizada por DSH el 2026-09-01); se actualiza al fusionar algo de `pruebas` a `master`, no durante los experimentos |
 
 Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`); los de
 `experimentos/`, **desde `experimentos/`**.

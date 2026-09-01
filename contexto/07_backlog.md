@@ -21,10 +21,11 @@ El nombre `radar_oficial_**promedio**` sugiere que es el promedio de varios ejes
 recupera la página fuente, esos ejes son los "indicadores con otros nombres" del DANE — el
 mapa completo del constructo contra el que se compara.
 
-**Por qué bloquea todo lo demás:** el radar tiene correlación **+0.067** con ese objetivo,
-o sea cero, y empata con el modelo nulo. Saber qué mide el índice decide cuál de los tres
-caminos de `09_riesgos_y_limites.md` corresponde: cambiar el objetivo, cambiar los
-indicadores o soltar la métrica. Es una decisión de diseño de la investigación, no técnica.
+**Por qué bloquea todo lo demás:** el radar V0 tenía correlación **+0.067** con ese
+objetivo (cero) y empataba con el modelo nulo; el V2 ya sube a +0.42, pero sigue lejos
+del 0.70 objetivo. Saber qué mide el índice decide cuál de los tres caminos de
+`09_riesgos_y_limites.md` corresponde: cambiar el objetivo, cambiar los indicadores o
+soltar la métrica. Es una decisión de diseño de la investigación, no técnica.
 
 **Cómo:** preguntar a la profesora, o localizar la fuente original del archivo
 `comparacion_radares_V3.xlsx`.
@@ -33,7 +34,8 @@ indicadores o soltar la métrica. Es una decisión de diseño de la investigaci�
 
 `src/metricas_y_calculo_de_error.py` compara contra un objetivo de 0.70 sin ninguna
 referencia intermedia. Añadir siempre: azar (33.3%), clase mayoritaria (34.4%) y **modelo
-nulo por número de artículos** (31.2%).
+nulo por número de artículos** (28.1% — corregido 2026-09-01; antes figuraba 31.2% por
+re-tercilar el DANE).
 
 Sin eso, "31.2%" no dice si el pipeline aporta algo — y resulta que no. Los números ya están
 en `01_objetivo_y_radar.md`; falta llevarlos al script.
@@ -45,10 +47,11 @@ cd experimentos && python generar_scores_32deptos.py
 ```
 
 **Desbloquea:** todo lo demás. Los puntos 2, 3 y 6 dependen de este pkl.
-**Estado:** en curso desde 2026-08-30 (sobre el corpus viejo, con el bug del punto 1b
-sin corregir en los datos — ver ahí). El script **guarda por checkpoint tras cada
-hipótesis**, así que una interrupción ya no cuesta la corrida entera. Reanuda solo;
-`--reiniciar` empieza de cero.
+**Estado:** HECHO el 2026-08-30 vía `nli_core` — `datos/scores/scores_v2_32deptos.pkl`
+existe y es el insumo nacional vigente (11.439 × 58). Lo que sigue pendiente es re-puntuar
+con el código de `src/` ya promovido (punto 2, pendiente), previa decisión sobre qué corpus
+carga `CargadorCorpus` (hoy levanta 12.592 artículos y 35 lugares). El script guarda por
+checkpoint tras cada hipótesis, así que una interrupción no cuesta la corrida entera.
 **Produce:** `datos/scores/scores_v2_32deptos.pkl` con `ent_` y `neu_` sin enmascarar, de
 modo que después se puede analizar todo offline sin volver a la GPU.
 
@@ -105,8 +108,9 @@ Valle del Cauca                 117     145
   departamentos y hay que decidir si re-puntuar con GPU (regla 8, no repetir sin
   necesidad) — esto es lo que pide la tarea 3b/3c de abajo, no parte de 1b.
 - Reintentar San Andrés cuando El Tiempo se estabilice.
-- El mismo bug de timeout de Corrillos/Enlace está duplicado en otros 10 scrapers del
-  archivo, sin confirmar si los afecta también — fuera de alcance de 1b, sugerido aparte.
+- El mismo bug de timeout de Corrillos/Enlace está duplicado en otras 15 clases de
+  scraper (10 con `timeout=15` literal, 5 con `timeout=30`), sin confirmar si las afecta
+  — fuera de alcance de 1b, sugerido aparte.
 
 **Depende de:** nada técnico; ya no bloquea nada — 3 de 4 departamentos tienen datos
 mucho más ricos que antes, disponibles para 3b/3c en cuanto se decida el paso de fusión.
@@ -119,7 +123,10 @@ todo a "Bajo"/"Medio".
 **Cortes del 2026-08-30** (`Bajo < 0.30 <= Medio < 0.35 <= Alto`, con pre-filtro)
 quedaron invalidados el 2026-08-31 al rechazarse el pre-filtro (punto 3, regla 2).
 **Recalibrados sin pre-filtro** (`experimentos/exp_cortes_fijos_v2_sin_prefiltro.py`, ver
-`08_log_decisiones.md` [2026-08-31]): `Bajo < 0.3074 <= Medio < 0.3524 <= Alto`.
+`08_log_decisiones.md` [2026-08-31]): primera versión `Bajo < 0.3074 <= Medio < 0.3524 <=
+Alto`, **invalidada el mismo día** por estar calibrada sobre P75 interpolado (producción
+usa rango-cercano). **Versión final vigente: `Bajo < 0.2969 <= Medio < 0.3527 <= Alto`**
+(`08_log_decisiones.md` [2026-08-31], revisión adversarial).
 
 **Promovidos a `src/` el 2026-08-31** junto con el resto de la receta V2 (hipótesis,
 sesgo, sin pre-filtro, P75) — ver la entrada "Promoción de V2 a `src/`" en
