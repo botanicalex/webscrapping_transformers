@@ -42,6 +42,35 @@ Dos archivos `.xlsx` con el radar de riesgo publicado por el DANE para los 32
 departamentos, contra el que se mide la accuracy del radar propio.
 `comparacion_radares_V3.xlsx` es la versión vigente.
 
+## Correr sobre veredas y municipios
+
+El mismo pipeline se puede correr sobre un lugar más chico que un departamento (una
+vereda, un municipio), para cuando no hay estadística oficial a esa escala:
+
+1. Editar la lista `LUGARES` dentro de `src/scrape_lugares.py` (nombre de búsqueda,
+   etiqueta descriptiva, periódicos a usar).
+2. `python src/scrape_lugares.py` — scrapea cada lugar y guarda un `.pkl` por lugar en
+   `datos/corpus/`.
+3. `python src/pipeline_lugares.py` — combina esos `.pkl` (más el corpus de Antioquia
+   2023 ya scrapeado), corre las 26 hipótesis NLI, y escribe una tabla de indicadores por
+   artículo y un Excel resumen (MAX + artículo de origen) por lugar.
+
+Un lugar se puntúa **exactamente igual que un departamento**: las mismas 26 hipótesis V2,
+el mismo sesgo descontado, el mismo MAX por indicador, y los mismos cortes fijos
+(`CORTE_BAJO_MEDIO_RADAR`/`CORTE_MEDIO_ALTO_RADAR` de `src/config_pipeline.py`) para
+clasificar en Bajo/Medio/Alto — no hay una receta distinta para escalas sub-departamentales.
+
+## Herramientas
+
+- **`src/combinar_corpus.py`** — fusiona un departamento re-scrapeado (por ejemplo tras
+  corregir un bug del scraper) al corpus nacional: reemplaza las filas viejas de ese
+  departamento por las nuevas, deduplica por URL y descarta filas sin texto. No corre el
+  modelo NLI.
+- **`src/generar_max_articulos_por_departamento.py`** — sin GPU: lee un `df_procesado` ya
+  calculado y genera un Excel con, por cada indicador y departamento, el valor MÁXIMO y el
+  artículo que lo produjo. Útil para verificar manualmente que un indicador alto refleja
+  algo real en el artículo de origen.
+
 ## Cómo ejecutarlo
 
 **Requisitos:** Python con PyTorch + CUDA (el modelo NLI corre mucho más rápido con GPU),
@@ -107,10 +136,9 @@ todo lo que era parte del *proceso* de llegar hasta acá, no del resultado:
   estándar de plata, y ~15 scripts de experimentos con sus resultados). Las 26 hipótesis
   V2 ya están incorporadas directamente en `src/Transformer_optimo.py`; `src/` nunca
   importó nada de `experimentos/`, así que el pipeline no pierde nada.
-- **Scripts legacy/auxiliares fuera del flujo principal**: `pipeline_lugares.py`,
-  `generar_max_articulos_por_departamento.py`, `generar_tablas_por_departamento.py`,
-  `scrape_lugares.py`, `combinar_corpus.py` — herramientas de trabajo sub-departamental e
-  intermedias que no forman parte del flujo scraper → transformers → radar.
+- **`src/generar_tablas_por_departamento.py`** — usaba el pre-filtro social, que se
+  retiró de producción (rechazado, ver `contexto/08_log_decisiones.md`); queda fuera de
+  esta rama.
 - **Artefactos internos**: `PROMPT_ARRANQUE.md`, `AUDITORIA_2026-09-01.md` y
   `referencia_radar_simple.py` — notas y borradores de trabajo interno del equipo, no
   necesarios para correr o entender el pipeline.

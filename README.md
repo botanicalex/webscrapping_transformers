@@ -62,6 +62,22 @@ pasar prefijos. Ver `contexto/05_scraping.md`.
 python src/orquestador_pipeline.py --skip-scraping
 ```
 
+### Lugares sub-departamentales (veredas, municipios)
+
+```bash
+python src/scrape_lugares.py            # edita LUGARES dentro del script
+python src/pipeline_lugares.py          # corpus -> indicadores -> excels
+```
+
+El radar de un lugar sub-departamental se calcula igual que el de un departamento: mismas
+26 hipótesis V2, mismo sesgo descontado, **MAX** por indicador y los mismos cortes fijos.
+
+### Tablas por departamento
+
+```bash
+python src/generar_max_articulos_por_departamento.py   # sin GPU, desde el pkl
+```
+
 ### Tests
 
 ```bash
