@@ -4,11 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Radar de Riesgo Social — Consulta</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
   <style>
+    * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; background: #F1F5F9;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #1A202C;
+    }
     @keyframes bounce {
       0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
       40% { transform: scale(1); opacity: 1; }
@@ -22,593 +25,516 @@
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Top bar */
+    .topbar {
+      background: #1B4F72; padding: 12px 28px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .topbar .logo {
+      width: 28px; height: 28px; border-radius: 6px; background: #10B981;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .topbar .title { color: white; font-weight: 700; font-size: 14px; line-height: 1; }
+    .topbar .subtitle { color: rgba(255,255,255,0.55); font-size: 10px; margin-top: 1px; }
+
+    .container { max-width: 640px; margin: 0 auto; padding: 40px 20px; }
+
+    .head { margin-bottom: 32px; text-align: center; }
+    .head h1 { font-size: 26px; font-weight: 700; color: #1B4F72; margin: 0 0 6px; }
+    .head p { font-size: 13px; color: #64748B; margin: 0; }
+
+    .card {
+      background: white; border-radius: 16px; padding: 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07); border: 1px solid #E2E8F0;
+    }
+
+    label.field { font-size: 12px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
+
+    .input {
+      width: 100%; padding: 11px 14px; border: 2px solid #E2E8F0;
+      border-radius: 10px; font-size: 14px; outline: none;
+      color: #1A202C; background: white; transition: border-color 0.15s;
+    }
+    .input:focus { border-color: #1B4F72; }
+    .input.sel { border-color: #10B981; }
+    .input.sel:focus { border-color: #1B4F72; }
+    .input-date { width: 100%; padding: 10px 12px; border: 2px solid #E2E8F0; border-radius: 10px; font-size: 13px; outline: none; color: #1A202C; }
+    .input-date:focus { border-color: #1B4F72; }
+
+    .check-ok { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #10B981; font-size: 16px; }
+
+    .sug-list {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+      background: white; border-radius: 10px; margin-top: 4px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12); border: 1px solid #E2E8F0; overflow: hidden;
+    }
+    .sug-item {
+      padding: 10px 14px; font-size: 13px; cursor: pointer; color: #374151;
+      display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #F1F5F9;
+    }
+    .sug-item:hover { background: #F8FAFC; }
+    .sug-item .pin { color: #94A3B8; font-size: 11px; }
+
+    .grid-fechas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+
+    .panel { margin-bottom: 24px; animation: fadeIn 0.3s ease; padding: 14px; background: #F8FAFC; border-radius: 10px; border: 1px solid #E2E8F0; }
+    .panel .panel-head { font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .panel .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    .chip-green { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+    .chip-blue { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+    .panel .note { font-size: 10px; color: #94A3B8; margin-top: 8px; }
+
+    .panel-free { margin-bottom: 24px; animation: fadeIn 0.3s ease; padding: 14px; background: #FFFBEB; border-radius: 10px; border: 1px solid #FDE68A; }
+    .panel-free .txt { font-size: 11px; color: #92400E; display: flex; align-items: center; gap: 6px; }
+
+    .btn-primary {
+      width: 100%; padding: 13px 0; background: #1B4F72; color: white;
+      border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .btn-primary:disabled { background: #CBD5E1; cursor: not-allowed; }
+
+    /* Loading */
+    .card-center { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); border: 1px solid #E2E8F0; text-align: center; animation: fadeIn 0.3s ease; }
+    .spinner { width: 56px; height: 56px; border-radius: 50%; background: #1B4F72; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; animation: spin 1s linear infinite; }
+    .loading-title { font-size: 16px; font-weight: 600; color: #1B4F72; margin-bottom: 6px; }
+    .loading-etapa { font-size: 13px; color: #64748B; margin-bottom: 24px; height: 20px; }
+    .barra { width: 100%; height: 6px; background: #E2E8F0; border-radius: 3px; overflow: hidden; margin-bottom: 20px; }
+    .barra > div { height: 100%; background: linear-gradient(90deg, #1B4F72, #10B981); border-radius: 3px; transition: width 0.8s ease; }
+    .dots { display: flex; justify-content: space-between; margin-bottom: 24px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #E2E8F0; transition: background 0.3s; }
+    .dot.on { background: #10B981; }
+    .loading-foot { font-size: 11px; color: #94A3B8; }
+
+    /* Error */
+    .card-error { background: white; border-radius: 16px; padding: 32px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); border: 1px solid #FECACA; text-align: center; animation: fadeIn 0.3s ease; }
+    .err-icon { width: 48px; height: 48px; border-radius: 50%; background: #FEF2F2; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; color: #DC2626; font-size: 24px; font-weight: 700; }
+    .err-title { font-size: 15px; font-weight: 600; color: #991B1B; margin-bottom: 6px; }
+    .err-msg { font-size: 12px; color: #64748B; margin-bottom: 20px; word-break: break-word; }
+    .err-actions { display: flex; gap: 10px; justify-content: center; }
+    .btn-outline { background: none; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px 16px; font-size: 13px; color: #64748B; cursor: pointer; }
+
+    /* Resultado */
+    .result-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .result-top .back { background: none; border: 1px solid #E2E8F0; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #64748B; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .result-top .done-tag { font-size: 11px; color: #94A3B8; }
+    .result-card { animation: slideUp 0.5s ease forwards; background: white; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .result-header { background: #1B4F72; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .result-header .rh-cap { font-size: 10px; color: rgba(255,255,255,0.6); margin-bottom: 2px; }
+    .result-header .rh-lugar { font-size: 18px; font-weight: 700; color: white; }
+    .result-header .rh-fechas { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+    .badge-circle { width: 56px; height: 56px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 18px; margin: 0 auto 4px; }
+    .badge-circle span { font-size: 9px; font-weight: 400; }
+    .badge-cap { font-size: 10px; color: rgba(255,255,255,0.6); }
+    .badge-label { font-size: 11px; font-weight: 700; }
+    .result-body { padding: 16px 24px; }
+    .result-body .rb-title { font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 12px; }
+    .bloque-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .bloque-id { width: 22px; height: 22px; border-radius: 5px; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+    .bloque-nombre { flex: 1; font-size: 12px; color: #374151; }
+    .bloque-bar { width: 80px; height: 4px; background: #E5E7EB; border-radius: 2px; }
+    .bloque-bar > div { height: 100%; border-radius: 2px; }
+    .bloque-score { font-size: 12px; font-weight: 700; width: 24px; text-align: right; }
+    .fuentes-box { margin-top: 16px; padding: 10px 14px; background: #F8FAFC; border-radius: 8px; font-size: 11px; color: #475569; display: flex; align-items: center; gap: 8px; }
+    .btn-full-dark { margin-top: 12px; width: 100%; background: #1B4F72; color: white; border: none; border-radius: 8px; padding: 10px 0; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="logo">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+          stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="title">Radar de Riesgo Social</div>
+      <div class="subtitle">Pipeline FNCE — UPB</div>
+    </div>
+  </div>
 
-  <script type="text/babel" data-presets="react">
-    const { useState, useRef, useEffect } = React;
+  <div class="container">
 
-    const API_BASE = "http://localhost:8000";
+    <!-- ESTADO: idle -->
+    <section id="estado-idle" style="animation: fadeIn 0.4s ease;">
+      <div class="head">
+        <h1>Nueva consulta</h1>
+        <p>Ingresa el territorio y el rango de fechas para analizar indicadores de riesgo social</p>
+      </div>
 
-    function LoadingDots() {
-      return (
-        <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "center" }}>
-          {[0,1,2].map(i => (
-            <div key={i} style={{
-              width: 8, height: 8, borderRadius: "50%",
-              background: "white",
-              animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
-            }} />
-          ))}
+      <div class="card">
+        <!-- Campo lugar -->
+        <div style="margin-bottom: 20px; position: relative;">
+          <label class="field">Territorio a analizar</label>
+          <div style="position: relative;">
+            <input id="input-territorio" class="input" autocomplete="off"
+              placeholder="Ej: Antioquia, Maicao, Vereda Paraguachón..." />
+            <div id="check-ok" class="check-ok" hidden>✓</div>
+          </div>
+          <div id="sug-list" class="sug-list" hidden></div>
         </div>
-      );
+
+        <!-- Fechas -->
+        <div class="grid-fechas">
+          <div>
+            <label class="field">Fecha inicio</label>
+            <input id="fecha-inicio" class="input-date" type="date" value="2023-01-01" />
+          </div>
+          <div>
+            <label class="field">Fecha fin</label>
+            <input id="fecha-fin" class="input-date" type="date" value="2023-12-31" />
+          </div>
+        </div>
+
+        <!-- Panel: territorio seleccionado -->
+        <div id="panel-sel" class="panel" hidden>
+          <div class="panel-head">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Territorio seleccionado
+          </div>
+          <div class="chips">
+            <span id="chip-tipo" class="chip chip-green"></span>
+            <span id="chip-depto" class="chip chip-blue"></span>
+          </div>
+          <div class="note">Las fuentes de prensa se seleccionan automáticamente según el territorio</div>
+        </div>
+
+        <!-- Panel: texto libre (vereda sin sugerencia) -->
+        <div id="panel-free" class="panel-free" hidden>
+          <div class="txt">
+            <span>✎</span>
+            <span>Se analizará el texto ingresado: <strong id="free-txt"></strong>. Si es una vereda que no aparece en las sugerencias, igual se procesará.</span>
+          </div>
+        </div>
+
+        <!-- Botón -->
+        <button id="btn-analizar" class="btn-primary" disabled>Escribe o selecciona un territorio para continuar</button>
+      </div>
+    </section>
+
+    <!-- ESTADO: loading -->
+    <section id="estado-loading" class="card-center" hidden>
+      <div class="spinner">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+            stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="loading-title">Analizando <span id="loading-territorio"></span></div>
+      <div id="loading-etapa" class="loading-etapa"></div>
+      <div class="barra"><div id="barra-progreso" style="width: 0%;"></div></div>
+      <div id="dots" class="dots"></div>
+      <div class="loading-foot">Procesando con mDeBERTa-v3 · Pipeline FNCE — esto puede tardar varios minutos</div>
+    </section>
+
+    <!-- ESTADO: error -->
+    <section id="estado-error" class="card-error" hidden>
+      <div class="err-icon">!</div>
+      <div class="err-title">No se pudo completar el análisis</div>
+      <div id="error-msg" class="err-msg"></div>
+      <div class="err-actions">
+        <button id="btn-reintentar" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 13px;">Reintentar</button>
+        <button id="btn-nueva-error" class="btn-outline">Nueva consulta</button>
+      </div>
+    </section>
+
+    <!-- ESTADO: done -->
+    <section id="estado-done" hidden>
+      <div class="result-top">
+        <button id="btn-nueva-done" class="back">← Nueva consulta</button>
+        <div class="done-tag">Análisis completado</div>
+      </div>
+      <div class="result-card">
+        <div class="result-header">
+          <div>
+            <div class="rh-cap">Radar de Riesgo Social — resultado preliminar</div>
+            <div id="res-lugar" class="rh-lugar"></div>
+            <div id="res-fechas" class="rh-fechas"></div>
+          </div>
+          <div style="text-align: center;">
+            <div id="res-circle" class="badge-circle"></div>
+            <div class="badge-cap">Índice Riesgo Social</div>
+            <div id="res-badge-label" class="badge-label"></div>
+          </div>
+        </div>
+        <div class="result-body">
+          <div class="rb-title">Resultados por bloque</div>
+          <div id="res-bloques"></div>
+          <div class="fuentes-box"><span>📰</span><span id="res-fuentes"></span></div>
+          <button class="btn-full-dark">Ver análisis completo →</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    "use strict";
+
+    var API_BASE = "http://localhost:8000";
+
+    var ETAPAS = [
+      "Conectando con los periódicos...",
+      "Descargando artículos...",
+      "Ejecutando análisis NLP...",
+      "Calculando indicadores de riesgo...",
+      "Generando resultados...",
+    ];
+
+    // ── Estado ──────────────────────────────────────────────────────────────
+    var lugarSel = null;               // {nombre, tipo, departamento} o null (texto libre)
+    var territorioAnalizado = "";
+    var debounceTimer = null;
+    var abortCtrl = null;
+    var intervalId = null;
+    var etapa = 0;
+    var progreso = 0;
+
+    // ── Referencias al DOM ────────────────────────────────────────────────────
+    var $ = function (id) { return document.getElementById(id); };
+    var inputTerritorio = $("input-territorio");
+    var sugList = $("sug-list");
+    var checkOk = $("check-ok");
+    var panelSel = $("panel-sel");
+    var chipTipo = $("chip-tipo");
+    var chipDepto = $("chip-depto");
+    var panelFree = $("panel-free");
+    var freeTxt = $("free-txt");
+    var btnAnalizar = $("btn-analizar");
+    var fechaInicio = $("fecha-inicio");
+    var fechaFin = $("fecha-fin");
+
+    // Escapa texto antes de inyectarlo como HTML.
+    function esc(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
 
-    // Etiqueta de una sugerencia del autocompletado: "Maicao — Municipio, La Guajira"
-    // (para un departamento se omite la coma redundante).
+    function territorioActual() {
+      return lugarSel ? lugarSel.nombre : inputTerritorio.value.trim();
+    }
+
     function etiquetaSugerencia(s) {
-      if (s.tipo === "Departamento") return `${s.nombre} — Departamento`;
-      return `${s.nombre} — ${s.tipo}, ${s.departamento}`;
+      if (s.tipo === "Departamento") return s.nombre + " — Departamento";
+      return s.nombre + " — " + s.tipo + ", " + s.departamento;
     }
 
-    function ResultadoMini({ resultado }) {
-      const total = resultado.badge_score;
-
-      return (
-        <div style={{
-          animation: "slideUp 0.5s ease forwards",
-          background: "white", borderRadius: 16,
-          border: "1px solid #E2E8F0",
-          overflow: "hidden",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
-        }}>
-          {/* Mini header */}
-          <div style={{
-            background: "#1B4F72", padding: "16px 24px",
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-          }}>
-            <div>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginBottom: 2 }}>
-                Radar de Riesgo Social — resultado preliminar
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "white" }}>{resultado.lugar}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>
-                {resultado.fecha_inicio} → {resultado.fecha_fin}
-              </div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: "50%",
-                background: resultado.badge_color,
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                color: "white", fontWeight: 700, fontSize: 18,
-                margin: "0 auto 4px",
-              }}>
-                {total}
-                <span style={{ fontSize: 9, fontWeight: 400 }}>/100</span>
-              </div>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>Índice Riesgo Social</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: resultado.badge_color }}>
-                {resultado.badge_label}
-              </div>
-            </div>
-          </div>
-
-          {/* Bloques */}
-          <div style={{ padding: "16px 24px" }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 12 }}>
-              Resultados por bloque
-            </div>
-            {resultado.bloques.map(b => (
-              <div key={b.id} style={{
-                display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
-              }}>
-                <div style={{
-                  width: 22, height: 22, borderRadius: 5,
-                  background: b.color, color: "white",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 10, fontWeight: 700, flexShrink: 0,
-                }}>{b.id}</div>
-                <div style={{ flex: 1, fontSize: 12, color: "#374151" }}>{b.nombre}</div>
-                <div style={{ width: 80, height: 4, background: "#E5E7EB", borderRadius: 2 }}>
-                  <div style={{ width: `${b.score}%`, height: "100%", background: b.color, borderRadius: 2 }} />
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: b.color, width: 24, textAlign: "right" }}>
-                  {b.score}
-                </div>
-              </div>
-            ))}
-            <div style={{
-              marginTop: 16, padding: "10px 14px",
-              background: "#F8FAFC", borderRadius: 8,
-              fontSize: 11, color: "#475569",
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <span>📰</span>
-              <span>
-                {resultado.n_articulos} artículo{resultado.n_articulos !== 1 ? "s" : ""} analizado{resultado.n_articulos !== 1 ? "s" : ""}
-                {resultado.fuentes && resultado.fuentes.length > 0
-                  ? ` · Fuentes: ${resultado.fuentes.join(", ")}`
-                  : ""}
-              </span>
-            </div>
-            <button style={{
-              marginTop: 12, width: "100%",
-              background: "#1B4F72", color: "white",
-              border: "none", borderRadius: 8, padding: "10px 0",
-              fontSize: 13, fontWeight: 600, cursor: "pointer",
-            }}>
-              Ver análisis completo →
-            </button>
-          </div>
-        </div>
-      );
+    // ── Cambio de sección visible ─────────────────────────────────────────────
+    function setEstado(nombre) {
+      $("estado-idle").hidden = nombre !== "idle";
+      $("estado-loading").hidden = nombre !== "loading";
+      $("estado-error").hidden = nombre !== "error";
+      $("estado-done").hidden = nombre !== "done";
     }
 
-    function App() {
-      const [query, setQuery]           = useState("");
-      const [sugerencias, setSug]       = useState([]);
-      const [lugarSel, setLugar]        = useState(null);   // objeto {nombre, tipo, departamento} o null (texto libre)
-      const [fechaInicio, setFechaIni]  = useState("2023-01-01");
-      const [fechaFin, setFechaFin]     = useState("2023-12-31");
-      const [estado, setEstado]         = useState("idle"); // idle | loading | done | error
-      const [progreso, setProgreso]     = useState(0);
-      const [resultado, setResultado]   = useState(null);
-      const [error, setError]           = useState("");
-      const [territorioAnalizado, setTerritorioAnalizado] = useState("");
-      const inputRef = useRef(null);
-      const intervaloRef = useRef(null);
+    // ── Formulario (botón + paneles + borde del input) ────────────────────────
+    function actualizarFormUI() {
+      var texto = inputTerritorio.value.trim();
+      var terr = territorioActual();
+      var puede = terr.length >= 2;
 
-      const etapas = [
-        "Conectando con los periódicos...",
-        "Descargando artículos...",
-        "Ejecutando análisis NLP...",
-        "Calculando indicadores de riesgo...",
-        "Generando resultados...",
-      ];
-      const [etapa, setEtapa] = useState(0);
+      // input verde + check cuando hay selección
+      inputTerritorio.classList.toggle("sel", !!lugarSel);
+      checkOk.hidden = !lugarSel;
 
-      // Territorio efectivo: sugerencia elegida, o texto libre escrito.
-      const territorioActual = lugarSel ? lugarSel.nombre : query.trim();
-      const puedeAnalizar = territorioActual.length >= 2;
-
-      // Autocompletado contra la API (debounce + abort). Se salta si ya hay
-      // un lugar seleccionado (evita re-buscar tras elegir una sugerencia).
-      useEffect(() => {
-        if (lugarSel) { setSug([]); return; }
-        const q = query.trim();
-        if (q.length < 2) { setSug([]); return; }
-
-        const ctrl = new AbortController();
-        const t = setTimeout(async () => {
-          try {
-            const res = await fetch(`${API_BASE}/lugares?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
-            if (!res.ok) throw new Error("lugares");
-            const data = await res.json();
-            setSug(Array.isArray(data) ? data.slice(0, 8) : []);
-          } catch (e) {
-            if (e.name !== "AbortError") setSug([]);
-          }
-        }, 250);
-
-        return () => { clearTimeout(t); ctrl.abort(); };
-      }, [query, lugarSel]);
-
-      // Limpia el intervalo del loading si el componente se desmonta.
-      useEffect(() => () => clearInterval(intervaloRef.current), []);
-
-      function seleccionar(s) {
-        setLugar(s);
-        setQuery(s.nombre);
-        setSug([]);
+      // panel seleccionado
+      if (lugarSel) {
+        chipTipo.textContent = lugarSel.tipo;
+        chipDepto.textContent = lugarSel.departamento;
+        panelSel.hidden = false;
+      } else {
+        panelSel.hidden = true;
       }
 
-      async function analizar() {
-        const territorio = lugarSel ? lugarSel.nombre : query.trim();
-        if (territorio.length < 2) return;
+      // panel texto libre
+      if (!lugarSel && texto.length >= 2) {
+        freeTxt.textContent = "«" + texto + "»";
+        panelFree.hidden = false;
+      } else {
+        panelFree.hidden = true;
+      }
 
-        setTerritorioAnalizado(territorio);
-        setEstado("loading");
-        setEtapa(0);
-        setProgreso(8);
-        setError("");
+      // botón
+      btnAnalizar.disabled = !puede;
+      btnAnalizar.textContent = puede
+        ? "Analizar " + terr
+        : "Escribe o selecciona un territorio para continuar";
+    }
 
-        // Progreso "animado" mientras esperamos la respuesta real: avanza hasta
-        // 95% y se queda ahí; solo llega a 100% cuando la API responde.
-        clearInterval(intervaloRef.current);
-        intervaloRef.current = setInterval(() => {
-          setEtapa(e => Math.min(e + 1, etapas.length - 1));
-          setProgreso(p => Math.min(p + 12, 95));
-        }, 1500);
+    // ── Autocompletado ────────────────────────────────────────────────────────
+    function renderSugerencias(items) {
+      if (!items || items.length === 0) { sugList.hidden = true; sugList.innerHTML = ""; return; }
+      sugList.innerHTML = items.slice(0, 8).map(function (s, i) {
+        return '<div class="sug-item" data-i="' + i + '">' +
+                 '<span class="pin">📍</span>' + esc(etiquetaSugerencia(s)) +
+               '</div>';
+      }).join("");
+      // Guardamos los objetos para recuperarlos al hacer click.
+      sugList._items = items.slice(0, 8);
+      sugList.hidden = false;
+    }
 
-        try {
-          const res = await fetch(`${API_BASE}/analizar`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              territorio,
-              fecha_inicio: fechaInicio,
-              fecha_fin: fechaFin,
-            }),
-          });
+    function buscarSugerencias(q) {
+      if (abortCtrl) abortCtrl.abort();
+      abortCtrl = new AbortController();
+      fetch(API_BASE + "/lugares?q=" + encodeURIComponent(q), { signal: abortCtrl.signal })
+        .then(function (res) {
+          if (!res.ok) throw new Error("lugares " + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          renderSugerencias(Array.isArray(data) ? data : []);
+        })
+        .catch(function (e) {
+          if (e.name !== "AbortError") { console.warn("Autocompletado:", e.message); renderSugerencias([]); }
+        });
+    }
+
+    // click sobre una sugerencia (mousedown para ganarle al blur)
+    sugList.addEventListener("mousedown", function (ev) {
+      var item = ev.target.closest(".sug-item");
+      if (!item) return;
+      ev.preventDefault();
+      var idx = parseInt(item.getAttribute("data-i"), 10);
+      var s = (sugList._items || [])[idx];
+      if (!s) return;
+      lugarSel = s;
+      inputTerritorio.value = s.nombre;
+      sugList.hidden = true; sugList.innerHTML = "";
+      actualizarFormUI();
+    });
+
+    // escribir en el input → resetea selección + debounce del fetch
+    inputTerritorio.addEventListener("input", function () {
+      lugarSel = null;
+      actualizarFormUI();
+      var q = inputTerritorio.value.trim();
+      clearTimeout(debounceTimer);
+      if (q.length < 2) { renderSugerencias([]); return; }
+      debounceTimer = setTimeout(function () { buscarSugerencias(q); }, 250);
+    });
+
+    // ── Loading (progreso animado hasta la respuesta real) ────────────────────
+    function pintarDots() {
+      var html = "";
+      for (var i = 0; i < ETAPAS.length; i++) {
+        html += '<div class="dot' + (i <= etapa ? " on" : "") + '"></div>';
+      }
+      $("dots").innerHTML = html;
+    }
+    function pintarLoading() {
+      $("loading-etapa").textContent = ETAPAS[etapa];
+      $("barra-progreso").style.width = progreso + "%";
+      pintarDots();
+    }
+
+    // ── Análisis ──────────────────────────────────────────────────────────────
+    function analizar() {
+      var territorio = territorioActual();
+      if (territorio.length < 2) return;
+
+      territorioAnalizado = territorio;
+      $("loading-territorio").textContent = territorio;
+      etapa = 0; progreso = 8;
+      pintarLoading();
+      setEstado("loading");
+
+      clearInterval(intervalId);
+      intervalId = setInterval(function () {
+        etapa = Math.min(etapa + 1, ETAPAS.length - 1);
+        progreso = Math.min(progreso + 12, 95);
+        pintarLoading();
+      }, 1500);
+
+      fetch(API_BASE + "/analizar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          territorio: territorio,
+          fecha_inicio: fechaInicio.value,
+          fecha_fin: fechaFin.value,
+        }),
+      })
+        .then(function (res) {
           if (!res.ok) {
-            let detalle = "";
-            try { detalle = (await res.json()).detail || ""; } catch { /* sin cuerpo */ }
-            throw new Error(detalle || `La API respondió ${res.status}`);
+            return res.json().catch(function () { return {}; }).then(function (j) {
+              throw new Error(j.detail || ("La API respondió " + res.status));
+            });
           }
-          const data = await res.json();
-          clearInterval(intervaloRef.current);
-          setResultado(data);
-          setProgreso(100);
-          setTimeout(() => setEstado("done"), 400);
-        } catch (err) {
-          clearInterval(intervaloRef.current);
-          setError(err.message || "No se pudo conectar con la API");
+          return res.json();
+        })
+        .then(function (data) {
+          clearInterval(intervalId);
+          progreso = 100; pintarLoading();
+          renderResultado(data);
+          setTimeout(function () { setEstado("done"); }, 400);
+        })
+        .catch(function (err) {
+          clearInterval(intervalId);
+          $("error-msg").textContent = err.message || "No se pudo conectar con la API";
           setEstado("error");
-        }
-      }
-
-      function nuevaConsulta() {
-        clearInterval(intervaloRef.current);
-        setEstado("idle");
-        setQuery("");
-        setLugar(null);
-        setSug([]);
-        setResultado(null);
-        setError("");
-        setProgreso(0);
-        setTerritorioAnalizado("");
-      }
-
-      return (
-        <div style={{
-          minHeight: "100vh", background: "#F1F5F9",
-          fontFamily: "system-ui, -apple-system, sans-serif",
-        }}>
-          {/* Top bar */}
-          <div style={{
-            background: "#1B4F72", padding: "12px 28px",
-            display: "flex", alignItems: "center", gap: 12,
-          }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: 6,
-              background: "#10B981",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-                  stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div>
-              <div style={{ color: "white", fontWeight: 700, fontSize: 14, lineHeight: 1 }}>
-                Radar de Riesgo Social
-              </div>
-              <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 10, marginTop: 1 }}>
-                Pipeline FNCE — UPB
-              </div>
-            </div>
-          </div>
-
-          <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 20px" }}>
-
-            {estado === "idle" && (
-              <div style={{ animation: "fadeIn 0.4s ease" }}>
-                <div style={{ marginBottom: 32, textAlign: "center" }}>
-                  <h1 style={{ fontSize: 26, fontWeight: 700, color: "#1B4F72", marginBottom: 6 }}>
-                    Nueva consulta
-                  </h1>
-                  <p style={{ fontSize: 13, color: "#64748B" }}>
-                    Ingresa el territorio y el rango de fechas para analizar indicadores de riesgo social
-                  </p>
-                </div>
-
-                {/* Formulario */}
-                <div style={{
-                  background: "white", borderRadius: 16, padding: 28,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-                  border: "1px solid #E2E8F0",
-                }}>
-
-                  {/* Campo lugar */}
-                  <div style={{ marginBottom: 20, position: "relative" }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
-                      Territorio a analizar
-                    </label>
-                    <div style={{ position: "relative" }}>
-                      <input
-                        ref={inputRef}
-                        value={query}
-                        onChange={e => { setQuery(e.target.value); setLugar(null); }}
-                        placeholder="Ej: Antioquia, Maicao, Vereda Paraguachón..."
-                        style={{
-                          width: "100%", padding: "11px 14px",
-                          border: `2px solid ${lugarSel ? "#10B981" : "#E2E8F0"}`,
-                          borderRadius: 10, fontSize: 14, outline: "none",
-                          color: "#1A202C", background: "white",
-                          transition: "border-color 0.15s",
-                        }}
-                        onFocus={e => e.target.style.borderColor = "#1B4F72"}
-                        onBlur={e => e.target.style.borderColor = lugarSel ? "#10B981" : "#E2E8F0"}
-                      />
-                      {lugarSel && (
-                        <div style={{
-                          position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
-                          color: "#10B981", fontSize: 16,
-                        }}>✓</div>
-                      )}
-                    </div>
-
-                    {/* Sugerencias (desde la API /lugares) */}
-                    {sugerencias.length > 0 && (
-                      <div style={{
-                        position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100,
-                        background: "white", borderRadius: 10, marginTop: 4,
-                        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                        border: "1px solid #E2E8F0", overflow: "hidden",
-                      }}>
-                        {sugerencias.map((s, i) => (
-                          <div
-                            key={`${s.tipo}-${s.nombre}-${s.departamento}-${i}`}
-                            onMouseDown={() => seleccionar(s)}
-                            style={{
-                              padding: "10px 14px", fontSize: 13, cursor: "pointer",
-                              color: "#374151", display: "flex", alignItems: "center", gap: 8,
-                              borderBottom: "1px solid #F1F5F9",
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
-                            onMouseLeave={e => e.currentTarget.style.background = "white"}
-                          >
-                            <span style={{ color: "#94A3B8", fontSize: 11 }}>📍</span>
-                            {etiquetaSugerencia(s)}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Fechas */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
-                    <div>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
-                        Fecha inicio
-                      </label>
-                      <input
-                        type="date" value={fechaInicio}
-                        onChange={e => setFechaIni(e.target.value)}
-                        style={{
-                          width: "100%", padding: "10px 12px",
-                          border: "2px solid #E2E8F0", borderRadius: 10,
-                          fontSize: 13, outline: "none", color: "#1A202C",
-                        }}
-                        onFocus={e => e.target.style.borderColor = "#1B4F72"}
-                        onBlur={e => e.target.style.borderColor = "#E2E8F0"}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
-                        Fecha fin
-                      </label>
-                      <input
-                        type="date" value={fechaFin}
-                        onChange={e => setFechaFin(e.target.value)}
-                        style={{
-                          width: "100%", padding: "10px 12px",
-                          border: "2px solid #E2E8F0", borderRadius: 10,
-                          fontSize: 13, outline: "none", color: "#1A202C",
-                        }}
-                        onFocus={e => e.target.style.borderColor = "#1B4F72"}
-                        onBlur={e => e.target.style.borderColor = "#E2E8F0"}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Confirmación del territorio seleccionado */}
-                  {lugarSel && (
-                    <div style={{
-                      marginBottom: 24, animation: "fadeIn 0.3s ease",
-                      padding: 14, background: "#F8FAFC",
-                      borderRadius: 10, border: "1px solid #E2E8F0",
-                    }}>
-                      <div style={{
-                        fontSize: 11, fontWeight: 600, color: "#64748B",
-                        marginBottom: 10, display: "flex", alignItems: "center", gap: 6,
-                      }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"
-                            stroke="#64748B" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                        Territorio seleccionado
-                      </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        <span style={{
-                          padding: "4px 10px", borderRadius: 20,
-                          background: "#F0FDF4", color: "#15803D",
-                          fontSize: 11, fontWeight: 500, border: "1px solid #BBF7D0",
-                        }}>
-                          {lugarSel.tipo}
-                        </span>
-                        <span style={{
-                          padding: "4px 10px", borderRadius: 20,
-                          background: "#EFF6FF", color: "#1D4ED8",
-                          fontSize: 11, fontWeight: 500, border: "1px solid #BFDBFE",
-                        }}>
-                          {lugarSel.departamento}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 8 }}>
-                        Las fuentes de prensa se seleccionan automáticamente según el territorio
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Texto libre: territorio escrito sin elegir sugerencia (p. ej. una vereda) */}
-                  {!lugarSel && query.trim().length >= 2 && (
-                    <div style={{
-                      marginBottom: 24, animation: "fadeIn 0.3s ease",
-                      padding: 14, background: "#FFFBEB",
-                      borderRadius: 10, border: "1px solid #FDE68A",
-                    }}>
-                      <div style={{ fontSize: 11, color: "#92400E", display: "flex", alignItems: "center", gap: 6 }}>
-                        <span>✎</span>
-                        Se analizará el texto ingresado: <strong>«{query.trim()}»</strong>.
-                        Si es una vereda que no aparece en las sugerencias, igual se procesará.
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Botón */}
-                  <button
-                    onClick={analizar}
-                    disabled={!puedeAnalizar}
-                    style={{
-                      width: "100%", padding: "13px 0",
-                      background: puedeAnalizar ? "#1B4F72" : "#CBD5E1",
-                      color: "white", border: "none", borderRadius: 10,
-                      fontSize: 14, fontWeight: 600, cursor: puedeAnalizar ? "pointer" : "not-allowed",
-                      transition: "background 0.2s",
-                    }}
-                  >
-                    {puedeAnalizar ? `Analizar ${territorioActual}` : "Escribe o selecciona un territorio para continuar"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Loading */}
-            {estado === "loading" && (
-              <div style={{
-                animation: "fadeIn 0.3s ease",
-                background: "white", borderRadius: 16, padding: 40,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-                border: "1px solid #E2E8F0", textAlign: "center",
-              }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: "50%",
-                  background: "#1B4F72", margin: "0 auto 20px",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  animation: "spin 1s linear infinite",
-                }}>
-                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
-                      stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </div>
-
-                <div style={{ fontSize: 16, fontWeight: 600, color: "#1B4F72", marginBottom: 6 }}>
-                  Analizando {territorioAnalizado}
-                </div>
-                <div style={{ fontSize: 13, color: "#64748B", marginBottom: 24, height: 20 }}>
-                  {etapas[etapa]}
-                </div>
-
-                {/* Barra de progreso */}
-                <div style={{
-                  width: "100%", height: 6, background: "#E2E8F0",
-                  borderRadius: 3, overflow: "hidden", marginBottom: 20,
-                }}>
-                  <div style={{
-                    width: `${progreso}%`, height: "100%",
-                    background: "linear-gradient(90deg, #1B4F72, #10B981)",
-                    borderRadius: 3, transition: "width 0.8s ease",
-                  }} />
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
-                  {etapas.map((e, i) => (
-                    <div key={i} style={{
-                      width: 8, height: 8, borderRadius: "50%",
-                      background: i <= etapa ? "#10B981" : "#E2E8F0",
-                      transition: "background 0.3s",
-                    }} />
-                  ))}
-                </div>
-
-                <div style={{ fontSize: 11, color: "#94A3B8" }}>
-                  Procesando con mDeBERTa-v3 · Pipeline FNCE — esto puede tardar varios minutos
-                </div>
-              </div>
-            )}
-
-            {/* Error */}
-            {estado === "error" && (
-              <div style={{
-                animation: "fadeIn 0.3s ease",
-                background: "white", borderRadius: 16, padding: 32,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-                border: "1px solid #FECACA", textAlign: "center",
-              }}>
-                <div style={{
-                  width: 48, height: 48, borderRadius: "50%",
-                  background: "#FEF2F2", margin: "0 auto 16px",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#DC2626", fontSize: 24, fontWeight: 700,
-                }}>!</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "#991B1B", marginBottom: 6 }}>
-                  No se pudo completar el análisis
-                </div>
-                <div style={{ fontSize: 12, color: "#64748B", marginBottom: 20, wordBreak: "break-word" }}>
-                  {error}
-                </div>
-                <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-                  <button
-                    onClick={analizar}
-                    style={{
-                      background: "#1B4F72", color: "white", border: "none",
-                      borderRadius: 8, padding: "8px 16px", fontSize: 13,
-                      fontWeight: 600, cursor: "pointer",
-                    }}
-                  >
-                    Reintentar
-                  </button>
-                  <button
-                    onClick={nuevaConsulta}
-                    style={{
-                      background: "none", border: "1px solid #E2E8F0",
-                      borderRadius: 8, padding: "8px 16px", fontSize: 13,
-                      color: "#64748B", cursor: "pointer",
-                    }}
-                  >
-                    Nueva consulta
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Resultado */}
-            {estado === "done" && resultado && (
-              <div>
-                <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  marginBottom: 16,
-                }}>
-                  <button
-                    onClick={nuevaConsulta}
-                    style={{
-                      background: "none", border: "1px solid #E2E8F0",
-                      borderRadius: 8, padding: "6px 12px",
-                      fontSize: 12, color: "#64748B", cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: 6,
-                    }}
-                  >
-                    ← Nueva consulta
-                  </button>
-                  <div style={{ fontSize: 11, color: "#94A3B8" }}>
-                    Análisis completado
-                  </div>
-                </div>
-                <ResultadoMini resultado={resultado} />
-              </div>
-            )}
-          </div>
-        </div>
-      );
+        });
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    // ── Resultado ───────────────────────────────────────────────────────────
+    function renderResultado(r) {
+      $("res-lugar").textContent = r.lugar;
+      $("res-fechas").textContent = r.fecha_inicio + " → " + r.fecha_fin;
+
+      var circle = $("res-circle");
+      circle.style.background = r.badge_color;
+      circle.innerHTML = esc(r.badge_score) + '<span>/100</span>';
+
+      var lbl = $("res-badge-label");
+      lbl.textContent = r.badge_label;
+      lbl.style.color = r.badge_color;
+
+      $("res-bloques").innerHTML = (r.bloques || []).map(function (b) {
+        return '<div class="bloque-row">' +
+          '<div class="bloque-id" style="background:' + esc(b.color) + '">' + esc(b.id) + '</div>' +
+          '<div class="bloque-nombre">' + esc(b.nombre) + '</div>' +
+          '<div class="bloque-bar"><div style="width:' + Number(b.score) + '%;background:' + esc(b.color) + '"></div></div>' +
+          '<div class="bloque-score" style="color:' + esc(b.color) + '">' + esc(b.score) + '</div>' +
+        '</div>';
+      }).join("");
+
+      var n = r.n_articulos;
+      var plural = n !== 1 ? "s" : "";
+      var fuentes = (r.fuentes && r.fuentes.length) ? " · Fuentes: " + r.fuentes.join(", ") : "";
+      $("res-fuentes").textContent = n + " artículo" + plural + " analizado" + plural + fuentes;
+    }
+
+    // ── Nueva consulta ────────────────────────────────────────────────────────
+    function nuevaConsulta() {
+      clearInterval(intervalId);
+      if (abortCtrl) abortCtrl.abort();
+      lugarSel = null;
+      inputTerritorio.value = "";
+      sugList.hidden = true; sugList.innerHTML = "";
+      progreso = 0; etapa = 0;
+      actualizarFormUI();
+      setEstado("idle");
+    }
+
+    // ── Eventos ───────────────────────────────────────────────────────────────
+    btnAnalizar.addEventListener("click", analizar);
+    $("btn-reintentar").addEventListener("click", analizar);
+    $("btn-nueva-error").addEventListener("click", nuevaConsulta);
+    $("btn-nueva-done").addEventListener("click", nuevaConsulta);
+    // cerrar sugerencias al perder foco (con retraso para permitir el click)
+    inputTerritorio.addEventListener("blur", function () { setTimeout(function () { sugList.hidden = true; }, 120); });
+
+    // init
+    actualizarFormUI();
+    pintarDots();
   </script>
 </body>
 </html>
