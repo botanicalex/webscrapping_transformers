@@ -228,15 +228,15 @@ app.add_middleware(
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
 )
 
-# ── Modelo NLI cargado una sola vez (perezoso) ───────────────────────────────
-_PIPELINE = None
+# ── Modelo NLI cargado al arrancar (no perezoso) ─────────────────────────────
+# Se instancia al importar el modulo (hilo principal de uvicorn), no dentro del
+# primer request. Cargar torch/CUDA en el thread del worker provocaba un 500 en
+# /analizar aunque el pipeline funcionara al llamarlo directo en Python.
+from Transformer_optimo import PipelineTransformers  # noqa: E402
+_PIPELINE = PipelineTransformers()  # carga el modelo al arrancar la app
 
 
 def _get_pipeline():
-    global _PIPELINE
-    if _PIPELINE is None:
-        from Transformer_optimo import PipelineTransformers
-        _PIPELINE = PipelineTransformers()
     return _PIPELINE
 
 

@@ -36,7 +36,7 @@ En un notebook de Colab **con GPU** (`Entorno de ejecución → Cambiar tipo →
 # 4. Levantar la API en segundo plano (puerto 8000)
 import subprocess, time
 api = subprocess.Popen(["uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8000"])
-time.sleep(8)   # dar tiempo a que arranque
+time.sleep(60)  # uvicorn carga mDeBERTa al arrancar: puede tardar VARIOS minutos
 
 # 5. Abrir el túnel y ver la URL pública
 !./cloudflared tunnel --url http://localhost:8000
@@ -57,6 +57,12 @@ Dejá esa celda corriendo: mientras esté viva, el túnel funciona.
 > Debe responder un JSON con `"ok": true` y los cortes activos.
 
 Notas:
+- **uvicorn tarda varios minutos en arrancar**: el pipeline NLI (`mDeBERTa-v3`) se
+  carga al inicio de la app (carga temprana, no perezosa, para evitar un conflicto
+  CUDA/torch en el thread del worker que daba 500 en `/analizar`). El `time.sleep(60)`
+  es un mínimo; si el túnel expone el puerto antes de que el modelo termine de cargar,
+  las primeras requests fallan con *connection refused*. Lo seguro es esperar a que
+  `https://....trycloudflare.com/health` responda `"ok": true` antes de usar el front.
 - El túnel *quick* de cloudflared no necesita cuenta ni login, pero la URL **cambia
   cada vez** que se reinicia. Hay que volver a copiarla al front.
 - La primera consulta a `/analizar` es lenta (carga el modelo + scrapea en vivo):
