@@ -501,7 +501,10 @@
     function buscarSugerencias(q) {
       if (abortCtrl) abortCtrl.abort();
       abortCtrl = new AbortController();
-      fetch(API_BASE + "/lugares?q=" + encodeURIComponent(q), { signal: abortCtrl.signal })
+      fetch(API_BASE + "/lugares?q=" + encodeURIComponent(q), {
+        signal: abortCtrl.signal,
+        headers: { "ngrok-skip-browser-warning": "69420" },
+      })
         .then(function (res) {
           if (!res.ok) throw new Error("lugares " + res.status);
           return res.json();
@@ -572,7 +575,10 @@
 
       fetch(API_BASE + "/analizar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "69420",
+        },
         body: JSON.stringify({
           territorio: territorio,
           fecha_inicio: fechaInicio.value,
