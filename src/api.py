@@ -33,8 +33,9 @@ from typing import List, Optional
 
 import httpx
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 # ── Rutas: src/ al path para que los imports por nombre de Santiago funcionen ─
@@ -249,6 +250,30 @@ def health():
         },
         "modelo_cargado": _PIPELINE is not None,
     }
+
+
+@app.options("/analizar")
+async def analizar_options(request: Request):
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, ngrok-skip-browser-warning",
+        },
+    )
+
+
+@app.options("/lugares")
+async def lugares_options(request: Request):
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, ngrok-skip-browser-warning",
+        },
+    )
 
 
 @app.get("/lugares")
