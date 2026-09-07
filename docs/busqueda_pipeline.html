@@ -281,7 +281,10 @@
   <script>
     "use strict";
 
-    var API_BASE = "http://localhost:8000";
+    // API configurable por querystring: ...html?api=https://tu-backend
+    // Sin parámetro, cae a localhost:8000.
+    const params = new URLSearchParams(window.location.search);
+    const API_BASE = params.get("api") || "http://localhost:8000";
 
     var ETAPAS = [
       "Conectando con los periódicos...",
