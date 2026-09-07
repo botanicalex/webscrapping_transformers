@@ -84,6 +84,7 @@
     .chip { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
     .chip-green { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
     .chip-blue { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+    .panel .fuentes-head { font-size: 11px; font-weight: 600; color: #64748B; margin: 12px 0 8px; }
     .panel .note { font-size: 10px; color: #94A3B8; margin-top: 8px; }
 
     .panel-free { margin-bottom: 24px; animation: fadeIn 0.3s ease; padding: 14px; background: #FFFBEB; border-radius: 10px; border: 1px solid #FDE68A; }
@@ -203,6 +204,8 @@
             <span id="chip-tipo" class="chip chip-green"></span>
             <span id="chip-depto" class="chip chip-blue"></span>
           </div>
+          <div class="fuentes-head">Fuentes de prensa a consultar</div>
+          <div id="chips-fuentes" class="chips"></div>
           <div class="note">Las fuentes de prensa se seleccionan automáticamente según el territorio</div>
         </div>
 
@@ -288,6 +291,82 @@
       "Generando resultados...",
     ];
 
+    // Mismo mapa que MAPA_TERRITORIO_PERIODICOS en src/api.py (claves normalizadas:
+    // minúsculas, sin tildes). Se usa solo para PREVISUALIZAR las fuentes; la API
+    // sigue siendo la fuente de verdad al analizar.
+    var MAPA_TERRITORIO_PERIODICOS = {
+      "paraguachon":        ["laguajirahoy", "eltiempo"],
+      "maicao":             ["laguajirahoy", "eltiempo"],
+      "guintiva":           ["boyaca7dias", "eltiempo"],
+      "oicata":             ["boyaca7dias", "eltiempo"],
+      "antioquia":          ["elcolombiano", "eltiempo"],
+      "atlantico":          ["elheraldo", "eltiempo"],
+      "bolivar":            ["eluniversal", "eltiempo"],
+      "boyaca":             ["eldiarioboyaca", "ultimahoraboy", "eltiempo"],
+      "caldas":             ["bcnoticias", "eltiempo"],
+      "caqueta":            ["eltiempo"],
+      "cauca":              ["diariodelcauca", "eltiempo"],
+      "cesar":              ["cesarnoticias", "elpaisvallenato", "elpilon", "eltiempo"],
+      "choco":              ["eltiempo"],
+      "cordoba":            ["chicanoticias", "rionoticias", "eltiempo"],
+      "cundinamarca":       ["eltiempo"],
+      "guaviare":           ["marandua", "eltiempo"],
+      "huila":              ["eltiempo"],
+      "la guajira":         ["laguajirahoy", "eltiempo"],
+      "magdalena":          ["santamartaaldia", "elheraldo", "eltiempo"],
+      "meta":               ["llanoalmundo", "periodicodelmeta", "viveelmeta", "eltiempo"],
+      "narino":             ["diariodelsur", "eltiempo"],
+      "norte de santander": ["eltiempo"],
+      "putumayo":           ["miputumayo", "eltiempo"],
+      "quindio":            ["elquindiano", "quindionoticias", "eltiempo"],
+      "risaralda":          ["elexpreso", "ciudadregion", "eltiempo"],
+      "san andres":         ["archipielagopress", "eltiempo"],
+      "santander":          ["corrillos", "eltiempo"],
+      "sucre":              ["chicanoticias", "rionoticias", "eltiempo"],
+      "tolima":             ["eltiempo"],
+      "valle del cauca":    ["diariooccidente", "eltiempo"],
+      "vaupes":             ["eltiempo"],
+      "vichada":            ["elmorichal", "eltiempo"],
+    };
+    var PERIODICOS_DEFECTO = ["eltiempo"];
+    var FUENTES_NACIONALES = { "eltiempo": true, "verdadabierta": true };
+
+    // slug del periódico → nombre presentable para los chips. Si no está, se
+    // muestra el slug tal cual.
+    var NOMBRES_PERIODICOS = {
+      "elcolombiano":      "El Colombiano",
+      "elheraldo":         "El Heraldo",
+      "eluniversal":       "El Universal",
+      "eldiarioboyaca":    "El Diario de Boyacá",
+      "ultimahoraboy":     "Última Hora Boyacá",
+      "bcnoticias":        "BC Noticias",
+      "diariodelcauca":    "Diario del Cauca",
+      "cesarnoticias":     "Cesar Noticias",
+      "elpaisvallenato":   "El País Vallenato",
+      "elpilon":           "El Pilón",
+      "chicanoticias":     "Chica Noticias",
+      "rionoticias":       "Río Noticias",
+      "marandua":          "Marandúa Stereo",
+      "laguajirahoy":      "La Guajira Hoy",
+      "santamartaaldia":   "Santa Marta Al Día",
+      "llanoalmundo":      "Llano al Mundo",
+      "periodicodelmeta":  "Periódico del Meta",
+      "viveelmeta":        "Vive el Meta",
+      "diariodelsur":      "Diario del Sur",
+      "miputumayo":        "Mi Putumayo",
+      "elquindiano":       "El Quindiano",
+      "quindionoticias":   "Quindío Noticias",
+      "elexpreso":         "El Expreso",
+      "ciudadregion":      "Ciudad Región",
+      "archipielagopress": "The Archipelago Press",
+      "corrillos":         "Corrillos",
+      "diariooccidente":   "Diario Occidente",
+      "elmorichal":        "El Morichal",
+      "boyaca7dias":       "Boyacá 7 Días",
+      "eltiempo":          "El Tiempo",
+      "verdadabierta":     "VerdadAbierta",
+    };
+
     // ── Estado ──────────────────────────────────────────────────────────────
     var lugarSel = null;               // {nombre, tipo, departamento} o null (texto libre)
     var territorioAnalizado = "";
@@ -327,6 +406,39 @@
       return s.nombre + " — " + s.tipo + ", " + s.departamento;
     }
 
+    // Normaliza igual que _norm() de src/api.py: minúsculas, sin tildes, espacios colapsados.
+    function norm(txt) {
+      return String(txt == null ? "" : txt).toLowerCase()
+        .normalize("NFD").replace(/[̀-ͯ]/g, "")
+        .replace(/\s+/g, " ").trim();
+    }
+
+    // Mismo orden de resolución que _resolver_periodicos() de la API:
+    // nombre en el mapa → departamento en el mapa → contención (nombres largos) → El Tiempo.
+    function resolverPeriodicos(sel) {
+      if (!sel) return PERIODICOS_DEFECTO;
+      var cN = norm(sel.nombre);
+      if (MAPA_TERRITORIO_PERIODICOS[cN]) return MAPA_TERRITORIO_PERIODICOS[cN];
+      var cD = norm(sel.departamento);
+      if (MAPA_TERRITORIO_PERIODICOS[cD]) return MAPA_TERRITORIO_PERIODICOS[cD];
+      for (var k in MAPA_TERRITORIO_PERIODICOS) {
+        if (k.length >= 7 && cD.indexOf(k) !== -1) return MAPA_TERRITORIO_PERIODICOS[k];
+      }
+      return PERIODICOS_DEFECTO;
+    }
+
+    // Chips de fuentes: azul para nacionales (El Tiempo / VerdadAbierta), verde para locales.
+    function pintarFuentes(sel) {
+      var fuentes = resolverPeriodicos(sel);
+      $("chips-fuentes").innerHTML = fuentes.map(function (p) {
+        var nacional = !!FUENTES_NACIONALES[p];
+        var cls = nacional ? "chip chip-blue" : "chip chip-green";
+        var suf = nacional ? ' <span style="opacity:.6;font-size:9px;">nacional</span>' : "";
+        var nombre = NOMBRES_PERIODICOS[p] || p;
+        return '<span class="' + cls + '">' + esc(nombre) + suf + '</span>';
+      }).join("");
+    }
+
     // ── Cambio de sección visible ─────────────────────────────────────────────
     function setEstado(nombre) {
       $("estado-idle").hidden = nombre !== "idle";
@@ -349,6 +461,7 @@
       if (lugarSel) {
         chipTipo.textContent = lugarSel.tipo;
         chipDepto.textContent = lugarSel.departamento;
+        pintarFuentes(lugarSel);
         panelSel.hidden = false;
       } else {
         panelSel.hidden = true;
