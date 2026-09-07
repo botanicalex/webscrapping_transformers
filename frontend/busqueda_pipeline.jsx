@@ -1,0 +1,597 @@
+import { useState, useRef, useEffect } from "react";
+
+const API_BASE = "http://localhost:8000";
+
+function LoadingDots() {
+  return (
+    <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "center" }}>
+      {[0,1,2].map(i => (
+        <div key={i} style={{
+          width: 8, height: 8, borderRadius: "50%",
+          background: "white",
+          animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// Etiqueta de una sugerencia del autocompletado: "Maicao — Municipio, La Guajira"
+// (para un departamento se omite la coma redundante).
+function etiquetaSugerencia(s) {
+  if (s.tipo === "Departamento") return `${s.nombre} — Departamento`;
+  return `${s.nombre} — ${s.tipo}, ${s.departamento}`;
+}
+
+function ResultadoMini({ resultado }) {
+  const total = resultado.badge_score;
+
+  return (
+    <div style={{
+      animation: "slideUp 0.5s ease forwards",
+      background: "white", borderRadius: 16,
+      border: "1px solid #E2E8F0",
+      overflow: "hidden",
+      boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+    }}>
+      {/* Mini header */}
+      <div style={{
+        background: "#1B4F72", padding: "16px 24px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginBottom: 2 }}>
+            Radar de Riesgo Social — resultado preliminar
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "white" }}>{resultado.lugar}</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>
+            {resultado.fecha_inicio} → {resultado.fecha_fin}
+          </div>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: "50%",
+            background: resultado.badge_color,
+            display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center",
+            color: "white", fontWeight: 700, fontSize: 18,
+            margin: "0 auto 4px",
+          }}>
+            {total}
+            <span style={{ fontSize: 9, fontWeight: 400 }}>/100</span>
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>Índice Riesgo Social</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: resultado.badge_color }}>
+            {resultado.badge_label}
+          </div>
+        </div>
+      </div>
+
+      {/* Bloques */}
+      <div style={{ padding: "16px 24px" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 12 }}>
+          Resultados por bloque
+        </div>
+        {resultado.bloques.map(b => (
+          <div key={b.id} style={{
+            display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
+          }}>
+            <div style={{
+              width: 22, height: 22, borderRadius: 5,
+              background: b.color, color: "white",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 10, fontWeight: 700, flexShrink: 0,
+            }}>{b.id}</div>
+            <div style={{ flex: 1, fontSize: 12, color: "#374151" }}>{b.nombre}</div>
+            <div style={{ width: 80, height: 4, background: "#E5E7EB", borderRadius: 2 }}>
+              <div style={{ width: `${b.score}%`, height: "100%", background: b.color, borderRadius: 2 }} />
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: b.color, width: 24, textAlign: "right" }}>
+              {b.score}
+            </div>
+          </div>
+        ))}
+        <div style={{
+          marginTop: 16, padding: "10px 14px",
+          background: "#F8FAFC", borderRadius: 8,
+          fontSize: 11, color: "#475569",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <span>📰</span>
+          <span>
+            {resultado.n_articulos} artículo{resultado.n_articulos !== 1 ? "s" : ""} analizado{resultado.n_articulos !== 1 ? "s" : ""}
+            {resultado.fuentes && resultado.fuentes.length > 0
+              ? ` · Fuentes: ${resultado.fuentes.join(", ")}`
+              : ""}
+          </span>
+        </div>
+        <button style={{
+          marginTop: 12, width: "100%",
+          background: "#1B4F72", color: "white",
+          border: "none", borderRadius: 8, padding: "10px 0",
+          fontSize: 13, fontWeight: 600, cursor: "pointer",
+        }}>
+          Ver análisis completo →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [query, setQuery]           = useState("");
+  const [sugerencias, setSug]       = useState([]);
+  const [lugarSel, setLugar]        = useState(null);   // objeto {nombre, tipo, departamento} o null (texto libre)
+  const [fechaInicio, setFechaIni]  = useState("2023-01-01");
+  const [fechaFin, setFechaFin]     = useState("2023-12-31");
+  const [estado, setEstado]         = useState("idle"); // idle | loading | done | error
+  const [progreso, setProgreso]     = useState(0);
+  const [resultado, setResultado]   = useState(null);
+  const [error, setError]           = useState("");
+  const [territorioAnalizado, setTerritorioAnalizado] = useState("");
+  const inputRef = useRef(null);
+  const intervaloRef = useRef(null);
+
+  const etapas = [
+    "Conectando con los periódicos...",
+    "Descargando artículos...",
+    "Ejecutando análisis NLP...",
+    "Calculando indicadores de riesgo...",
+    "Generando resultados...",
+  ];
+  const [etapa, setEtapa] = useState(0);
+
+  // Territorio efectivo: sugerencia elegida, o texto libre escrito.
+  const territorioActual = lugarSel ? lugarSel.nombre : query.trim();
+  const puedeAnalizar = territorioActual.length >= 2;
+
+  // Autocompletado contra la API (debounce + abort). Se salta si ya hay
+  // un lugar seleccionado (evita re-buscar tras elegir una sugerencia).
+  useEffect(() => {
+    if (lugarSel) { setSug([]); return; }
+    const q = query.trim();
+    if (q.length < 2) { setSug([]); return; }
+
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/lugares?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
+        if (!res.ok) throw new Error("lugares");
+        const data = await res.json();
+        setSug(Array.isArray(data) ? data.slice(0, 8) : []);
+      } catch (e) {
+        if (e.name !== "AbortError") setSug([]);
+      }
+    }, 250);
+
+    return () => { clearTimeout(t); ctrl.abort(); };
+  }, [query, lugarSel]);
+
+  // Limpia el intervalo del loading si el componente se desmonta.
+  useEffect(() => () => clearInterval(intervaloRef.current), []);
+
+  function seleccionar(s) {
+    setLugar(s);
+    setQuery(s.nombre);
+    setSug([]);
+  }
+
+  async function analizar() {
+    const territorio = lugarSel ? lugarSel.nombre : query.trim();
+    if (territorio.length < 2) return;
+
+    setTerritorioAnalizado(territorio);
+    setEstado("loading");
+    setEtapa(0);
+    setProgreso(8);
+    setError("");
+
+    // Progreso "animado" mientras esperamos la respuesta real: avanza hasta
+    // 95% y se queda ahí; solo llega a 100% cuando la API responde.
+    clearInterval(intervaloRef.current);
+    intervaloRef.current = setInterval(() => {
+      setEtapa(e => Math.min(e + 1, etapas.length - 1));
+      setProgreso(p => Math.min(p + 12, 95));
+    }, 1500);
+
+    try {
+      const res = await fetch(`${API_BASE}/analizar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          territorio,
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFin,
+        }),
+      });
+      if (!res.ok) {
+        let detalle = "";
+        try { detalle = (await res.json()).detail || ""; } catch { /* sin cuerpo */ }
+        throw new Error(detalle || `La API respondió ${res.status}`);
+      }
+      const data = await res.json();
+      clearInterval(intervaloRef.current);
+      setResultado(data);
+      setProgreso(100);
+      setTimeout(() => setEstado("done"), 400);
+    } catch (err) {
+      clearInterval(intervaloRef.current);
+      setError(err.message || "No se pudo conectar con la API");
+      setEstado("error");
+    }
+  }
+
+  function nuevaConsulta() {
+    clearInterval(intervaloRef.current);
+    setEstado("idle");
+    setQuery("");
+    setLugar(null);
+    setSug([]);
+    setResultado(null);
+    setError("");
+    setProgreso(0);
+    setTerritorioAnalizado("");
+  }
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#F1F5F9",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+    }}>
+      {/* Animaciones (globales: en el original vivían en LoadingDots, que no se
+          monta, así que nunca se aplicaban). */}
+      <style>{`
+        @keyframes bounce {
+          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+          40% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
+
+      {/* Top bar */}
+      <div style={{
+        background: "#1B4F72", padding: "12px 28px",
+        display: "flex", alignItems: "center", gap: 12,
+      }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 6,
+          background: "#10B981",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+              stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div style={{ color: "white", fontWeight: 700, fontSize: 14, lineHeight: 1 }}>
+            Radar de Riesgo Social
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 10, marginTop: 1 }}>
+            Pipeline FNCE — UPB
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 20px" }}>
+
+        {estado === "idle" && (
+          <div style={{ animation: "fadeIn 0.4s ease" }}>
+            <div style={{ marginBottom: 32, textAlign: "center" }}>
+              <h1 style={{ fontSize: 26, fontWeight: 700, color: "#1B4F72", marginBottom: 6 }}>
+                Nueva consulta
+              </h1>
+              <p style={{ fontSize: 13, color: "#64748B" }}>
+                Ingresa el territorio y el rango de fechas para analizar indicadores de riesgo social
+              </p>
+            </div>
+
+            {/* Formulario */}
+            <div style={{
+              background: "white", borderRadius: 16, padding: 28,
+              boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+              border: "1px solid #E2E8F0",
+            }}>
+
+              {/* Campo lugar */}
+              <div style={{ marginBottom: 20, position: "relative" }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+                  Territorio a analizar
+                </label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    ref={inputRef}
+                    value={query}
+                    onChange={e => { setQuery(e.target.value); setLugar(null); }}
+                    placeholder="Ej: Antioquia, Maicao, Vereda Paraguachón..."
+                    style={{
+                      width: "100%", padding: "11px 14px",
+                      border: `2px solid ${lugarSel ? "#10B981" : "#E2E8F0"}`,
+                      borderRadius: 10, fontSize: 14, outline: "none",
+                      color: "#1A202C", background: "white",
+                      transition: "border-color 0.15s",
+                    }}
+                    onFocus={e => e.target.style.borderColor = "#1B4F72"}
+                    onBlur={e => e.target.style.borderColor = lugarSel ? "#10B981" : "#E2E8F0"}
+                  />
+                  {lugarSel && (
+                    <div style={{
+                      position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                      color: "#10B981", fontSize: 16,
+                    }}>✓</div>
+                  )}
+                </div>
+
+                {/* Sugerencias (desde la API /lugares) */}
+                {sugerencias.length > 0 && (
+                  <div style={{
+                    position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100,
+                    background: "white", borderRadius: 10, marginTop: 4,
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                    border: "1px solid #E2E8F0", overflow: "hidden",
+                  }}>
+                    {sugerencias.map((s, i) => (
+                      <div
+                        key={`${s.tipo}-${s.nombre}-${s.departamento}-${i}`}
+                        onMouseDown={() => seleccionar(s)}
+                        style={{
+                          padding: "10px 14px", fontSize: 13, cursor: "pointer",
+                          color: "#374151", display: "flex", alignItems: "center", gap: 8,
+                          borderBottom: "1px solid #F1F5F9",
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                        onMouseLeave={e => e.currentTarget.style.background = "white"}
+                      >
+                        <span style={{ color: "#94A3B8", fontSize: 11 }}>📍</span>
+                        {etiquetaSugerencia(s)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Fechas */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+                    Fecha inicio
+                  </label>
+                  <input
+                    type="date" value={fechaInicio}
+                    onChange={e => setFechaIni(e.target.value)}
+                    style={{
+                      width: "100%", padding: "10px 12px",
+                      border: "2px solid #E2E8F0", borderRadius: 10,
+                      fontSize: 13, outline: "none", color: "#1A202C",
+                    }}
+                    onFocus={e => e.target.style.borderColor = "#1B4F72"}
+                    onBlur={e => e.target.style.borderColor = "#E2E8F0"}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+                    Fecha fin
+                  </label>
+                  <input
+                    type="date" value={fechaFin}
+                    onChange={e => setFechaFin(e.target.value)}
+                    style={{
+                      width: "100%", padding: "10px 12px",
+                      border: "2px solid #E2E8F0", borderRadius: 10,
+                      fontSize: 13, outline: "none", color: "#1A202C",
+                    }}
+                    onFocus={e => e.target.style.borderColor = "#1B4F72"}
+                    onBlur={e => e.target.style.borderColor = "#E2E8F0"}
+                  />
+                </div>
+              </div>
+
+              {/* Confirmación del territorio seleccionado */}
+              {lugarSel && (
+                <div style={{
+                  marginBottom: 24, animation: "fadeIn 0.3s ease",
+                  padding: 14, background: "#F8FAFC",
+                  borderRadius: 10, border: "1px solid #E2E8F0",
+                }}>
+                  <div style={{
+                    fontSize: 11, fontWeight: 600, color: "#64748B",
+                    marginBottom: 10, display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"
+                        stroke="#64748B" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    Territorio seleccionado
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    <span style={{
+                      padding: "4px 10px", borderRadius: 20,
+                      background: "#F0FDF4", color: "#15803D",
+                      fontSize: 11, fontWeight: 500, border: "1px solid #BBF7D0",
+                    }}>
+                      {lugarSel.tipo}
+                    </span>
+                    <span style={{
+                      padding: "4px 10px", borderRadius: 20,
+                      background: "#EFF6FF", color: "#1D4ED8",
+                      fontSize: 11, fontWeight: 500, border: "1px solid #BFDBFE",
+                    }}>
+                      {lugarSel.departamento}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 8 }}>
+                    Las fuentes de prensa se seleccionan automáticamente según el territorio
+                  </div>
+                </div>
+              )}
+
+              {/* Texto libre: territorio escrito sin elegir sugerencia (p. ej. una vereda) */}
+              {!lugarSel && query.trim().length >= 2 && (
+                <div style={{
+                  marginBottom: 24, animation: "fadeIn 0.3s ease",
+                  padding: 14, background: "#FFFBEB",
+                  borderRadius: 10, border: "1px solid #FDE68A",
+                }}>
+                  <div style={{ fontSize: 11, color: "#92400E", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>✎</span>
+                    Se analizará el texto ingresado: <strong>«{query.trim()}»</strong>.
+                    Si es una vereda que no aparece en las sugerencias, igual se procesará.
+                  </div>
+                </div>
+              )}
+
+              {/* Botón */}
+              <button
+                onClick={analizar}
+                disabled={!puedeAnalizar}
+                style={{
+                  width: "100%", padding: "13px 0",
+                  background: puedeAnalizar ? "#1B4F72" : "#CBD5E1",
+                  color: "white", border: "none", borderRadius: 10,
+                  fontSize: 14, fontWeight: 600, cursor: puedeAnalizar ? "pointer" : "not-allowed",
+                  transition: "background 0.2s",
+                }}
+              >
+                {puedeAnalizar ? `Analizar ${territorioActual}` : "Escribe o selecciona un territorio para continuar"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading */}
+        {estado === "loading" && (
+          <div style={{
+            animation: "fadeIn 0.3s ease",
+            background: "white", borderRadius: 16, padding: 40,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+            border: "1px solid #E2E8F0", textAlign: "center",
+          }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: "50%",
+              background: "#1B4F72", margin: "0 auto 20px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              animation: "spin 1s linear infinite",
+            }}>
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+                  stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+
+            <div style={{ fontSize: 16, fontWeight: 600, color: "#1B4F72", marginBottom: 6 }}>
+              Analizando {territorioAnalizado}
+            </div>
+            <div style={{ fontSize: 13, color: "#64748B", marginBottom: 24, height: 20 }}>
+              {etapas[etapa]}
+            </div>
+
+            {/* Barra de progreso */}
+            <div style={{
+              width: "100%", height: 6, background: "#E2E8F0",
+              borderRadius: 3, overflow: "hidden", marginBottom: 20,
+            }}>
+              <div style={{
+                width: `${progreso}%`, height: "100%",
+                background: "linear-gradient(90deg, #1B4F72, #10B981)",
+                borderRadius: 3, transition: "width 0.8s ease",
+              }} />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
+              {etapas.map((e, i) => (
+                <div key={i} style={{
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: i <= etapa ? "#10B981" : "#E2E8F0",
+                  transition: "background 0.3s",
+                }} />
+              ))}
+            </div>
+
+            <div style={{ fontSize: 11, color: "#94A3B8" }}>
+              Procesando con mDeBERTa-v3 · Pipeline FNCE — esto puede tardar varios minutos
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {estado === "error" && (
+          <div style={{
+            animation: "fadeIn 0.3s ease",
+            background: "white", borderRadius: 16, padding: 32,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+            border: "1px solid #FECACA", textAlign: "center",
+          }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: "50%",
+              background: "#FEF2F2", margin: "0 auto 16px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#DC2626", fontSize: 24, fontWeight: 700,
+            }}>!</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#991B1B", marginBottom: 6 }}>
+              No se pudo completar el análisis
+            </div>
+            <div style={{ fontSize: 12, color: "#64748B", marginBottom: 20, wordBreak: "break-word" }}>
+              {error}
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                onClick={analizar}
+                style={{
+                  background: "#1B4F72", color: "white", border: "none",
+                  borderRadius: 8, padding: "8px 16px", fontSize: 13,
+                  fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                Reintentar
+              </button>
+              <button
+                onClick={nuevaConsulta}
+                style={{
+                  background: "none", border: "1px solid #E2E8F0",
+                  borderRadius: 8, padding: "8px 16px", fontSize: 13,
+                  color: "#64748B", cursor: "pointer",
+                }}
+              >
+                Nueva consulta
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Resultado */}
+        {estado === "done" && resultado && (
+          <div>
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              marginBottom: 16,
+            }}>
+              <button
+                onClick={nuevaConsulta}
+                style={{
+                  background: "none", border: "1px solid #E2E8F0",
+                  borderRadius: 8, padding: "6px 12px",
+                  fontSize: 12, color: "#64748B", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}
+              >
+                ← Nueva consulta
+              </button>
+              <div style={{ fontSize: 11, color: "#94A3B8" }}>
+                Análisis completado
+              </div>
+            </div>
+            <ResultadoMini resultado={resultado} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
