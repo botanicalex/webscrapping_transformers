@@ -6,12 +6,7 @@ import re
 import pandas as pd
 import numpy as np
 import torch
-# `pipeline` se importaba a nivel de modulo pero solo lo usan los bloques de
-# sentimiento/NER, que estan desactivados (comentados mas abajo). Ademas su
-# import podia arrastrar utilidades de vision de transformers y chocar con
-# torchvision en Colab. Se deja como import diferido: si se reactiva alguno de
-# esos bloques, descomentar aqui dentro de la funcion que lo use:
-#     from transformers import pipeline as hf_pipeline
+from transformers import pipeline as hf_pipeline
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModelForTokenClassification
 # scrappers NO se importa a nivel de modulo: arrastra playwright/aiohttp a
 # cualquier proceso que solo quiera puntuar con GPU. Se importa dentro de
