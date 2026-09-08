@@ -35,7 +35,7 @@ import httpx
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
 # ── Rutas: src/ al path para que los imports por nombre de Santiago funcionen ─
@@ -228,6 +228,20 @@ app.add_middleware(
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
 )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Garantiza CORS incluso en un 500 no controlado. Un error que escapa a los
+    try/except sube a ServerErrorMiddleware (por fuera de CORSMiddleware) y llega
+    al navegador SIN 'Access-Control-Allow-Origin', que aparece enmascarado como
+    error CORS. Este handler corre dentro de ExceptionMiddleware, asi que la
+    respuesta lleva el header explicito y el front ve el detalle real."""
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
 # ── Modelo NLI cargado al arrancar (no perezoso) ─────────────────────────────
 # Se instancia al importar el modulo (hilo principal de uvicorn), no dentro del
 # primer request. Cargar torch/CUDA en el thread del worker provocaba un 500 en
@@ -393,7 +407,7 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame) -> dict:
 
     # score por indicador = MAX del score por articulo (agregacion de esta rama)
     max_por_indicador = {c: float(df_proc[c].astype(float).max()) for c in indicadores}
-    radar_propio = sum(max_por_indicador.values()) / len(indicadores)
+    radar_propio = float(sum(max_por_indicador.values()) / len(indicadores))
     categoria = _categoria(radar_propio)
 
     # articulos que apoyan cada indicador (score >= UMBRAL_ARTICULO), ordenados
@@ -408,7 +422,7 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame) -> dict:
                 "periodico": str(r.get("periodico") or ""),
                 "fecha": str(r.get("fecha") or ""),
                 "url": str(r.get("url") or ""),
-                "score": round(float(r.get(c) or 0.0), 4),
+                "score": float(round(float(r.get(c) or 0.0), 4)),
             }
             for _, r in top.iterrows()
         ]
@@ -416,7 +430,7 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame) -> dict:
     bloques = []
     for letra in "ABCDE":
         cols_b = [c for c in BLOQUES_INDICADORES[letra] if c in max_por_indicador]
-        score_bloque = round((sum(max_por_indicador[c] for c in cols_b) / len(cols_b)) * 100) if cols_b else 0
+        score_bloque = int(round((sum(max_por_indicador[c] for c in cols_b) / len(cols_b)) * 100)) if cols_b else 0
         bloques.append({
             "id": letra,
             "nombre": BLOQUES_META[letra]["nombre"],
@@ -426,9 +440,9 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame) -> dict:
                 {
                     "nombre": _nombre_bonito(c),
                     "col": c,
-                    "score": round(max_por_indicador[c], 4),
-                    "arts": arts_por_indicador.get(c, 0),
-                    "real": arts_por_indicador.get(c, 0) > 0,
+                    "score": float(round(max_por_indicador[c], 4)),
+                    "arts": int(arts_por_indicador.get(c, 0)),
+                    "real": bool(arts_por_indicador.get(c, 0) > 0),
                 }
                 for c in BLOQUES_INDICADORES[letra]
             ],
@@ -442,7 +456,7 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame) -> dict:
         "fecha_fin": sol.fecha_fin,
         "n_articulos": int(len(df_proc)),
         "fuentes": fuentes,
-        "badge_score": round(radar_propio * 100),
+        "badge_score": int(round(radar_propio * 100)),
         "badge_label": BADGE[categoria]["label"],
         "badge_color": BADGE[categoria]["color"],
         "bloques": bloques,
