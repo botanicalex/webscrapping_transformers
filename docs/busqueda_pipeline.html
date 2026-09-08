@@ -248,34 +248,6 @@
       </div>
     </section>
 
-    <!-- ESTADO: done -->
-    <section id="estado-done" hidden>
-      <div class="result-top">
-        <button id="btn-nueva-done" class="back">← Nueva consulta</button>
-        <div class="done-tag">Análisis completado</div>
-      </div>
-      <div class="result-card">
-        <div class="result-header">
-          <div>
-            <div class="rh-cap">Radar de Riesgo Social — resultado preliminar</div>
-            <div id="res-lugar" class="rh-lugar"></div>
-            <div id="res-fechas" class="rh-fechas"></div>
-          </div>
-          <div style="text-align: center;">
-            <div id="res-circle" class="badge-circle"></div>
-            <div class="badge-cap">Índice Riesgo Social</div>
-            <div id="res-badge-label" class="badge-label"></div>
-          </div>
-        </div>
-        <div class="result-body">
-          <div class="rb-title">Resultados por bloque</div>
-          <div id="res-bloques"></div>
-          <div class="fuentes-box"><span>📰</span><span id="res-fuentes"></span></div>
-          <button class="btn-full-dark">Ver análisis completo →</button>
-        </div>
-      </div>
-    </section>
-
   </div>
 
   <script>
@@ -447,7 +419,6 @@
       $("estado-idle").hidden = nombre !== "idle";
       $("estado-loading").hidden = nombre !== "loading";
       $("estado-error").hidden = nombre !== "error";
-      $("estado-done").hidden = nombre !== "done";
     }
 
     // ── Formulario (botón + paneles + borde del input) ────────────────────────
@@ -596,42 +567,16 @@
         .then(function (data) {
           clearInterval(intervalId);
           progreso = 100; pintarLoading();
-          renderResultado(data);
-          setTimeout(function () { setEstado("done"); }, 400);
+          // Guarda el resultado y salta al dashboard completo. Preserva el
+          // ?api= para que el link "volver" del dashboard conserve la API.
+          sessionStorage.setItem("radar_resultado", JSON.stringify(data));
+          window.location.href = "visualizacion_riesgo.html" + window.location.search;
         })
         .catch(function (err) {
           clearInterval(intervalId);
           $("error-msg").textContent = err.message || "No se pudo conectar con la API";
           setEstado("error");
         });
-    }
-
-    // ── Resultado ───────────────────────────────────────────────────────────
-    function renderResultado(r) {
-      $("res-lugar").textContent = r.lugar;
-      $("res-fechas").textContent = r.fecha_inicio + " → " + r.fecha_fin;
-
-      var circle = $("res-circle");
-      circle.style.background = r.badge_color;
-      circle.innerHTML = esc(r.badge_score) + '<span>/100</span>';
-
-      var lbl = $("res-badge-label");
-      lbl.textContent = r.badge_label;
-      lbl.style.color = r.badge_color;
-
-      $("res-bloques").innerHTML = (r.bloques || []).map(function (b) {
-        return '<div class="bloque-row">' +
-          '<div class="bloque-id" style="background:' + esc(b.color) + '">' + esc(b.id) + '</div>' +
-          '<div class="bloque-nombre">' + esc(b.nombre) + '</div>' +
-          '<div class="bloque-bar"><div style="width:' + Number(b.score) + '%;background:' + esc(b.color) + '"></div></div>' +
-          '<div class="bloque-score" style="color:' + esc(b.color) + '">' + esc(b.score) + '</div>' +
-        '</div>';
-      }).join("");
-
-      var n = r.n_articulos;
-      var plural = n !== 1 ? "s" : "";
-      var fuentes = (r.fuentes && r.fuentes.length) ? " · Fuentes: " + r.fuentes.join(", ") : "";
-      $("res-fuentes").textContent = n + " artículo" + plural + " analizado" + plural + fuentes;
     }
 
     // ── Nueva consulta ────────────────────────────────────────────────────────
@@ -650,7 +595,6 @@
     btnAnalizar.addEventListener("click", analizar);
     $("btn-reintentar").addEventListener("click", analizar);
     $("btn-nueva-error").addEventListener("click", nuevaConsulta);
-    $("btn-nueva-done").addEventListener("click", nuevaConsulta);
     // cerrar sugerencias al perder foco (con retraso para permitir el click)
     inputTerritorio.addEventListener("blur", function () { setTimeout(function () { sugList.hidden = true; }, 120); });
 

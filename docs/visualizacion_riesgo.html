@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar de Riesgo Social — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: #F3F4F6; color: #111; }
+
+  .topbar { background: #1B4F72; padding: 10px 28px; display: flex; align-items: center; gap: 10px; }
+  .topbar .link-back { color: rgba(255,255,255,0.85); font-size: 12px; text-decoration: none; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 5px 11px; }
+  .topbar .link-back:hover { background: rgba(255,255,255,0.1); }
+  .topbar .tb-title { color: white; font-weight: 700; font-size: 14px; margin-left: 4px; }
+
+  .header {
+    background: white; padding: 18px 28px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid #E5E7EB; margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
+  }
+  .header-left .cap { font-size: 12px; color: #6B7280; }
+  .header-left h1 { font-size: 22px; font-weight: 700; margin: 3px 0; }
+  .header-left .meta { font-size: 12px; color: #6B7280; }
+  .badge {
+    width: 70px; height: 70px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; color: white; font-weight: 700; font-size: 22px;
+  }
+  .badge span { font-size: 10px; font-weight: 400; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 20px 30px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  @media (max-width: 820px) { .grid-2 { grid-template-columns: 1fr; } }
+  .card { background: white; border-radius: 10px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .card .sub { font-size: 11px; color: #6B7280; margin-bottom: 14px; }
+
+  .bloque-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 8px; margin-bottom: 7px;
+    cursor: pointer; border: 2px solid transparent; transition: all 0.15s;
+  }
+  .bloque-row:hover { background: #F9FAFB; }
+  .bloque-row.active { border-color: var(--color); background: color-mix(in srgb, var(--color) 8%, white); }
+  .bloque-id { width: 24px; height: 24px; border-radius: 6px; background: var(--color); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .bloque-name { flex: 1; font-size: 12px; font-weight: 500; line-height: 1.3; }
+  .bloque-count { font-size: 10px; color: #9CA3AF; }
+  .bar-wrap { width: 70px; height: 5px; background: #E5E7EB; border-radius: 3px; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .score-val { font-size: 13px; font-weight: 700; width: 28px; text-align: right; }
+
+  .indicadores-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .ind-card { border: 1px solid #E5E7EB; border-radius: 8px; padding: 11px; cursor: pointer; background: #FAFAFA; transition: border-color 0.15s; position: relative; }
+  .ind-card:hover { border-color: var(--color); }
+  .ind-name { font-size: 12px; font-weight: 600; margin-bottom: 8px; line-height: 1.3; padding-right: 42px; }
+  .ind-badge { position: absolute; top: 10px; right: 10px; background: var(--badge); color: white; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .ind-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  .ind-bar-wrap { width: 65%; height: 4px; background: #E5E7EB; border-radius: 2px; display: inline-block; }
+  .ind-bar-fill { height: 100%; border-radius: 2px; display: block; }
+  .ind-arts { font-size: 10px; color: #9CA3AF; }
+  .nota-real { font-size: 10px; color: #059669; font-weight: 600; }
+  .nota-est  { font-size: 10px; color: #9CA3AF; }
+
+  table.resumen { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.resumen th, table.resumen td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #F1F5F9; }
+  table.resumen th { font-size: 11px; color: #6B7280; font-weight: 600; }
+  table.resumen .rb-id { width: 20px; height: 20px; border-radius: 5px; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+  table.resumen .rb-bar-wrap { width: 120px; height: 5px; background: #E5E7EB; border-radius: 3px; }
+  table.resumen .rb-bar-fill { height: 100%; border-radius: 3px; }
+  table.resumen td.num { font-weight: 700; text-align: right; width: 40px; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 12px; padding: 22px; width: 540px; max-width: 92vw; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .modal-title { font-weight: 700; font-size: 14px; }
+  .modal-sub { font-size: 11px; color: #6B7280; margin-top: 2px; }
+  .modal-close { border: none; background: #F3F4F6; border-radius: 7px; padding: 5px 11px; cursor: pointer; font-size: 13px; flex-shrink: 0; }
+  .art-card { border: 1px solid #E5E7EB; border-radius: 8px; padding: 11px; margin-bottom: 9px; }
+  .art-title { font-weight: 600; font-size: 12px; margin-bottom: 4px; line-height: 1.4; }
+  .art-meta { font-size: 10px; color: #6B7280; }
+  .art-score { display: inline-block; margin-top: 5px; background: #EFF6FF; color: #2563EB; padding: 1px 7px; border-radius: 8px; font-size: 10px; font-weight: 600; }
+  .empty-msg { font-size: 12px; color: #6B7280; font-style: italic; padding: 10px 0; }
+  .btn-excel { background: #059669; color: white; border: none; border-radius: 7px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: 12px; }
+  .btn-excel:hover { background: #047857; }
+  .art-scroll { max-height: 400px; overflow-y: auto; }
+  .footer-note { text-align: center; font-size: 10px; color: #9CA3AF; margin-top: 10px; }
+
+  .nodata { max-width: 520px; margin: 60px auto; background: white; border-radius: 12px; padding: 32px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .nodata h1 { font-size: 18px; color: #1B4F72; margin-bottom: 8px; }
+  .nodata p { font-size: 13px; color: #64748B; margin-bottom: 18px; }
+  .nodata a { display: inline-block; background: #1B4F72; color: white; text-decoration: none; border-radius: 8px; padding: 10px 18px; font-size: 13px; font-weight: 600; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Sin datos en sessionStorage -->
+<div id="no-data" class="nodata" hidden>
+  <h1>No hay un análisis para mostrar</h1>
+  <p>Este dashboard se abre con el resultado de una consulta. Volvé a la búsqueda y analizá un territorio.</p>
+  <a id="nodata-link" href="busqueda_pipeline.html">← Ir a la búsqueda</a>
+</div>
+
+<!-- Dashboard -->
+<div id="app" hidden>
+  <div class="topbar">
+    <a id="link-back" class="link-back" href="busqueda_pipeline.html">← Nueva consulta</a>
+    <span class="tb-title">Radar de Riesgo Social</span>
+  </div>
+
+  <div class="header">
+    <div class="header-left">
+      <div class="cap">Pipeline FNCE — UPB · Indicadores de Riesgo y Conflicto</div>
+      <h1 id="h-lugar"></h1>
+      <div class="meta" id="h-meta"></div>
+      <div class="meta" id="h-fuentes"></div>
+    </div>
+    <div style="text-align:center">
+      <div class="badge" id="h-badge"></div>
+      <div style="font-size:11px;color:#6B7280;margin-top:5px">Índice radar</div>
+      <div style="font-size:12px;font-weight:700" id="h-badge-label"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="grid-2">
+      <div class="card">
+        <h2>Índice por bloque temático</h2>
+        <div class="sub">Score 0–100 · Mayor score = mayor riesgo</div>
+        <canvas id="radar" height="260"></canvas>
+      </div>
+      <div class="card">
+        <h2>Bloques temáticos</h2>
+        <div class="sub">Haz clic en un bloque para ver sus indicadores</div>
+        <div id="bloques-list"></div>
+      </div>
+    </div>
+
+    <div class="card" id="detalle-card" style="display:none; margin-bottom:18px">
+      <h2 id="detalle-titulo"></h2>
+      <div class="sub" id="detalle-sub"></div>
+      <div class="indicadores-grid" id="detalle-grid"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px">
+      <h2>Resumen — todos los indicadores</h2>
+      <div class="sub">Los 26 indicadores agrupados por bloque · score 0–100</div>
+      <table class="resumen">
+        <thead><tr><th>Bloque</th><th>Indicador</th><th>Nivel</th><th class="num">Score</th></tr></thead>
+        <tbody id="resumen-body"></tbody>
+      </table>
+    </div>
+
+    <div class="footer-note" id="footer-note"></div>
+  </div>
+</div>
+
+<!-- Modal artículos -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title"></div>
+        <div class="modal-sub" id="modal-sub"></div>
+      </div>
+      <button class="modal-close" onclick="cerrarModal()">Cerrar ×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ── Cargar resultado desde sessionStorage ─────────────────────────────────
+let DATOS = null;
+try {
+  const raw = sessionStorage.getItem("radar_resultado");
+  DATOS = raw ? JSON.parse(raw) : null;
+} catch (e) { DATOS = null; }
+
+// Links "volver" preservan el ?api= de la URL actual.
+document.getElementById("link-back").href = "busqueda_pipeline.html" + window.location.search;
+document.getElementById("nodata-link").href = "busqueda_pipeline.html" + window.location.search;
+
+if (!DATOS || !Array.isArray(DATOS.bloques)) {
+  document.getElementById("no-data").hidden = false;
+} else {
+  document.getElementById("app").hidden = false;
+  renderDashboard();
+}
+
+// Nivel de riesgo (score 0–100): verde <50, naranja 50–70, rojo >=70.
+// Se usa para TODO el dashboard, incluido el badge principal (no los cortes de la API).
+function colorRiesgo100(s) {
+  if (s >= 70) return "#EF4444";
+  if (s >= 50) return "#F59E0B";
+  return "#10B981";
+}
+function labelRiesgo100(s) {
+  if (s >= 70) return "Riesgo alto";
+  if (s >= 50) return "Riesgo medio";
+  return "Riesgo bajo";
+}
+// Parte un texto largo en varias líneas (Chart.js renderiza un array como multilínea).
+function wrapLabel(txt, max) {
+  max = max || 16;
+  const lineas = [];
+  let linea = "";
+  String(txt).split(" ").forEach(w => {
+    if ((linea + " " + w).trim().length > max) { if (linea) lineas.push(linea); linea = w; }
+    else { linea = (linea + " " + w).trim(); }
+  });
+  if (linea) lineas.push(linea);
+  return lineas;
+}
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+let bloqueActivo = null;
+let indActivo = null;
+
+function renderDashboard() {
+  // ── Header ──
+  const nInd = DATOS.bloques.reduce((n, b) => n + (b.indicadores ? b.indicadores.length : 0), 0);
+  document.getElementById("h-lugar").textContent = DATOS.lugar || "—";
+  document.getElementById("h-meta").textContent =
+    `${DATOS.fecha_inicio} → ${DATOS.fecha_fin} · ${DATOS.n_articulos} artículos · ${nInd} indicadores · ${DATOS.bloques.length} bloques`;
+  document.getElementById("h-fuentes").textContent =
+    (DATOS.fuentes && DATOS.fuentes.length) ? `Fuentes: ${DATOS.fuentes.join(", ")}` : "";
+
+  const badge = document.getElementById("h-badge");
+  const badgeColor = colorRiesgo100(DATOS.badge_score);  // regla 50/70, no los cortes de la API
+  badge.style.background = badgeColor;
+  badge.innerHTML = `${DATOS.badge_score}<span>/100</span>`;
+  const lbl = document.getElementById("h-badge-label");
+  lbl.textContent = labelRiesgo100(DATOS.badge_score);
+  lbl.style.color = badgeColor;
+
+  // ── Lista de bloques ──
+  const list = document.getElementById("bloques-list");
+  DATOS.bloques.forEach(b => {
+    const row = document.createElement("div");
+    row.className = "bloque-row";
+    row.style.setProperty("--color", b.color);
+    row.dataset.id = b.id;
+    const sc = colorRiesgo100(b.score);
+    row.innerHTML = `
+      <div class="bloque-id">${esc(b.id)}</div>
+      <div style="flex:1">
+        <div class="bloque-name">${esc(b.nombre)}</div>
+        <div class="bloque-count">${b.indicadores.length} indicadores</div>
+      </div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${b.score}%; background:${sc}"></div></div>
+      <div class="score-val" style="color:${sc}">${b.score}</div>
+    `;
+    row.addEventListener("click", () => toggleBloque(b));
+    list.appendChild(row);
+  });
+
+  // ── Tabla resumen ──
+  const tbody = document.getElementById("resumen-body");
+  DATOS.bloques.forEach(b => {
+    b.indicadores.forEach(ind => {
+      const s100 = Math.round(ind.score * 100);
+      const c = colorRiesgo100(s100);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><span class="rb-id" style="background:${b.color}">${esc(b.id)}</span></td>
+        <td>${esc(ind.nombre)}</td>
+        <td><span class="rb-bar-wrap"><span class="rb-bar-fill" style="width:${s100}%; background:${c}"></span></span></td>
+        <td class="num" style="color:${c}">${s100}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+
+  // ── Footer ──
+  document.getElementById("footer-note").textContent =
+    `Scores calculados con mDeBERTa-v3 (NLI) sobre ${DATOS.n_articulos} artículos · Pipeline FNCE`;
+
+  // ── Radar ──
+  const ctx = document.getElementById("radar").getContext("2d");
+  new Chart(ctx, {
+    type: "radar",
+    data: {
+      labels: DATOS.bloques.map(b => wrapLabel(b.nombre)),
+      datasets: [{
+        label: "Score de riesgo",
+        data: DATOS.bloques.map(b => b.score),
+        borderColor: "#1B4F72",
+        backgroundColor: "rgba(27,79,114,0.15)",
+        borderWidth: 2,
+        pointBackgroundColor: DATOS.bloques.map(b => b.color),
+        pointRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 9 } }, pointLabels: { font: { size: 11 } }, grid: { color: "#E5E7EB" } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` Score: ${c.raw}` } } }
+    }
+  });
+}
+
+function toggleBloque(b) {
+  const rows = document.querySelectorAll(".bloque-row");
+  if (bloqueActivo && bloqueActivo.id === b.id) {
+    bloqueActivo = null;
+    rows.forEach(r => r.classList.remove("active"));
+    document.getElementById("detalle-card").style.display = "none";
+    return;
+  }
+  bloqueActivo = b;
+  rows.forEach(r => r.classList.toggle("active", r.dataset.id === b.id));
+  mostrarDetalle(b);
+}
+
+function mostrarDetalle(b) {
+  document.getElementById("detalle-card").style.display = "block";
+  document.getElementById("detalle-titulo").textContent = `Bloque ${b.id} — ${b.nombre}`;
+  document.getElementById("detalle-sub").innerHTML =
+    `Haz clic en un indicador para ver sus artículos ·
+     <span style="color:#059669;font-weight:600">● Con artículos</span>&nbsp;
+     <span style="color:#9CA3AF">● Sin artículos</span>`;
+
+  const grid = document.getElementById("detalle-grid");
+  grid.innerHTML = "";
+  b.indicadores.forEach(ind => {
+    const s100 = Math.round(ind.score * 100);
+    const badgeColor = colorRiesgo100(s100);
+    const card = document.createElement("div");
+    card.className = "ind-card";
+    card.style.setProperty("--color", b.color);
+    card.style.setProperty("--badge", badgeColor);
+    card.innerHTML = `
+      <div class="ind-badge">${s100}</div>
+      <div class="ind-name">${esc(ind.nombre)}</div>
+      <div class="ind-footer">
+        <span class="ind-bar-wrap"><span class="ind-bar-fill" style="width:${s100}%; background:${badgeColor}"></span></span>
+        <div style="text-align:right">
+          <div class="ind-arts">${ind.arts} artículos →</div>
+          <div class="${ind.real ? 'nota-real' : 'nota-est'}">${ind.real ? '● Con artículos' : '● Sin artículos'}</div>
+        </div>
+      </div>
+    `;
+    card.addEventListener("click", () => abrirModal(ind));
+    grid.appendChild(card);
+  });
+
+  document.getElementById("detalle-card").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function abrirModal(ind) {
+  indActivo = ind;
+  document.getElementById("modal-title").textContent = ind.nombre;
+  document.getElementById("modal-sub").innerHTML =
+    `Score: <b>${(ind.score * 100).toFixed(1)}</b> · ${ind.arts} artículos · columna: <code>${esc(ind.col)}</code>`;
+
+  const arts = (DATOS.articulos && DATOS.articulos[ind.col]) || [];
+  const body = document.getElementById("modal-body");
+  if (arts.length === 0) {
+    body.innerHTML = `<div class="empty-msg">No hay artículos asociados a este indicador.</div>`;
+  } else {
+    const cards = arts.map(a => `
+      <div class="art-card">
+        <div class="art-title">${a.url
+          ? `<a href="${esc(a.url)}" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:none">${esc(a.titulo)} ↗</a>`
+          : esc(a.titulo)}</div>
+        <div class="art-meta">${esc(a.periodico)} · ${esc(a.fecha)}</div>
+        <span class="art-score">Score NLI: ${a.score}</span>
+      </div>
+    `).join("");
+    body.innerHTML = `
+      <button class="btn-excel" onclick="descargarExcel()">⬇ Descargar Excel (${arts.length})</button>
+      <div class="art-scroll">${cards}</div>
+    `;
+  }
+  document.getElementById("modal").classList.add("open");
+}
+
+function descargarExcel() {
+  if (!indActivo) return;
+  const arts = (DATOS.articulos && DATOS.articulos[indActivo.col]) || [];
+  const rows = arts.map(a => ({
+    "Título": a.titulo, "Periódico": a.periodico, "Fecha": a.fecha, "Score NLI": a.score, "URL": a.url
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows, { header: ["Título", "Periódico", "Fecha", "Score NLI", "URL"] });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Articulos");
+  XLSX.writeFile(wb, `radar_${indActivo.col}.xlsx`);
+}
+
+function cerrarModal() {
+  document.getElementById("modal").classList.remove("open");
+}
+document.getElementById("modal").addEventListener("click", e => {
+  if (e.target.id === "modal") cerrarModal();
+});
+</script>
+</body>
+</html>
