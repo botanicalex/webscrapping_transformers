@@ -52,8 +52,8 @@
   .score-val { font-size: 13px; font-weight: 700; width: 28px; text-align: right; }
 
   .indicadores-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
-  .ind-card { border: 1px solid #E5E7EB; border-radius: 8px; padding: 11px; cursor: pointer; background: #FAFAFA; transition: border-color 0.15s; position: relative; }
-  .ind-card:hover { border-color: var(--color); }
+  .ind-card { border: 2px solid var(--color, #E5E7EB); border-radius: 8px; padding: 11px; cursor: pointer; background: #FAFAFA; transition: box-shadow 0.15s; position: relative; }
+  .ind-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
   .ind-name { font-size: 12px; font-weight: 600; margin-bottom: 8px; line-height: 1.3; padding-right: 42px; }
   .ind-badge { position: absolute; top: 10px; right: 10px; background: var(--badge); color: white; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 700; }
   .ind-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
@@ -113,14 +113,15 @@
 
   <div class="header">
     <div class="header-left">
-      <div class="cap">Pipeline FNCE — UPB · Indicadores de Riesgo y Conflicto</div>
+      <div class="cap">Radar de Riesgo Social — Indicadores de Riesgo y Conflicto</div>
       <h1 id="h-lugar"></h1>
-      <div class="meta" id="h-meta"></div>
+      <div class="meta" id="h-fechas"></div>
+      <div class="meta" id="h-arts"></div>
       <div class="meta" id="h-fuentes"></div>
     </div>
     <div style="text-align:center">
       <div class="badge" id="h-badge"></div>
-      <div style="font-size:11px;color:#6B7280;margin-top:5px">Índice radar</div>
+      <div style="font-size:11px;color:#6B7280;margin-top:5px">Índice Riesgo Social</div>
       <div style="font-size:12px;font-weight:700" id="h-badge-label"></div>
     </div>
   </div>
@@ -128,8 +129,8 @@
   <div class="container">
     <div class="grid-2">
       <div class="card">
-        <h2>Índice por bloque temático</h2>
-        <div class="sub">Score 0–100 · Mayor score = mayor riesgo</div>
+        <h2>Índice Riesgo Social por bloque</h2>
+        <div class="sub">Pasa el cursor sobre cada punto para ver nombre completo y score</div>
         <canvas id="radar" height="260"></canvas>
       </div>
       <div class="card">
@@ -148,6 +149,7 @@
     <div class="card" style="margin-bottom:18px">
       <h2>Resumen — todos los indicadores</h2>
       <div class="sub">Los 26 indicadores agrupados por bloque · score 0–100</div>
+      <button class="btn-excel" onclick="descargarResumen()">⬇ Descargar resumen Excel</button>
       <table class="resumen">
         <thead><tr><th>Bloque</th><th>Indicador</th><th>Nivel</th><th class="num">Score</th></tr></thead>
         <tbody id="resumen-body"></tbody>
@@ -217,6 +219,40 @@ function wrapLabel(txt, max) {
   if (linea) lineas.push(linea);
   return lineas;
 }
+
+// Nombres presentables con tildes (bloques por su nombre; indicadores por su columna).
+const NOMBRES = {
+  "Debilidad Institucional / Economica": "Debilidad Institucional / Económica",
+  "Afectacion Territorial y Poblacional": "Afectación Territorial y Poblacional",
+  "Participacion y Movilizacion Social": "Participación y Movilización Social",
+  "violacion_derechos_humanos": "Violación Derechos Humanos",
+  "irregularidad_contractual": "Irregularidad Contractual",
+  "conflicto_territorial": "Conflicto Territorial",
+  "presencia_grupos_armados": "Presencia Grupos Armados",
+  "amenaza_lideres": "Amenaza a Líderes",
+  "amenaza_intimidacion": "Amenaza e Intimidación",
+  "conflictos_socioambientales": "Conflictos Socioambientales",
+  "debilidad_institucional": "Debilidad Institucional",
+  "conflicto_activo": "Conflicto Activo",
+  "incentivos_economicos_inequitativos": "Incentivos Económicos Inequitativos",
+  "desplazamiento_forzado": "Desplazamiento Forzado",
+  "reasentamiento": "Reasentamiento",
+  "poblacion_afectada": "Población Afectada",
+  "zonas_proteccion_alimentaria": "Zonas Protección Alimentaria",
+  "dano_territorios": "Daño a Territorios",
+  "exclusion_servicios_derechos": "Exclusión Servicios y Derechos",
+  "grupos_etnicos_existentes": "Grupos Étnicos Existentes",
+  "danos_ambientales": "Daños Ambientales",
+  "derechos_vulnerados": "Derechos Vulnerados",
+  "resistencia_territorial": "Resistencia Territorial",
+  "deficit_participacion_comunitaria": "Déficit Participación Comunitaria",
+  "exclusion_comunidades": "Exclusión de Comunidades",
+  "movimientos_sociales": "Movimientos Sociales",
+  "rechazo_proyecto": "Rechazo al Proyecto",
+  "protesta_social": "Protesta Social",
+  "exclusion_beneficios_economicos": "Exclusión Beneficios Económicos",
+};
+function nombreBonito(s) { return NOMBRES[s] || s; }
 function esc(s) {
   return String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -228,10 +264,9 @@ let indActivo = null;
 
 function renderDashboard() {
   // ── Header ──
-  const nInd = DATOS.bloques.reduce((n, b) => n + (b.indicadores ? b.indicadores.length : 0), 0);
   document.getElementById("h-lugar").textContent = DATOS.lugar || "—";
-  document.getElementById("h-meta").textContent =
-    `${DATOS.fecha_inicio} → ${DATOS.fecha_fin} · ${DATOS.n_articulos} artículos · ${nInd} indicadores · ${DATOS.bloques.length} bloques`;
+  document.getElementById("h-fechas").textContent = `📅 ${DATOS.fecha_inicio} → ${DATOS.fecha_fin}`;
+  document.getElementById("h-arts").textContent = `📰 ${DATOS.n_articulos} artículos`;
   document.getElementById("h-fuentes").textContent =
     (DATOS.fuentes && DATOS.fuentes.length) ? `Fuentes: ${DATOS.fuentes.join(", ")}` : "";
 
@@ -254,7 +289,7 @@ function renderDashboard() {
     row.innerHTML = `
       <div class="bloque-id">${esc(b.id)}</div>
       <div style="flex:1">
-        <div class="bloque-name">${esc(b.nombre)}</div>
+        <div class="bloque-name">${esc(nombreBonito(b.nombre))}</div>
         <div class="bloque-count">${b.indicadores.length} indicadores</div>
       </div>
       <div class="bar-wrap"><div class="bar-fill" style="width:${b.score}%; background:${sc}"></div></div>
@@ -273,7 +308,7 @@ function renderDashboard() {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td><span class="rb-id" style="background:${b.color}">${esc(b.id)}</span></td>
-        <td>${esc(ind.nombre)}</td>
+        <td>${esc(nombreBonito(ind.col))}</td>
         <td><span class="rb-bar-wrap"><span class="rb-bar-fill" style="width:${s100}%; background:${c}"></span></span></td>
         <td class="num" style="color:${c}">${s100}</td>
       `;
@@ -290,21 +325,27 @@ function renderDashboard() {
   new Chart(ctx, {
     type: "radar",
     data: {
-      labels: DATOS.bloques.map(b => wrapLabel(b.nombre)),
+      labels: DATOS.bloques.map(b => wrapLabel(nombreBonito(b.nombre))),
       datasets: [{
         label: "Score de riesgo",
         data: DATOS.bloques.map(b => b.score),
-        borderColor: "#1B4F72",
-        backgroundColor: "rgba(27,79,114,0.15)",
+        borderColor: "#6B7280",
+        backgroundColor: "rgba(107,114,128,0.1)",
         borderWidth: 2,
-        pointBackgroundColor: DATOS.bloques.map(b => b.color),
+        pointBackgroundColor: DATOS.bloques.map(b => colorRiesgo100(b.score)),
         pointRadius: 5,
       }]
     },
     options: {
       responsive: true,
       scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 9 } }, pointLabels: { font: { size: 11 } }, grid: { color: "#E5E7EB" } } },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` Score: ${c.raw}` } } }
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          title: items => nombreBonito(DATOS.bloques[items[0].dataIndex].nombre),
+          label: c => ` Score: ${c.raw}`
+        } }
+      }
     }
   });
 }
@@ -324,7 +365,7 @@ function toggleBloque(b) {
 
 function mostrarDetalle(b) {
   document.getElementById("detalle-card").style.display = "block";
-  document.getElementById("detalle-titulo").textContent = `Bloque ${b.id} — ${b.nombre}`;
+  document.getElementById("detalle-titulo").textContent = `Bloque ${b.id} — ${nombreBonito(b.nombre)}`;
   document.getElementById("detalle-sub").innerHTML =
     `Haz clic en un indicador para ver sus artículos ·
      <span style="color:#059669;font-weight:600">● Con artículos</span>&nbsp;
@@ -341,7 +382,7 @@ function mostrarDetalle(b) {
     card.style.setProperty("--badge", badgeColor);
     card.innerHTML = `
       <div class="ind-badge">${s100}</div>
-      <div class="ind-name">${esc(ind.nombre)}</div>
+      <div class="ind-name">${esc(nombreBonito(ind.col))}</div>
       <div class="ind-footer">
         <span class="ind-bar-wrap"><span class="ind-bar-fill" style="width:${s100}%; background:${badgeColor}"></span></span>
         <div style="text-align:right">
@@ -359,9 +400,9 @@ function mostrarDetalle(b) {
 
 function abrirModal(ind) {
   indActivo = ind;
-  document.getElementById("modal-title").textContent = ind.nombre;
+  document.getElementById("modal-title").textContent = nombreBonito(ind.col);
   document.getElementById("modal-sub").innerHTML =
-    `Score: <b>${(ind.score * 100).toFixed(1)}</b> · ${ind.arts} artículos · columna: <code>${esc(ind.col)}</code>`;
+    `Score: <b>${(ind.score * 100).toFixed(1)}</b> · ${ind.arts} artículos`;
 
   const arts = (DATOS.articulos && DATOS.articulos[ind.col]) || [];
   const body = document.getElementById("modal-body");
@@ -377,24 +418,34 @@ function abrirModal(ind) {
         <span class="art-score">Score NLI: ${a.score}</span>
       </div>
     `).join("");
-    body.innerHTML = `
-      <button class="btn-excel" onclick="descargarExcel()">⬇ Descargar Excel (${arts.length})</button>
-      <div class="art-scroll">${cards}</div>
-    `;
+    body.innerHTML = `<div class="art-scroll">${cards}</div>`;
   }
   document.getElementById("modal").classList.add("open");
 }
 
-function descargarExcel() {
-  if (!indActivo) return;
-  const arts = (DATOS.articulos && DATOS.articulos[indActivo.col]) || [];
-  const rows = arts.map(a => ({
-    "Título": a.titulo, "Periódico": a.periodico, "Fecha": a.fecha, "Score NLI": a.score, "URL": a.url
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows, { header: ["Título", "Periódico", "Fecha", "Score NLI", "URL"] });
+// Excel del resumen general: una fila por indicador (26), con el artículo de
+// mayor score (primero del array, que la API ya ordena descendente).
+function descargarResumen() {
+  const rows = [];
+  DATOS.bloques.forEach(b => {
+    b.indicadores.forEach(ind => {
+      const arts = (DATOS.articulos && DATOS.articulos[ind.col]) || [];
+      rows.push({
+        "Bloque": `${b.id} — ${nombreBonito(b.nombre)}`,
+        "Indicador": nombreBonito(ind.col),
+        "Score (0-100)": Math.round(ind.score * 100),
+        "Artículos detectados": ind.arts,
+        "URL artículo top": arts.length ? arts[0].url : ""
+      });
+    });
+  });
+  const ws = XLSX.utils.json_to_sheet(rows, {
+    header: ["Bloque", "Indicador", "Score (0-100)", "Artículos detectados", "URL artículo top"]
+  });
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Articulos");
-  XLSX.writeFile(wb, `radar_${indActivo.col}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, "Resumen");
+  const lugar = (DATOS.lugar || "resultado").replace(/[^A-Za-z0-9]+/g, "_");
+  XLSX.writeFile(wb, `radar_resumen_${lugar}.xlsx`);
 }
 
 function cerrarModal() {
