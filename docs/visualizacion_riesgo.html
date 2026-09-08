@@ -177,6 +177,43 @@
 <script>
 "use strict";
 
+// Nombres presentables con tildes (bloques por su nombre; indicadores por su columna).
+// Declarado ANTES que cualquier función que lo use: renderDashboard() corre al cargar,
+// y como NOMBRES es `const`, usarlo antes de esta línea daba TDZ
+// ("Cannot access 'NOMBRES' before initialization").
+const NOMBRES = {
+  "Debilidad Institucional / Economica": "Debilidad Institucional / Económica",
+  "Afectacion Territorial y Poblacional": "Afectación Territorial y Poblacional",
+  "Participacion y Movilizacion Social": "Participación y Movilización Social",
+  "violacion_derechos_humanos": "Violación Derechos Humanos",
+  "irregularidad_contractual": "Irregularidad Contractual",
+  "conflicto_territorial": "Conflicto Territorial",
+  "presencia_grupos_armados": "Presencia Grupos Armados",
+  "amenaza_lideres": "Amenaza a Líderes",
+  "amenaza_intimidacion": "Amenaza e Intimidación",
+  "conflictos_socioambientales": "Conflictos Socioambientales",
+  "debilidad_institucional": "Debilidad Institucional",
+  "conflicto_activo": "Conflicto Activo",
+  "incentivos_economicos_inequitativos": "Incentivos Económicos Inequitativos",
+  "desplazamiento_forzado": "Desplazamiento Forzado",
+  "reasentamiento": "Reasentamiento",
+  "poblacion_afectada": "Población Afectada",
+  "zonas_proteccion_alimentaria": "Zonas Protección Alimentaria",
+  "dano_territorios": "Daño a Territorios",
+  "exclusion_servicios_derechos": "Exclusión Servicios y Derechos",
+  "grupos_etnicos_existentes": "Grupos Étnicos Existentes",
+  "danos_ambientales": "Daños Ambientales",
+  "derechos_vulnerados": "Derechos Vulnerados",
+  "resistencia_territorial": "Resistencia Territorial",
+  "deficit_participacion_comunitaria": "Déficit Participación Comunitaria",
+  "exclusion_comunidades": "Exclusión de Comunidades",
+  "movimientos_sociales": "Movimientos Sociales",
+  "rechazo_proyecto": "Rechazo al Proyecto",
+  "protesta_social": "Protesta Social",
+  "exclusion_beneficios_economicos": "Exclusión Beneficios Económicos",
+};
+function nombreBonito(s) { return NOMBRES[s] || s; }
+
 // ── Cargar resultado desde sessionStorage ─────────────────────────────────
 let DATOS = null;
 try {
@@ -220,39 +257,6 @@ function wrapLabel(txt, max) {
   return lineas;
 }
 
-// Nombres presentables con tildes (bloques por su nombre; indicadores por su columna).
-const NOMBRES = {
-  "Debilidad Institucional / Economica": "Debilidad Institucional / Económica",
-  "Afectacion Territorial y Poblacional": "Afectación Territorial y Poblacional",
-  "Participacion y Movilizacion Social": "Participación y Movilización Social",
-  "violacion_derechos_humanos": "Violación Derechos Humanos",
-  "irregularidad_contractual": "Irregularidad Contractual",
-  "conflicto_territorial": "Conflicto Territorial",
-  "presencia_grupos_armados": "Presencia Grupos Armados",
-  "amenaza_lideres": "Amenaza a Líderes",
-  "amenaza_intimidacion": "Amenaza e Intimidación",
-  "conflictos_socioambientales": "Conflictos Socioambientales",
-  "debilidad_institucional": "Debilidad Institucional",
-  "conflicto_activo": "Conflicto Activo",
-  "incentivos_economicos_inequitativos": "Incentivos Económicos Inequitativos",
-  "desplazamiento_forzado": "Desplazamiento Forzado",
-  "reasentamiento": "Reasentamiento",
-  "poblacion_afectada": "Población Afectada",
-  "zonas_proteccion_alimentaria": "Zonas Protección Alimentaria",
-  "dano_territorios": "Daño a Territorios",
-  "exclusion_servicios_derechos": "Exclusión Servicios y Derechos",
-  "grupos_etnicos_existentes": "Grupos Étnicos Existentes",
-  "danos_ambientales": "Daños Ambientales",
-  "derechos_vulnerados": "Derechos Vulnerados",
-  "resistencia_territorial": "Resistencia Territorial",
-  "deficit_participacion_comunitaria": "Déficit Participación Comunitaria",
-  "exclusion_comunidades": "Exclusión de Comunidades",
-  "movimientos_sociales": "Movimientos Sociales",
-  "rechazo_proyecto": "Rechazo al Proyecto",
-  "protesta_social": "Protesta Social",
-  "exclusion_beneficios_economicos": "Exclusión Beneficios Económicos",
-};
-function nombreBonito(s) { return NOMBRES[s] || s; }
 function esc(s) {
   return String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
