@@ -89,7 +89,12 @@ RUTA_CORPUS_PKL = cfg.RUTA_CORPUS_PKL
 # 40% de las descargas fallaba por pura estrechez del timeout, no por un sitio
 # caído. Mismo hallazgo, misma solución que el timeout de búsqueda paginada.
 _NEWSPAPER_CONFIG = Config()
-_NEWSPAPER_CONFIG.requests_params = {**_NEWSPAPER_CONFIG.requests_params, "verify": False, "timeout": 20}
+# newspaper3k: Configuration no expone `requests_params` (eso era de newspaper4k);
+# se configuran los atributos equivalentes. `verify` no existe en todas las
+# versiones — se aplica solo si está disponible (setattr defensivo).
+_NEWSPAPER_CONFIG.request_timeout = 20
+if hasattr(_NEWSPAPER_CONFIG, "verify"):
+    _NEWSPAPER_CONFIG.verify = False  # SSL/MITM (Norton), ver 08_log_decisiones.md
 
 # ── BASE CLASS ───────────────────────────────────────────────────────────────
 
