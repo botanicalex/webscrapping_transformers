@@ -16,9 +16,12 @@
   .topbar .tb-title { color: white; font-weight: 700; font-size: 14px; margin-left: 4px; }
 
   .header {
-    background: white; padding: 18px 28px;
-    display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 1px solid #E5E7EB; margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
+    background: white; padding: 18px 20px;
+    border-bottom: 1px solid #E5E7EB; margin-bottom: 20px;
+  }
+  .header-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
   }
   .header-left .cap { font-size: 12px; color: #6B7280; }
   .header-left h1 { font-size: 22px; font-weight: 700; margin: 3px 0; }
@@ -112,30 +115,32 @@
   </div>
 
   <div class="header">
-    <div class="header-left">
-      <div class="cap">Radar de Riesgo Social — Indicadores de Riesgo y Conflicto</div>
-      <h1 id="h-lugar"></h1>
-      <div class="meta" id="h-fechas"></div>
-      <div class="meta" id="h-arts"></div>
-      <div class="meta" id="h-fuentes"></div>
-    </div>
-    <div style="text-align:center">
-      <div class="badge" id="h-badge"></div>
-      <div style="font-size:11px;color:#6B7280;margin-top:5px">Índice Riesgo Social</div>
-      <div style="font-size:12px;font-weight:700" id="h-badge-label"></div>
+    <div class="header-inner">
+      <div class="header-left">
+        <div class="cap">Radar de Riesgo Social — Indicadores de Riesgo y Conflicto</div>
+        <h1 id="h-lugar"></h1>
+        <div class="meta" id="h-fechas"></div>
+        <div class="meta" id="h-arts"></div>
+        <div class="meta" id="h-fuentes"></div>
+      </div>
+      <div style="text-align:center">
+        <div class="badge" id="h-badge"></div>
+        <div style="font-size:11px;color:#6B7280;margin-top:5px">Índice Riesgo Social</div>
+        <div style="font-size:12px;font-weight:700" id="h-badge-label"></div>
+      </div>
     </div>
   </div>
 
   <div class="container">
     <div class="grid-2">
       <div class="card">
-        <h2>Índice Riesgo Social por bloque</h2>
+        <h2>Índice Riesgo Social por dimensión</h2>
         <div class="sub">Pasa el cursor sobre cada punto para ver nombre completo y score</div>
         <canvas id="radar" height="260"></canvas>
       </div>
       <div class="card">
-        <h2>Bloques temáticos</h2>
-        <div class="sub">Haz clic en un bloque para ver sus indicadores</div>
+        <h2>Dimensiones sociales</h2>
+        <div class="sub">Haz clic en una dimensión para ver sus indicadores</div>
         <div id="bloques-list"></div>
       </div>
     </div>
@@ -148,10 +153,10 @@
 
     <div class="card" style="margin-bottom:18px">
       <h2>Resumen — todos los indicadores</h2>
-      <div class="sub">Los 26 indicadores agrupados por bloque · score 0–100</div>
+      <div class="sub">Los 26 indicadores agrupados por dimensión · score 0–100</div>
       <button class="btn-excel" onclick="descargarResumen()">⬇ Descargar resumen Excel</button>
       <table class="resumen">
-        <thead><tr><th>Bloque</th><th>Indicador</th><th>Nivel</th><th class="num">Score</th></tr></thead>
+        <thead><tr><th>Dimensión</th><th>Indicador</th><th class="num">Score</th></tr></thead>
         <tbody id="resumen-body"></tbody>
       </table>
     </div>
@@ -311,9 +316,8 @@ function renderDashboard() {
       const c = colorRiesgo100(s100);
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td><span class="rb-id" style="background:${b.color}">${esc(b.id)}</span></td>
+        <td><span class="rb-id" style="background:${b.color}">${esc(b.id)}</span> ${esc(nombreBonito(b.nombre))}</td>
         <td>${esc(nombreBonito(ind.col))}</td>
-        <td><span class="rb-bar-wrap"><span class="rb-bar-fill" style="width:${s100}%; background:${c}"></span></span></td>
         <td class="num" style="color:${c}">${s100}</td>
       `;
       tbody.appendChild(tr);
@@ -369,7 +373,7 @@ function toggleBloque(b) {
 
 function mostrarDetalle(b) {
   document.getElementById("detalle-card").style.display = "block";
-  document.getElementById("detalle-titulo").textContent = `Bloque ${b.id} — ${nombreBonito(b.nombre)}`;
+  document.getElementById("detalle-titulo").textContent = `Dimensión ${b.id} — ${nombreBonito(b.nombre)}`;
   document.getElementById("detalle-sub").innerHTML =
     `Haz clic en un indicador para ver sus artículos ·
      <span style="color:#059669;font-weight:600">● Con artículos</span>&nbsp;
@@ -435,16 +439,15 @@ function descargarResumen() {
     b.indicadores.forEach(ind => {
       const arts = (DATOS.articulos && DATOS.articulos[ind.col]) || [];
       rows.push({
-        "Bloque": `${b.id} — ${nombreBonito(b.nombre)}`,
+        "Dimensión": `${b.id} — ${nombreBonito(b.nombre)}`,
         "Indicador": nombreBonito(ind.col),
         "Score (0-100)": Math.round(ind.score * 100),
-        "Artículos detectados": ind.arts,
         "URL artículo top": arts.length ? arts[0].url : ""
       });
     });
   });
   const ws = XLSX.utils.json_to_sheet(rows, {
-    header: ["Bloque", "Indicador", "Score (0-100)", "Artículos detectados", "URL artículo top"]
+    header: ["Dimensión", "Indicador", "Score (0-100)", "URL artículo top"]
   });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Resumen");
