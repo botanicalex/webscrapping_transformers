@@ -55,6 +55,7 @@
     .tipo-emoji { font-size: 26px; line-height: 1; }
     .tipo-label { font-size: 12px; font-weight: 600; color: #374151; margin-top: 8px; }
 
+    .field-wrap { position: relative; }
     .input {
       width: 100%; padding: 11px 14px; border: 2px solid #E2E8F0; border-radius: 10px;
       font-size: 14px; outline: none; color: #1A202C; background: white; transition: border-color 0.15s;
@@ -66,14 +67,11 @@
     .sug-list {
       position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: white;
       border-radius: 10px; margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-      border: 1px solid #E2E8F0; overflow: hidden;
+      border: 1px solid #E2E8F0; overflow: hidden; max-height: 260px; overflow-y: auto;
     }
     .sug-item { padding: 10px 14px; font-size: 13px; cursor: pointer; color: #374151; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #F1F5F9; }
     .sug-item:hover { background: #F8FAFC; }
     .sug-item .pin { color: #94A3B8; font-size: 11px; }
-
-    .hint-depto { margin-top: 14px; padding: 12px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px; }
-    .hint-depto .txt { font-size: 11px; color: #92400E; margin-bottom: 8px; }
 
     .grid-fechas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
@@ -151,33 +149,41 @@
         </div>
       </div>
 
-      <!-- PASO 2 — Nombre del territorio -->
+      <!-- PASO 2 — Territorio -->
       <div id="paso2" class="step" hidden>
         <div class="step-head">
           <div class="step-num">2</div>
           <div class="step-title">Territorio</div>
         </div>
 
-        <!-- Departamento: solo dropdown -->
-        <div id="p2-departamento" hidden>
-          <label class="field" for="sel-departamento">Departamento</label>
-          <select id="sel-departamento" class="input"></select>
-        </div>
-
-        <!-- Municipio / Vereda: campo de texto -->
-        <div id="p2-texto" hidden style="position: relative;">
-          <label class="field" id="lbl-territorio" for="input-territorio">Nombre</label>
-          <div style="position: relative;">
-            <input id="input-territorio" class="input" autocomplete="off" placeholder="" />
-            <div id="check-ok" class="check-ok" hidden>✓</div>
+        <!-- Municipio: autocompletado /lugares (obligatorio elegir) -->
+        <div id="p2-municipio" hidden>
+          <label class="field" for="input-municipio">Municipio</label>
+          <div class="field-wrap">
+            <input id="input-municipio" class="input" autocomplete="off" placeholder="Ej: Medellín, Maicao..." />
+            <div id="chk-muni" class="check-ok" hidden>✓</div>
+            <div id="sug-muni" class="sug-list" hidden></div>
           </div>
-          <div id="sug-list" class="sug-list" hidden></div>
         </div>
 
-        <!-- Dropdown de departamento (municipio sin sugerencia / vereda) -->
-        <div id="p2-depto-hint" class="hint-depto" hidden>
-          <div class="txt" id="hint-depto-txt">¿A qué departamento pertenece?</div>
-          <select id="sel-depto-hint" class="input"></select>
+        <!-- Vereda / Corregimiento: texto libre -->
+        <div id="p2-vereda" hidden>
+          <label class="field" for="input-vereda">Vereda / Corregimiento</label>
+          <div class="field-wrap">
+            <input id="input-vereda" class="input" autocomplete="off" placeholder="Ej: El Carmen, Paraguachón..." />
+            <div id="chk-vereda" class="check-ok" hidden>✓</div>
+          </div>
+        </div>
+
+        <!-- Departamento: autocompletado local (obligatorio elegir).
+             Es el territorio en tipo=departamento y el depto en tipo=vereda. -->
+        <div id="p2-depto" hidden style="margin-top:14px;">
+          <label class="field" for="input-depto">Departamento</label>
+          <div class="field-wrap">
+            <input id="input-depto" class="input" autocomplete="off" placeholder="Escribí y elegí un departamento" />
+            <div id="chk-depto" class="check-ok" hidden>✓</div>
+            <div id="sug-depto" class="sug-list" hidden></div>
+          </div>
         </div>
       </div>
 
@@ -254,18 +260,19 @@
     ];
 
     // ── Estado ────────────────────────────────────────────────────────────────
-    var tipo = null;                 // 'departamento' | 'municipio' | 'vereda'
-    var lugarSel = null;             // sugerencia elegida (solo municipio)
+    var tipo = null;          // 'departamento' | 'municipio' | 'vereda'
+    var muniSel = null;       // sugerencia de municipio confirmada (objeto) o null
+    var deptoSel = null;      // departamento confirmado (string) o null
     var territorioAnalizado = "";
     var debounceTimer = null, abortCtrl = null, intervalId = null;
     var etapa = 0, progreso = 0;
 
     var $ = function (id) { return document.getElementById(id); };
-    var inputTerritorio = $("input-territorio");
-    var sugList = $("sug-list");
-    var checkOk = $("check-ok");
-    var selDepartamento = $("sel-departamento");
-    var selDeptoHint = $("sel-depto-hint");
+    var inputMunicipio = $("input-municipio");
+    var inputVereda = $("input-vereda");
+    var inputDepto = $("input-depto");
+    var sugMuni = $("sug-muni");
+    var sugDepto = $("sug-depto");
     var btnAnalizar = $("btn-analizar");
     var fechaInicio = $("fecha-inicio");
     var fechaFin = $("fecha-fin");
@@ -275,39 +282,29 @@
         .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
-
-    // Rellena los dos <select> de departamento.
-    function poblarSelects() {
-      var opts = '<option value="">Selecciona un departamento</option>' +
-        DEPARTAMENTOS.map(function (d) { return '<option>' + esc(d) + '</option>'; }).join("");
-      selDepartamento.innerHTML = opts;
-      selDeptoHint.innerHTML = opts;
+    // minúsculas + sin tildes, para filtrar departamentos sin importar acentos.
+    function norm(s) {
+      return String(s == null ? "" : s).toLowerCase()
+        .normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
     }
 
-    // ── Valores derivados ───────────────────────────────────────────────────
+    // ── Valores derivados ─────────────────────────────────────────────────────
     function territorioValor() {
-      if (tipo === "departamento") return selDepartamento.value.trim();
-      return inputTerritorio.value.trim();  // municipio / vereda
-    }
-    function deptoHint() {
-      if (tipo === "departamento") return selDepartamento.value.trim();
-      if (tipo === "municipio") return lugarSel ? (lugarSel.departamento || "") : selDeptoHint.value.trim();
-      if (tipo === "vereda") return selDeptoHint.value.trim();
+      if (tipo === "departamento") return deptoSel || "";
+      if (tipo === "municipio")    return muniSel ? muniSel.nombre : "";
+      if (tipo === "vereda")       return inputVereda.value.trim();
       return "";
     }
-    // ¿El dropdown de depto-hint es necesario ahora?
-    function requiereHint() {
-      if (tipo === "vereda") return true;
-      if (tipo === "municipio") return !lugarSel && inputTerritorio.value.trim().length >= 2;
-      return false;
+    function deptoHint() {
+      if (tipo === "departamento") return deptoSel || "";
+      if (tipo === "municipio")    return muniSel ? (muniSel.departamento || "") : "";
+      if (tipo === "vereda")       return deptoSel || "";
+      return "";
     }
     function paso2Completo() {
-      if (tipo === "departamento") return !!selDepartamento.value;
-      if (tipo === "municipio") {
-        if (lugarSel) return true;
-        return inputTerritorio.value.trim().length >= 2 && !!selDeptoHint.value;
-      }
-      if (tipo === "vereda") return inputTerritorio.value.trim().length >= 2 && !!selDeptoHint.value;
+      if (tipo === "departamento") return !!deptoSel;
+      if (tipo === "municipio")    return !!muniSel;
+      if (tipo === "vereda")       return inputVereda.value.trim().length >= 2 && !!deptoSel;
       return false;
     }
     function fechasValidas() {
@@ -319,39 +316,28 @@
     document.querySelectorAll(".tipo-card").forEach(function (card) {
       card.addEventListener("click", function () {
         tipo = card.dataset.tipo;
-        document.querySelectorAll(".tipo-card").forEach(function (c) {
-          c.classList.toggle("active", c === card);
-        });
-        // reset del paso 2 al cambiar de tipo
-        lugarSel = null;
-        inputTerritorio.value = "";
-        selDepartamento.value = "";
-        selDeptoHint.value = "";
-        sugList.hidden = true; sugList.innerHTML = "";
-
-        if (tipo === "municipio") {
-          $("lbl-territorio").textContent = "Municipio";
-          inputTerritorio.placeholder = "Ej: Medellín, Maicao...";
-        } else if (tipo === "vereda") {
-          $("lbl-territorio").textContent = "Vereda / Corregimiento";
-          inputTerritorio.placeholder = "Ej: El Carmen, Paraguachón...";
-        }
+        document.querySelectorAll(".tipo-card").forEach(function (c) { c.classList.toggle("active", c === card); });
+        // reset del paso 2
+        muniSel = null; deptoSel = null;
+        inputMunicipio.value = ""; inputVereda.value = ""; inputDepto.value = "";
+        sugMuni.hidden = true; sugMuni.innerHTML = "";
+        sugDepto.hidden = true; sugDepto.innerHTML = "";
         refrescar();
       });
     });
 
-    // ── Autocompletado (solo municipio) ────────────────────────────────────────
-    function renderSugerencias(items) {
-      if (!items || items.length === 0) { sugList.hidden = true; sugList.innerHTML = ""; return; }
-      sugList.innerHTML = items.slice(0, 8).map(function (s, i) {
+    // ── Autocompletado de MUNICIPIO (via /lugares) ─────────────────────────────
+    function renderMuniSug(items) {
+      if (!items || items.length === 0) { sugMuni.hidden = true; sugMuni.innerHTML = ""; return; }
+      sugMuni.innerHTML = items.slice(0, 8).map(function (s, i) {
         return '<div class="sug-item" data-i="' + i + '"><span class="pin">📍</span>' +
           esc(s.tipo === "Departamento" ? (s.nombre + " — Departamento") : (s.nombre + " — " + s.tipo + ", " + s.departamento)) +
           '</div>';
       }).join("");
-      sugList._items = items.slice(0, 8);
-      sugList.hidden = false;
+      sugMuni._items = items.slice(0, 8);
+      sugMuni.hidden = false;
     }
-    function buscarSugerencias(q) {
+    function buscarMunicipios(q) {
       if (abortCtrl) abortCtrl.abort();
       abortCtrl = new AbortController();
       fetch(API_BASE + "/lugares?q=" + encodeURIComponent(q), {
@@ -359,64 +345,95 @@
         headers: { "ngrok-skip-browser-warning": "69420" },
       })
         .then(function (res) { if (!res.ok) throw new Error("lugares " + res.status); return res.json(); })
-        .then(function (data) { renderSugerencias(Array.isArray(data) ? data : []); })
-        .catch(function (e) { if (e.name !== "AbortError") { console.warn("Autocompletado:", e.message); renderSugerencias([]); } });
+        .then(function (data) { renderMuniSug(Array.isArray(data) ? data : []); })
+        .catch(function (e) { if (e.name !== "AbortError") { console.warn("Autocompletado:", e.message); renderMuniSug([]); } });
     }
-
-    sugList.addEventListener("mousedown", function (ev) {
+    sugMuni.addEventListener("mousedown", function (ev) {
       var item = ev.target.closest(".sug-item");
       if (!item) return;
       ev.preventDefault();
-      var s = (sugList._items || [])[parseInt(item.getAttribute("data-i"), 10)];
+      var s = (sugMuni._items || [])[parseInt(item.getAttribute("data-i"), 10)];
       if (!s) return;
-      lugarSel = s;
-      inputTerritorio.value = s.nombre;
-      sugList.hidden = true; sugList.innerHTML = "";
+      muniSel = s;
+      inputMunicipio.value = s.nombre;
+      sugMuni.hidden = true; sugMuni.innerHTML = "";
       refrescar();
     });
-
-    inputTerritorio.addEventListener("input", function () {
-      lugarSel = null;
+    inputMunicipio.addEventListener("input", function () {
+      muniSel = null;               // escribir invalida la selección previa
       refrescar();
-      if (tipo !== "municipio") { sugList.hidden = true; return; }  // vereda: sin autocompletado
-      var q = inputTerritorio.value.trim();
+      var q = inputMunicipio.value.trim();
       clearTimeout(debounceTimer);
-      if (q.length < 2) { renderSugerencias([]); return; }
-      debounceTimer = setTimeout(function () { buscarSugerencias(q); }, 500);
+      if (q.length < 2) { renderMuniSug([]); return; }
+      debounceTimer = setTimeout(function () { buscarMunicipios(q); }, 500);
     });
-    inputTerritorio.addEventListener("blur", function () { setTimeout(function () { sugList.hidden = true; }, 120); });
+    inputMunicipio.addEventListener("blur", function () { setTimeout(function () { sugMuni.hidden = true; }, 120); });
 
-    selDepartamento.addEventListener("change", refrescar);
-    selDeptoHint.addEventListener("change", refrescar);
+    // ── Autocompletado de DEPARTAMENTO (lista local) ───────────────────────────
+    function renderDeptoSug(items) {
+      if (!items.length) { sugDepto.hidden = true; sugDepto.innerHTML = ""; return; }
+      sugDepto.innerHTML = items.map(function (d) {
+        return '<div class="sug-item" data-d="' + esc(d) + '"><span class="pin">🏛️</span>' + esc(d) + '</div>';
+      }).join("");
+      sugDepto.hidden = false;
+    }
+    function filtrarDeptos(q) {
+      var nq = norm(q);
+      if (!nq) return [];
+      return DEPARTAMENTOS.filter(function (d) { return norm(d).indexOf(nq) !== -1; });
+    }
+    sugDepto.addEventListener("mousedown", function (ev) {
+      var item = ev.target.closest(".sug-item");
+      if (!item) return;
+      ev.preventDefault();
+      deptoSel = item.getAttribute("data-d");
+      inputDepto.value = deptoSel;
+      sugDepto.hidden = true; sugDepto.innerHTML = "";
+      refrescar();
+    });
+    inputDepto.addEventListener("input", function () {
+      deptoSel = null;              // escribir invalida la selección previa
+      refrescar();
+      renderDeptoSug(filtrarDeptos(inputDepto.value.trim()));
+    });
+    inputDepto.addEventListener("focus", function () {
+      if (!deptoSel) renderDeptoSug(filtrarDeptos(inputDepto.value.trim()));
+    });
+    inputDepto.addEventListener("blur", function () { setTimeout(function () { sugDepto.hidden = true; }, 120); });
+
+    // Vereda: texto libre, sin sugerencias.
+    inputVereda.addEventListener("input", refrescar);
+
     fechaInicio.addEventListener("change", refrescar);
     fechaFin.addEventListener("change", refrescar);
 
     // ── Refrescar visibilidad de pasos + estado del botón ──────────────────────
     function refrescar() {
-      // Paso 1 estado
       $("paso1").classList.toggle("done", !!tipo);
 
-      // Paso 2 visible cuando hay tipo
       $("paso2").hidden = !tipo;
-      $("p2-departamento").hidden = tipo !== "departamento";
-      $("p2-texto").hidden = !(tipo === "municipio" || tipo === "vereda");
-      $("p2-depto-hint").hidden = !requiereHint();
+      $("p2-municipio").hidden = tipo !== "municipio";
+      $("p2-vereda").hidden = tipo !== "vereda";
+      $("p2-depto").hidden = !(tipo === "departamento" || tipo === "vereda");
 
-      // check verde del input cuando hay sugerencia elegida (municipio)
-      inputTerritorio.classList.toggle("sel", !!lugarSel);
-      checkOk.hidden = !lugarSel;
+      // checks verdes: selección confirmada (muni/depto) o texto válido (vereda)
+      inputMunicipio.classList.toggle("sel", !!muniSel);
+      $("chk-muni").hidden = !muniSel;
+      inputDepto.classList.toggle("sel", !!deptoSel);
+      $("chk-depto").hidden = !deptoSel;
+      var veredaOk = inputVereda.value.trim().length >= 2;
+      inputVereda.classList.toggle("sel", veredaOk);
+      $("chk-vereda").hidden = !veredaOk;
 
       var p2 = paso2Completo();
       $("paso2").classList.toggle("on", !!tipo && !p2);
       $("paso2").classList.toggle("done", p2);
 
-      // Paso 3 visible cuando el paso 2 está completo
       $("paso3").hidden = !p2;
       var p3 = fechasValidas();
       $("paso3").classList.toggle("on", p2 && !p3);
       $("paso3").classList.toggle("done", p2 && p3);
 
-      // Botón
       var listo = !!tipo && p2 && p3;
       btnAnalizar.disabled = !listo;
       btnAnalizar.textContent = listo ? ("Analizar " + territorioValor()) : "Completa los 3 pasos para analizar";
@@ -492,10 +509,10 @@
     function nuevaConsulta() {
       clearInterval(intervalId);
       if (abortCtrl) abortCtrl.abort();
-      tipo = null; lugarSel = null;
-      inputTerritorio.value = "";
-      selDepartamento.value = ""; selDeptoHint.value = "";
-      sugList.hidden = true; sugList.innerHTML = "";
+      tipo = null; muniSel = null; deptoSel = null;
+      inputMunicipio.value = ""; inputVereda.value = ""; inputDepto.value = "";
+      sugMuni.hidden = true; sugMuni.innerHTML = "";
+      sugDepto.hidden = true; sugDepto.innerHTML = "";
       progreso = 0; etapa = 0;
       document.querySelectorAll(".tipo-card").forEach(function (c) { c.classList.remove("active"); });
       refrescar();
@@ -508,7 +525,6 @@
     $("btn-nueva-error").addEventListener("click", nuevaConsulta);
 
     // init
-    poblarSelects();
     refrescar();
     pintarDots();
   </script>
