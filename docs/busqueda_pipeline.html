@@ -174,7 +174,7 @@
           <label class="field">Territorio a analizar</label>
           <div style="position: relative;">
             <input id="input-territorio" class="input" autocomplete="off"
-              placeholder="Ej: Antioquia, Maicao, Vereda Paraguachón..." />
+              placeholder="Ej: Medellín, La Guajira, Vereda El Carmen..." />
             <div id="check-ok" class="check-ok" hidden>✓</div>
           </div>
           <div id="sug-list" class="sug-list" hidden></div>
@@ -211,10 +211,30 @@
 
         <!-- Panel: texto libre (vereda sin sugerencia) -->
         <div id="panel-free" class="panel-free" hidden>
-          <div class="txt">
+          <div class="txt" style="margin-bottom:10px;">
             <span>✎</span>
-            <span>Se analizará el texto ingresado: <strong id="free-txt"></strong>. Si es una vereda que no aparece en las sugerencias, igual se procesará.</span>
+            <span>Territorio libre: <strong id="free-txt"></strong>. Indicá su departamento para consultar las fuentes correctas.</span>
           </div>
+          <label class="field" for="select-depto">¿A qué departamento pertenece?</label>
+          <select id="select-depto" class="input">
+            <option value="">Selecciona un departamento</option>
+            <option>Amazonas</option><option>Antioquia</option>
+            <option>Arauca</option><option>Atlántico</option>
+            <option>Bolívar</option><option>Boyacá</option>
+            <option>Caldas</option><option>Caquetá</option>
+            <option>Casanare</option><option>Cauca</option>
+            <option>Cesar</option><option>Chocó</option>
+            <option>Córdoba</option><option>Cundinamarca</option>
+            <option>Guainía</option><option>Guaviare</option>
+            <option>Huila</option><option>La Guajira</option>
+            <option>Magdalena</option><option>Meta</option>
+            <option>Nariño</option><option>Norte de Santander</option>
+            <option>Putumayo</option><option>Quindío</option>
+            <option>Risaralda</option><option>San Andrés</option>
+            <option>Santander</option><option>Sucre</option>
+            <option>Tolima</option><option>Valle del Cauca</option>
+            <option>Vaupés</option><option>Vichada</option>
+          </select>
         </div>
 
         <!-- Botón -->
@@ -361,6 +381,7 @@
     var chipDepto = $("chip-depto");
     var panelFree = $("panel-free");
     var freeTxt = $("free-txt");
+    var selectDepto = $("select-depto");
     var btnAnalizar = $("btn-analizar");
     var fechaInicio = $("fecha-inicio");
     var fechaFin = $("fecha-fin");
@@ -552,6 +573,8 @@
         },
         body: JSON.stringify({
           territorio: territorio,
+          // Solo en texto libre (sin sugerencia): el depto elegido en el dropdown.
+          departamento_hint: (!lugarSel && selectDepto.value) ? selectDepto.value : null,
           fecha_inicio: fechaInicio.value,
           fecha_fin: fechaFin.value,
         }),
@@ -585,6 +608,7 @@
       if (abortCtrl) abortCtrl.abort();
       lugarSel = null;
       inputTerritorio.value = "";
+      if (selectDepto) selectDepto.value = "";
       sugList.hidden = true; sugList.innerHTML = "";
       progreso = 0; etapa = 0;
       actualizarFormUI();

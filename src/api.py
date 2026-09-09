@@ -220,6 +220,9 @@ class SolicitudAnalisis(BaseModel):
     fecha_fin: str
     # opcional: si el front ya sabe los periodicos, los fuerza y saltea el mapa.
     periodicos: Optional[List[str]] = None
+    # opcional: departamento indicado por el usuario (dropdown del front) para
+    # resolver los periodicos sin llamar a DIVIPOLA (util en texto libre/veredas).
+    departamento_hint: Optional[str] = None
 
 
 app = FastAPI(title="Radar de Riesgo Territorial — API", version="1.0")
@@ -348,7 +351,12 @@ def analizar(sol: SolicitudAnalisis):
     import scrappers as sc  # import diferido: arrastra playwright/aiohttp
 
     termino = _termino_busqueda(sol.territorio)
-    periodicos = sol.periodicos or _resolver_periodicos(sol.territorio, termino)
+    if sol.periodicos:
+        periodicos = sol.periodicos
+    elif sol.departamento_hint:
+        periodicos = _periodicos_de_departamento(sol.departamento_hint)
+    else:
+        periodicos = _resolver_periodicos(sol.territorio, termino)
 
     # 1. Scraping en vivo del territorio
     try:
