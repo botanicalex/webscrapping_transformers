@@ -9,93 +9,80 @@
     html, body { margin: 0; padding: 0; }
     body {
       min-height: 100vh; background: #F1F5F9;
-      font-family: system-ui, -apple-system, sans-serif;
-      color: #1A202C;
+      font-family: system-ui, -apple-system, sans-serif; color: #1A202C;
     }
-    @keyframes bounce {
-      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-      40% { transform: scale(1); opacity: 1; }
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Top bar */
-    .topbar {
-      background: #1B4F72; padding: 12px 28px;
-      display: flex; align-items: center; gap: 12px;
-    }
-    .topbar .logo {
-      width: 28px; height: 28px; border-radius: 6px; background: #10B981;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
+    .topbar { background: #1B4F72; padding: 12px 28px; display: flex; align-items: center; gap: 12px; }
+    .topbar .logo { width: 28px; height: 28px; border-radius: 6px; background: #10B981; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .topbar .title { color: white; font-weight: 700; font-size: 14px; line-height: 1; }
     .topbar .subtitle { color: rgba(255,255,255,0.55); font-size: 10px; margin-top: 1px; }
 
     .container { max-width: 640px; margin: 0 auto; padding: 40px 20px; }
-
-    .head { margin-bottom: 32px; text-align: center; }
+    .head { margin-bottom: 28px; text-align: center; }
     .head h1 { font-size: 26px; font-weight: 700; color: #1B4F72; margin: 0 0 6px; }
     .head p { font-size: 13px; color: #64748B; margin: 0; }
 
-    .card {
-      background: white; border-radius: 16px; padding: 28px;
+    /* Pasos (secciones numeradas) */
+    .step {
+      background: white; border-radius: 16px; padding: 22px 24px; margin-bottom: 16px;
       box-shadow: 0 2px 12px rgba(0,0,0,0.07); border: 1px solid #E2E8F0;
+      animation: fadeIn 0.3s ease;
     }
+    .step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%; background: #CBD5E1; color: white;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .step.on .step-num { background: #1B4F72; }
+    .step.done .step-num { background: #10B981; }
+    .step-title { font-size: 14px; font-weight: 700; color: #374151; }
 
     label.field { font-size: 12px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
 
+    /* Tipo de territorio */
+    .tipo-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    @media (max-width: 520px) { .tipo-grid { grid-template-columns: 1fr; } }
+    .tipo-card {
+      border: 2px solid #E2E8F0; border-radius: 12px; padding: 16px 10px; text-align: center;
+      cursor: pointer; background: white; transition: all 0.15s; user-select: none;
+    }
+    .tipo-card:hover { border-color: #94A3B8; }
+    .tipo-card.active { border-color: #1B4F72; background: #F0F6FB; }
+    .tipo-emoji { font-size: 26px; line-height: 1; }
+    .tipo-label { font-size: 12px; font-weight: 600; color: #374151; margin-top: 8px; }
+
     .input {
-      width: 100%; padding: 11px 14px; border: 2px solid #E2E8F0;
-      border-radius: 10px; font-size: 14px; outline: none;
-      color: #1A202C; background: white; transition: border-color 0.15s;
+      width: 100%; padding: 11px 14px; border: 2px solid #E2E8F0; border-radius: 10px;
+      font-size: 14px; outline: none; color: #1A202C; background: white; transition: border-color 0.15s;
     }
     .input:focus { border-color: #1B4F72; }
     .input.sel { border-color: #10B981; }
-    .input.sel:focus { border-color: #1B4F72; }
-    .input-date { width: 100%; padding: 10px 12px; border: 2px solid #E2E8F0; border-radius: 10px; font-size: 13px; outline: none; color: #1A202C; }
-    .input-date:focus { border-color: #1B4F72; }
-
     .check-ok { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #10B981; font-size: 16px; }
 
     .sug-list {
-      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
-      background: white; border-radius: 10px; margin-top: 4px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12); border: 1px solid #E2E8F0; overflow: hidden;
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: white;
+      border-radius: 10px; margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      border: 1px solid #E2E8F0; overflow: hidden;
     }
-    .sug-item {
-      padding: 10px 14px; font-size: 13px; cursor: pointer; color: #374151;
-      display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #F1F5F9;
-    }
+    .sug-item { padding: 10px 14px; font-size: 13px; cursor: pointer; color: #374151; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #F1F5F9; }
     .sug-item:hover { background: #F8FAFC; }
     .sug-item .pin { color: #94A3B8; font-size: 11px; }
 
-    .grid-fechas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    .hint-depto { margin-top: 14px; padding: 12px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px; }
+    .hint-depto .txt { font-size: 11px; color: #92400E; margin-bottom: 8px; }
 
-    .panel { margin-bottom: 24px; animation: fadeIn 0.3s ease; padding: 14px; background: #F8FAFC; border-radius: 10px; border: 1px solid #E2E8F0; }
-    .panel .panel-head { font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-    .panel .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .chip { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-    .chip-green { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
-    .chip-blue { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
-    .panel .fuentes-head { font-size: 11px; font-weight: 600; color: #64748B; margin: 12px 0 8px; }
-    .panel .note { font-size: 10px; color: #94A3B8; margin-top: 8px; }
-
-    .panel-free { margin-bottom: 24px; animation: fadeIn 0.3s ease; padding: 14px; background: #FFFBEB; border-radius: 10px; border: 1px solid #FDE68A; }
-    .panel-free .txt { font-size: 11px; color: #92400E; display: flex; align-items: center; gap: 6px; }
+    .grid-fechas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
     .btn-primary {
-      width: 100%; padding: 13px 0; background: #1B4F72; color: white;
-      border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
-      cursor: pointer; transition: background 0.2s;
+      width: 100%; padding: 13px 0; background: #1B4F72; color: white; border: none;
+      border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 4px;
     }
     .btn-primary:disabled { background: #CBD5E1; cursor: not-allowed; }
+    .btn-outline { background: none; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px 16px; font-size: 13px; color: #64748B; cursor: pointer; }
 
     /* Loading */
     .card-center { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); border: 1px solid #E2E8F0; text-align: center; animation: fadeIn 0.3s ease; }
@@ -115,31 +102,6 @@
     .err-title { font-size: 15px; font-weight: 600; color: #991B1B; margin-bottom: 6px; }
     .err-msg { font-size: 12px; color: #64748B; margin-bottom: 20px; word-break: break-word; }
     .err-actions { display: flex; gap: 10px; justify-content: center; }
-    .btn-outline { background: none; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px 16px; font-size: 13px; color: #64748B; cursor: pointer; }
-
-    /* Resultado */
-    .result-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .result-top .back { background: none; border: 1px solid #E2E8F0; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #64748B; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-    .result-top .done-tag { font-size: 11px; color: #94A3B8; }
-    .result-card { animation: slideUp 0.5s ease forwards; background: white; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .result-header { background: #1B4F72; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
-    .result-header .rh-cap { font-size: 10px; color: rgba(255,255,255,0.6); margin-bottom: 2px; }
-    .result-header .rh-lugar { font-size: 18px; font-weight: 700; color: white; }
-    .result-header .rh-fechas { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 2px; }
-    .badge-circle { width: 56px; height: 56px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 18px; margin: 0 auto 4px; }
-    .badge-circle span { font-size: 9px; font-weight: 400; }
-    .badge-cap { font-size: 10px; color: rgba(255,255,255,0.6); }
-    .badge-label { font-size: 11px; font-weight: 700; }
-    .result-body { padding: 16px 24px; }
-    .result-body .rb-title { font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 12px; }
-    .bloque-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .bloque-id { width: 22px; height: 22px; border-radius: 5px; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
-    .bloque-nombre { flex: 1; font-size: 12px; color: #374151; }
-    .bloque-bar { width: 80px; height: 4px; background: #E5E7EB; border-radius: 2px; }
-    .bloque-bar > div { height: 100%; border-radius: 2px; }
-    .bloque-score { font-size: 12px; font-weight: 700; width: 24px; text-align: right; }
-    .fuentes-box { margin-top: 16px; padding: 10px 14px; background: #F8FAFC; border-radius: 8px; font-size: 11px; color: #475569; display: flex; align-items: center; gap: 8px; }
-    .btn-full-dark { margin-top: 12px; width: 100%; background: #1B4F72; color: white; border: none; border-radius: 8px; padding: 10px 0; font-size: 13px; font-weight: 600; cursor: pointer; }
 
     [hidden] { display: none !important; }
   </style>
@@ -149,8 +111,7 @@
   <div class="topbar">
     <div class="logo">
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-          stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
     <div>
@@ -161,93 +122,91 @@
 
   <div class="container">
 
-    <!-- ESTADO: idle -->
-    <section id="estado-idle" style="animation: fadeIn 0.4s ease;">
+    <!-- FORMULARIO (3 pasos) -->
+    <section id="form">
       <div class="head">
         <h1>Nueva consulta</h1>
-        <p>Ingresa el territorio y el rango de fechas para analizar indicadores de riesgo social</p>
+        <p>Seguí los tres pasos para analizar los indicadores de riesgo social de un territorio</p>
       </div>
 
-      <div class="card">
-        <!-- Campo lugar -->
-        <div style="margin-bottom: 20px; position: relative;">
-          <label class="field">Territorio a analizar</label>
+      <!-- PASO 1 — Tipo de territorio -->
+      <div id="paso1" class="step on">
+        <div class="step-head">
+          <div class="step-num">1</div>
+          <div class="step-title">Tipo de territorio</div>
+        </div>
+        <div class="tipo-grid">
+          <div class="tipo-card" data-tipo="departamento">
+            <div class="tipo-emoji">🏛️</div>
+            <div class="tipo-label">Departamento</div>
+          </div>
+          <div class="tipo-card" data-tipo="municipio">
+            <div class="tipo-emoji">🏙️</div>
+            <div class="tipo-label">Municipio</div>
+          </div>
+          <div class="tipo-card" data-tipo="vereda">
+            <div class="tipo-emoji">🌿</div>
+            <div class="tipo-label">Vereda / Corregimiento</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 2 — Nombre del territorio -->
+      <div id="paso2" class="step" hidden>
+        <div class="step-head">
+          <div class="step-num">2</div>
+          <div class="step-title">Territorio</div>
+        </div>
+
+        <!-- Departamento: solo dropdown -->
+        <div id="p2-departamento" hidden>
+          <label class="field" for="sel-departamento">Departamento</label>
+          <select id="sel-departamento" class="input"></select>
+        </div>
+
+        <!-- Municipio / Vereda: campo de texto -->
+        <div id="p2-texto" hidden style="position: relative;">
+          <label class="field" id="lbl-territorio" for="input-territorio">Nombre</label>
           <div style="position: relative;">
-            <input id="input-territorio" class="input" autocomplete="off"
-              placeholder="Ej: Medellín, La Guajira, Vereda El Carmen..." />
+            <input id="input-territorio" class="input" autocomplete="off" placeholder="" />
             <div id="check-ok" class="check-ok" hidden>✓</div>
           </div>
           <div id="sug-list" class="sug-list" hidden></div>
         </div>
 
-        <!-- Fechas -->
+        <!-- Dropdown de departamento (municipio sin sugerencia / vereda) -->
+        <div id="p2-depto-hint" class="hint-depto" hidden>
+          <div class="txt" id="hint-depto-txt">¿A qué departamento pertenece?</div>
+          <select id="sel-depto-hint" class="input"></select>
+        </div>
+      </div>
+
+      <!-- PASO 3 — Fechas -->
+      <div id="paso3" class="step" hidden>
+        <div class="step-head">
+          <div class="step-num">3</div>
+          <div class="step-title">Rango de fechas</div>
+        </div>
         <div class="grid-fechas">
           <div>
-            <label class="field">Fecha inicio</label>
-            <input id="fecha-inicio" class="input-date" type="date" value="2023-01-01" />
+            <label class="field" for="fecha-inicio">Fecha inicio</label>
+            <input id="fecha-inicio" class="input" type="date" value="2023-01-01" />
           </div>
           <div>
-            <label class="field">Fecha fin</label>
-            <input id="fecha-fin" class="input-date" type="date" value="2023-12-31" />
+            <label class="field" for="fecha-fin">Fecha fin</label>
+            <input id="fecha-fin" class="input" type="date" value="2023-12-31" />
           </div>
         </div>
-
-        <!-- Panel: territorio seleccionado -->
-        <div id="panel-sel" class="panel" hidden>
-          <div class="panel-head">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            Territorio seleccionado
-          </div>
-          <div class="chips">
-            <span id="chip-tipo" class="chip chip-green"></span>
-            <span id="chip-depto" class="chip chip-blue"></span>
-          </div>
-          <div class="fuentes-head">Fuentes de prensa a consultar</div>
-          <div id="chips-fuentes" class="chips"></div>
-          <div class="note">Las fuentes de prensa se seleccionan automáticamente según el territorio</div>
-        </div>
-
-        <!-- Panel: texto libre (vereda sin sugerencia) -->
-        <div id="panel-free" class="panel-free" hidden>
-          <div class="txt" style="margin-bottom:10px;">
-            <span>✎</span>
-            <span>Territorio libre: <strong id="free-txt"></strong>. Indicá su departamento para consultar las fuentes correctas.</span>
-          </div>
-          <label class="field" for="select-depto">¿A qué departamento pertenece?</label>
-          <select id="select-depto" class="input">
-            <option value="">Selecciona un departamento</option>
-            <option>Amazonas</option><option>Antioquia</option>
-            <option>Arauca</option><option>Atlántico</option>
-            <option>Bolívar</option><option>Boyacá</option>
-            <option>Caldas</option><option>Caquetá</option>
-            <option>Casanare</option><option>Cauca</option>
-            <option>Cesar</option><option>Chocó</option>
-            <option>Córdoba</option><option>Cundinamarca</option>
-            <option>Guainía</option><option>Guaviare</option>
-            <option>Huila</option><option>La Guajira</option>
-            <option>Magdalena</option><option>Meta</option>
-            <option>Nariño</option><option>Norte de Santander</option>
-            <option>Putumayo</option><option>Quindío</option>
-            <option>Risaralda</option><option>San Andrés</option>
-            <option>Santander</option><option>Sucre</option>
-            <option>Tolima</option><option>Valle del Cauca</option>
-            <option>Vaupés</option><option>Vichada</option>
-          </select>
-        </div>
-
-        <!-- Botón -->
-        <button id="btn-analizar" class="btn-primary" disabled>Escribe o selecciona un territorio para continuar</button>
       </div>
+
+      <button id="btn-analizar" class="btn-primary" disabled>Completa los 3 pasos para analizar</button>
     </section>
 
-    <!-- ESTADO: loading -->
+    <!-- LOADING -->
     <section id="estado-loading" class="card-center" hidden>
       <div class="spinner">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
-            stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="white" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </div>
       <div class="loading-title">Analizando <span id="loading-territorio"></span></div>
@@ -257,13 +216,13 @@
       <div class="loading-foot">Procesando con mDeBERTa-v3 · Pipeline FNCE — esto puede tardar varios minutos</div>
     </section>
 
-    <!-- ESTADO: error -->
+    <!-- ERROR -->
     <section id="estado-error" class="card-error" hidden>
       <div class="err-icon">!</div>
       <div class="err-title">No se pudo completar el análisis</div>
       <div id="error-msg" class="err-msg"></div>
       <div class="err-actions">
-        <button id="btn-reintentar" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 13px;">Reintentar</button>
+        <button id="btn-reintentar" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 13px; margin-top: 0;">Reintentar</button>
         <button id="btn-nueva-error" class="btn-outline">Nueva consulta</button>
       </div>
     </section>
@@ -274,11 +233,19 @@
     "use strict";
 
     // API configurable por querystring: ...html?api=https://tu-backend
-    // Sin parámetro, cae a localhost:8000.
     const params = new URLSearchParams(window.location.search);
     const API_BASE = params.get("api") || "http://localhost:8000";
 
-    var ETAPAS = [
+    const DEPARTAMENTOS = [
+      "Amazonas", "Antioquia", "Arauca", "Atlántico", "Bolívar", "Boyacá",
+      "Caldas", "Caquetá", "Casanare", "Cauca", "Cesar", "Chocó",
+      "Córdoba", "Cundinamarca", "Guainía", "Guaviare", "Huila", "La Guajira",
+      "Magdalena", "Meta", "Nariño", "Norte de Santander", "Putumayo", "Quindío",
+      "Risaralda", "San Andrés", "Santander", "Sucre", "Tolima",
+      "Valle del Cauca", "Vaupés", "Vichada"
+    ];
+
+    const ETAPAS = [
       "Conectando con los periódicos...",
       "Descargando artículos...",
       "Ejecutando análisis NLP...",
@@ -286,210 +253,104 @@
       "Generando resultados...",
     ];
 
-    // Mismo mapa que MAPA_TERRITORIO_PERIODICOS en src/api.py (claves normalizadas:
-    // minúsculas, sin tildes). Se usa solo para PREVISUALIZAR las fuentes; la API
-    // sigue siendo la fuente de verdad al analizar.
-    var MAPA_TERRITORIO_PERIODICOS = {
-      "paraguachon":        ["laguajirahoy", "eltiempo"],
-      "maicao":             ["laguajirahoy", "eltiempo"],
-      "guintiva":           ["boyaca7dias", "eltiempo"],
-      "oicata":             ["boyaca7dias", "eltiempo"],
-      "antioquia":          ["elcolombiano", "eltiempo"],
-      "atlantico":          ["elheraldo", "eltiempo"],
-      "bolivar":            ["eluniversal", "eltiempo"],
-      "boyaca":             ["eldiarioboyaca", "ultimahoraboy", "eltiempo"],
-      "caldas":             ["bcnoticias", "eltiempo"],
-      "caqueta":            ["eltiempo"],
-      "cauca":              ["diariodelcauca", "eltiempo"],
-      "cesar":              ["cesarnoticias", "elpaisvallenato", "elpilon", "eltiempo"],
-      "choco":              ["eltiempo"],
-      "cordoba":            ["chicanoticias", "rionoticias", "eltiempo"],
-      "cundinamarca":       ["eltiempo"],
-      "guaviare":           ["marandua", "eltiempo"],
-      "huila":              ["eltiempo"],
-      "la guajira":         ["laguajirahoy", "eltiempo"],
-      "magdalena":          ["santamartaaldia", "elheraldo", "eltiempo"],
-      "meta":               ["llanoalmundo", "periodicodelmeta", "viveelmeta", "eltiempo"],
-      "narino":             ["diariodelsur", "eltiempo"],
-      "norte de santander": ["eltiempo"],
-      "putumayo":           ["miputumayo", "eltiempo"],
-      "quindio":            ["elquindiano", "quindionoticias", "eltiempo"],
-      "risaralda":          ["elexpreso", "ciudadregion", "eltiempo"],
-      "san andres":         ["archipielagopress", "eltiempo"],
-      "santander":          ["corrillos", "eltiempo"],
-      "sucre":              ["chicanoticias", "rionoticias", "eltiempo"],
-      "tolima":             ["eltiempo"],
-      "valle del cauca":    ["diariooccidente", "eltiempo"],
-      "vaupes":             ["eltiempo"],
-      "vichada":            ["elmorichal", "eltiempo"],
-    };
-    var PERIODICOS_DEFECTO = ["eltiempo"];
-    var FUENTES_NACIONALES = { "eltiempo": true, "verdadabierta": true };
-
-    // slug del periódico → nombre presentable para los chips. Si no está, se
-    // muestra el slug tal cual.
-    var NOMBRES_PERIODICOS = {
-      "elcolombiano":      "El Colombiano",
-      "elheraldo":         "El Heraldo",
-      "eluniversal":       "El Universal",
-      "eldiarioboyaca":    "El Diario de Boyacá",
-      "ultimahoraboy":     "Última Hora Boyacá",
-      "bcnoticias":        "BC Noticias",
-      "diariodelcauca":    "Diario del Cauca",
-      "cesarnoticias":     "Cesar Noticias",
-      "elpaisvallenato":   "El País Vallenato",
-      "elpilon":           "El Pilón",
-      "chicanoticias":     "Chica Noticias",
-      "rionoticias":       "Río Noticias",
-      "marandua":          "Marandúa Stereo",
-      "laguajirahoy":      "La Guajira Hoy",
-      "santamartaaldia":   "Santa Marta Al Día",
-      "llanoalmundo":      "Llano al Mundo",
-      "periodicodelmeta":  "Periódico del Meta",
-      "viveelmeta":        "Vive el Meta",
-      "diariodelsur":      "Diario del Sur",
-      "miputumayo":        "Mi Putumayo",
-      "elquindiano":       "El Quindiano",
-      "quindionoticias":   "Quindío Noticias",
-      "elexpreso":         "El Expreso",
-      "ciudadregion":      "Ciudad Región",
-      "archipielagopress": "The Archipelago Press",
-      "corrillos":         "Corrillos",
-      "diariooccidente":   "Diario Occidente",
-      "elmorichal":        "El Morichal",
-      "boyaca7dias":       "Boyacá 7 Días",
-      "eltiempo":          "El Tiempo",
-      "verdadabierta":     "VerdadAbierta",
-    };
-
-    // ── Estado ──────────────────────────────────────────────────────────────
-    var lugarSel = null;               // {nombre, tipo, departamento} o null (texto libre)
+    // ── Estado ────────────────────────────────────────────────────────────────
+    var tipo = null;                 // 'departamento' | 'municipio' | 'vereda'
+    var lugarSel = null;             // sugerencia elegida (solo municipio)
     var territorioAnalizado = "";
-    var debounceTimer = null;
-    var abortCtrl = null;
-    var intervalId = null;
-    var etapa = 0;
-    var progreso = 0;
+    var debounceTimer = null, abortCtrl = null, intervalId = null;
+    var etapa = 0, progreso = 0;
 
-    // ── Referencias al DOM ────────────────────────────────────────────────────
     var $ = function (id) { return document.getElementById(id); };
     var inputTerritorio = $("input-territorio");
     var sugList = $("sug-list");
     var checkOk = $("check-ok");
-    var panelSel = $("panel-sel");
-    var chipTipo = $("chip-tipo");
-    var chipDepto = $("chip-depto");
-    var panelFree = $("panel-free");
-    var freeTxt = $("free-txt");
-    var selectDepto = $("select-depto");
+    var selDepartamento = $("sel-departamento");
+    var selDeptoHint = $("sel-depto-hint");
     var btnAnalizar = $("btn-analizar");
     var fechaInicio = $("fecha-inicio");
     var fechaFin = $("fecha-fin");
 
-    // Escapa texto antes de inyectarlo como HTML.
     function esc(s) {
       return String(s == null ? "" : s)
         .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
 
-    function territorioActual() {
-      return lugarSel ? lugarSel.nombre : inputTerritorio.value.trim();
+    // Rellena los dos <select> de departamento.
+    function poblarSelects() {
+      var opts = '<option value="">Selecciona un departamento</option>' +
+        DEPARTAMENTOS.map(function (d) { return '<option>' + esc(d) + '</option>'; }).join("");
+      selDepartamento.innerHTML = opts;
+      selDeptoHint.innerHTML = opts;
     }
 
-    function etiquetaSugerencia(s) {
-      if (s.tipo === "Departamento") return s.nombre + " — Departamento";
-      return s.nombre + " — " + s.tipo + ", " + s.departamento;
+    // ── Valores derivados ───────────────────────────────────────────────────
+    function territorioValor() {
+      if (tipo === "departamento") return selDepartamento.value.trim();
+      return inputTerritorio.value.trim();  // municipio / vereda
     }
-
-    // Normaliza igual que _norm() de src/api.py: minúsculas, sin tildes, espacios colapsados.
-    function norm(txt) {
-      return String(txt == null ? "" : txt).toLowerCase()
-        .normalize("NFD").replace(/[̀-ͯ]/g, "")
-        .replace(/\s+/g, " ").trim();
+    function deptoHint() {
+      if (tipo === "departamento") return selDepartamento.value.trim();
+      if (tipo === "municipio") return lugarSel ? (lugarSel.departamento || "") : selDeptoHint.value.trim();
+      if (tipo === "vereda") return selDeptoHint.value.trim();
+      return "";
     }
-
-    // Mismo orden de resolución que _resolver_periodicos() de la API:
-    // nombre en el mapa → departamento en el mapa → contención (nombres largos) → El Tiempo.
-    function resolverPeriodicos(sel) {
-      if (!sel) return PERIODICOS_DEFECTO;
-      var cN = norm(sel.nombre);
-      if (MAPA_TERRITORIO_PERIODICOS[cN]) return MAPA_TERRITORIO_PERIODICOS[cN];
-      var cD = norm(sel.departamento);
-      if (MAPA_TERRITORIO_PERIODICOS[cD]) return MAPA_TERRITORIO_PERIODICOS[cD];
-      for (var k in MAPA_TERRITORIO_PERIODICOS) {
-        if (k.length >= 7 && cD.indexOf(k) !== -1) return MAPA_TERRITORIO_PERIODICOS[k];
+    // ¿El dropdown de depto-hint es necesario ahora?
+    function requiereHint() {
+      if (tipo === "vereda") return true;
+      if (tipo === "municipio") return !lugarSel && inputTerritorio.value.trim().length >= 2;
+      return false;
+    }
+    function paso2Completo() {
+      if (tipo === "departamento") return !!selDepartamento.value;
+      if (tipo === "municipio") {
+        if (lugarSel) return true;
+        return inputTerritorio.value.trim().length >= 2 && !!selDeptoHint.value;
       }
-      return PERIODICOS_DEFECTO;
+      if (tipo === "vereda") return inputTerritorio.value.trim().length >= 2 && !!selDeptoHint.value;
+      return false;
+    }
+    function fechasValidas() {
+      var a = fechaInicio.value, b = fechaFin.value;
+      return !!a && !!b && a <= b;
     }
 
-    // Chips de fuentes: azul para nacionales (El Tiempo / VerdadAbierta), verde para locales.
-    function pintarFuentes(sel) {
-      var fuentes = resolverPeriodicos(sel);
-      $("chips-fuentes").innerHTML = fuentes.map(function (p) {
-        var nacional = !!FUENTES_NACIONALES[p];
-        var cls = nacional ? "chip chip-blue" : "chip chip-green";
-        var suf = nacional ? ' <span style="opacity:.6;font-size:9px;">nacional</span>' : "";
-        var nombre = NOMBRES_PERIODICOS[p] || p;
-        return '<span class="' + cls + '">' + esc(nombre) + suf + '</span>';
-      }).join("");
-    }
+    // ── Selección de tipo ─────────────────────────────────────────────────────
+    document.querySelectorAll(".tipo-card").forEach(function (card) {
+      card.addEventListener("click", function () {
+        tipo = card.dataset.tipo;
+        document.querySelectorAll(".tipo-card").forEach(function (c) {
+          c.classList.toggle("active", c === card);
+        });
+        // reset del paso 2 al cambiar de tipo
+        lugarSel = null;
+        inputTerritorio.value = "";
+        selDepartamento.value = "";
+        selDeptoHint.value = "";
+        sugList.hidden = true; sugList.innerHTML = "";
 
-    // ── Cambio de sección visible ─────────────────────────────────────────────
-    function setEstado(nombre) {
-      $("estado-idle").hidden = nombre !== "idle";
-      $("estado-loading").hidden = nombre !== "loading";
-      $("estado-error").hidden = nombre !== "error";
-    }
+        if (tipo === "municipio") {
+          $("lbl-territorio").textContent = "Municipio";
+          inputTerritorio.placeholder = "Ej: Medellín, Maicao...";
+        } else if (tipo === "vereda") {
+          $("lbl-territorio").textContent = "Vereda / Corregimiento";
+          inputTerritorio.placeholder = "Ej: El Carmen, Paraguachón...";
+        }
+        refrescar();
+      });
+    });
 
-    // ── Formulario (botón + paneles + borde del input) ────────────────────────
-    function actualizarFormUI() {
-      var texto = inputTerritorio.value.trim();
-      var terr = territorioActual();
-      var puede = terr.length >= 2;
-
-      // input verde + check cuando hay selección
-      inputTerritorio.classList.toggle("sel", !!lugarSel);
-      checkOk.hidden = !lugarSel;
-
-      // panel seleccionado
-      if (lugarSel) {
-        chipTipo.textContent = lugarSel.tipo;
-        chipDepto.textContent = lugarSel.departamento;
-        pintarFuentes(lugarSel);
-        panelSel.hidden = false;
-      } else {
-        panelSel.hidden = true;
-      }
-
-      // panel texto libre
-      if (!lugarSel && texto.length >= 2) {
-        freeTxt.textContent = "«" + texto + "»";
-        panelFree.hidden = false;
-      } else {
-        panelFree.hidden = true;
-      }
-
-      // botón
-      btnAnalizar.disabled = !puede;
-      btnAnalizar.textContent = puede
-        ? "Analizar " + terr
-        : "Escribe o selecciona un territorio para continuar";
-    }
-
-    // ── Autocompletado ────────────────────────────────────────────────────────
+    // ── Autocompletado (solo municipio) ────────────────────────────────────────
     function renderSugerencias(items) {
       if (!items || items.length === 0) { sugList.hidden = true; sugList.innerHTML = ""; return; }
       sugList.innerHTML = items.slice(0, 8).map(function (s, i) {
-        return '<div class="sug-item" data-i="' + i + '">' +
-                 '<span class="pin">📍</span>' + esc(etiquetaSugerencia(s)) +
-               '</div>';
+        return '<div class="sug-item" data-i="' + i + '"><span class="pin">📍</span>' +
+          esc(s.tipo === "Departamento" ? (s.nombre + " — Departamento") : (s.nombre + " — " + s.tipo + ", " + s.departamento)) +
+          '</div>';
       }).join("");
-      // Guardamos los objetos para recuperarlos al hacer click.
       sugList._items = items.slice(0, 8);
       sugList.hidden = false;
     }
-
     function buscarSugerencias(q) {
       if (abortCtrl) abortCtrl.abort();
       abortCtrl = new AbortController();
@@ -497,48 +358,74 @@
         signal: abortCtrl.signal,
         headers: { "ngrok-skip-browser-warning": "69420" },
       })
-        .then(function (res) {
-          if (!res.ok) throw new Error("lugares " + res.status);
-          return res.json();
-        })
-        .then(function (data) {
-          renderSugerencias(Array.isArray(data) ? data : []);
-        })
-        .catch(function (e) {
-          if (e.name !== "AbortError") { console.warn("Autocompletado:", e.message); renderSugerencias([]); }
-        });
+        .then(function (res) { if (!res.ok) throw new Error("lugares " + res.status); return res.json(); })
+        .then(function (data) { renderSugerencias(Array.isArray(data) ? data : []); })
+        .catch(function (e) { if (e.name !== "AbortError") { console.warn("Autocompletado:", e.message); renderSugerencias([]); } });
     }
 
-    // click sobre una sugerencia (mousedown para ganarle al blur)
     sugList.addEventListener("mousedown", function (ev) {
       var item = ev.target.closest(".sug-item");
       if (!item) return;
       ev.preventDefault();
-      var idx = parseInt(item.getAttribute("data-i"), 10);
-      var s = (sugList._items || [])[idx];
+      var s = (sugList._items || [])[parseInt(item.getAttribute("data-i"), 10)];
       if (!s) return;
       lugarSel = s;
       inputTerritorio.value = s.nombre;
       sugList.hidden = true; sugList.innerHTML = "";
-      actualizarFormUI();
+      refrescar();
     });
 
-    // escribir en el input → resetea selección + debounce del fetch
     inputTerritorio.addEventListener("input", function () {
       lugarSel = null;
-      actualizarFormUI();
+      refrescar();
+      if (tipo !== "municipio") { sugList.hidden = true; return; }  // vereda: sin autocompletado
       var q = inputTerritorio.value.trim();
       clearTimeout(debounceTimer);
       if (q.length < 2) { renderSugerencias([]); return; }
       debounceTimer = setTimeout(function () { buscarSugerencias(q); }, 500);
     });
+    inputTerritorio.addEventListener("blur", function () { setTimeout(function () { sugList.hidden = true; }, 120); });
 
-    // ── Loading (progreso animado hasta la respuesta real) ────────────────────
+    selDepartamento.addEventListener("change", refrescar);
+    selDeptoHint.addEventListener("change", refrescar);
+    fechaInicio.addEventListener("change", refrescar);
+    fechaFin.addEventListener("change", refrescar);
+
+    // ── Refrescar visibilidad de pasos + estado del botón ──────────────────────
+    function refrescar() {
+      // Paso 1 estado
+      $("paso1").classList.toggle("done", !!tipo);
+
+      // Paso 2 visible cuando hay tipo
+      $("paso2").hidden = !tipo;
+      $("p2-departamento").hidden = tipo !== "departamento";
+      $("p2-texto").hidden = !(tipo === "municipio" || tipo === "vereda");
+      $("p2-depto-hint").hidden = !requiereHint();
+
+      // check verde del input cuando hay sugerencia elegida (municipio)
+      inputTerritorio.classList.toggle("sel", !!lugarSel);
+      checkOk.hidden = !lugarSel;
+
+      var p2 = paso2Completo();
+      $("paso2").classList.toggle("on", !!tipo && !p2);
+      $("paso2").classList.toggle("done", p2);
+
+      // Paso 3 visible cuando el paso 2 está completo
+      $("paso3").hidden = !p2;
+      var p3 = fechasValidas();
+      $("paso3").classList.toggle("on", p2 && !p3);
+      $("paso3").classList.toggle("done", p2 && p3);
+
+      // Botón
+      var listo = !!tipo && p2 && p3;
+      btnAnalizar.disabled = !listo;
+      btnAnalizar.textContent = listo ? ("Analizar " + territorioValor()) : "Completa los 3 pasos para analizar";
+    }
+
+    // ── Loading helpers ─────────────────────────────────────────────────────
     function pintarDots() {
       var html = "";
-      for (var i = 0; i < ETAPAS.length; i++) {
-        html += '<div class="dot' + (i <= etapa ? " on" : "") + '"></div>';
-      }
+      for (var i = 0; i < ETAPAS.length; i++) html += '<div class="dot' + (i <= etapa ? " on" : "") + '"></div>';
       $("dots").innerHTML = html;
     }
     function pintarLoading() {
@@ -546,17 +433,23 @@
       $("barra-progreso").style.width = progreso + "%";
       pintarDots();
     }
+    function mostrar(seccion) {
+      $("form").hidden = seccion !== "form";
+      $("estado-loading").hidden = seccion !== "loading";
+      $("estado-error").hidden = seccion !== "error";
+    }
 
-    // ── Análisis ──────────────────────────────────────────────────────────────
+    // ── Análisis ───────────────────────────────────────────────────────────
     function analizar() {
-      var territorio = territorioActual();
-      if (territorio.length < 2) return;
+      var territorio = territorioValor();
+      if (!(tipo && paso2Completo() && fechasValidas())) return;
+      var hint = deptoHint();
 
       territorioAnalizado = territorio;
       $("loading-territorio").textContent = territorio;
       etapa = 0; progreso = 8;
       pintarLoading();
-      setEstado("loading");
+      mostrar("loading");
 
       clearInterval(intervalId);
       intervalId = setInterval(function () {
@@ -567,14 +460,10 @@
 
       fetch(API_BASE + "/analizar", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "69420",
-        },
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "69420" },
         body: JSON.stringify({
           territorio: territorio,
-          // Solo en texto libre (sin sugerencia): el depto elegido en el dropdown.
-          departamento_hint: (!lugarSel && selectDepto.value) ? selectDepto.value : null,
+          departamento_hint: hint || null,
           fecha_inicio: fechaInicio.value,
           fecha_fin: fechaFin.value,
         }),
@@ -590,40 +479,37 @@
         .then(function (data) {
           clearInterval(intervalId);
           progreso = 100; pintarLoading();
-          // Guarda el resultado y salta al dashboard completo. Preserva el
-          // ?api= para que el link "volver" del dashboard conserve la API.
           sessionStorage.setItem("radar_resultado", JSON.stringify(data));
           window.location.href = "visualizacion_riesgo.html" + window.location.search;
         })
         .catch(function (err) {
           clearInterval(intervalId);
           $("error-msg").textContent = err.message || "No se pudo conectar con la API";
-          setEstado("error");
+          mostrar("error");
         });
     }
 
-    // ── Nueva consulta ────────────────────────────────────────────────────────
     function nuevaConsulta() {
       clearInterval(intervalId);
       if (abortCtrl) abortCtrl.abort();
-      lugarSel = null;
+      tipo = null; lugarSel = null;
       inputTerritorio.value = "";
-      if (selectDepto) selectDepto.value = "";
+      selDepartamento.value = ""; selDeptoHint.value = "";
       sugList.hidden = true; sugList.innerHTML = "";
       progreso = 0; etapa = 0;
-      actualizarFormUI();
-      setEstado("idle");
+      document.querySelectorAll(".tipo-card").forEach(function (c) { c.classList.remove("active"); });
+      refrescar();
+      mostrar("form");
     }
 
     // ── Eventos ───────────────────────────────────────────────────────────────
     btnAnalizar.addEventListener("click", analizar);
     $("btn-reintentar").addEventListener("click", analizar);
     $("btn-nueva-error").addEventListener("click", nuevaConsulta);
-    // cerrar sugerencias al perder foco (con retraso para permitir el click)
-    inputTerritorio.addEventListener("blur", function () { setTimeout(function () { sugList.hidden = true; }, 120); });
 
     // init
-    actualizarFormUI();
+    poblarSelects();
+    refrescar();
     pintarDots();
   </script>
 </body>
