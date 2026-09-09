@@ -871,3 +871,80 @@ parche):
 no lo estaba: faltaba correr el comando documentado.
 **Abre:** decidir qué corpus debe cargar producción (punto 1 de los no corregidos), que
 bloquea el re-puntuado nacional.
+
+## [2026-09-08] Reescritura de `rechazo_proyecto`, `exclusion_beneficios_economicos` y
+`derechos_vulnerados` (rama `prueba_radar_max`) — RECHAZADA
+
+**Pregunta:** una revisión cualitativa externa señaló falsos positivos en
+`rechazo_proyecto` y `exclusion_beneficios_economicos`, y solapamiento/exceso de
+positivos en `derechos_vulnerados`. Se propuso una reescritura más específica para
+las tres:
+
+```
+rechazo_proyecto
+  vieja: "Hay oposición de comunidades o autoridades a un proyecto."
+  nueva: "Una comunidad o autoridad se opuso a la ejecución de un proyecto específico."
+exclusion_beneficios_economicos
+  vieja: "Una comunidad quedó excluida de los beneficios económicos de un proyecto."
+  nueva: "Una comunidad no recibió compensaciones o beneficios económicos de un proyecto."
+derechos_vulnerados
+  vieja: "Se vulneraron los derechos de una comunidad."
+  nueva: "Una comunidad denunció la vulneración de sus derechos."
+```
+
+¿La reescritura reduce los falsos positivos sin perder los positivos reales, y sobrevive
+el control absurdo?
+
+**Método:** ninguno de los tres indicadores tiene estándar de plata (solo lo tienen
+`grupos_etnicos_existentes` y `presencia_grupos_armados`). Se generó plata por keywords
+para los tres (candidato) y se descartó: los términos sueltos (`rechazo`, `oposición`,
+`derechos humanos`) resultaron demasiado polisémicos (4.1%, 2.4% y 10.4% de 11.439
+artículos nacionales) y las frases completas dieron 0 positivos por ser matching literal
+sin variación sintáctica. Se optó por anotación manual: se leyeron a mano los 102
+artículos de una muestra estratificada de Antioquia (494 artículos totales, corpus
+`df_corpus_combinado_32deptos.pkl` filtrado por departamento), con candidatos
+preseleccionados por keywords laxas más negativos aleatorios. Positivos encontrados:
+`derechos_vulnerados` 12/102, `rechazo_proyecto` 2/102, `exclusion_beneficios_economicos`
+0/102. Verificado antes de puntuar: `nli_core.verificar_contra_produccion_v2()` OK
+(max\|dif\| ~9.7e-07) para las tres hipótesis vigentes contra
+`datos/scores/df_procesado_baseline_v2.pkl`.
+
+Se puntuaron los 102 artículos (texto completo, sin enmascarar — regla 8) con vieja y
+nueva hipótesis, sesgo descontado con las 4 `NULAS_CALIBRACION` estándar, y control
+absurdo con `NULA_TEST` reescrita en el formato de cada variante nueva (regla 3) —
+`nula_test_rechazo_nueva`, `nula_test_exclusion_nueva`, `nula_test_derechos_nueva`.
+Script: `experimentos/exp_variantes_3indicadores_antioquia.py`. Resultado guardado sin
+enmascarar en `datos/scores/scores_variantes_3indicadores_antioquia.pkl`. Etiquetas manuales en
+`resultados/muestra_manual_antioquia_3indicadores.xlsx`.
+
+**Evidencia:**
+
+| Indicador | AUC vieja→nueva | Separación vieja→nueva | Control absurdo vieja→nueva |
+|---|---|---|---|
+| `derechos_vulnerados` (n_pos=12) | 0.6435→0.7593 | 0.1152→0.2557 | 0.0224→**0.1347** |
+| `rechazo_proyecto` (n_pos=2, AUC no confiable) | — | media_neg 0.3522→0.5271 | 0.0224→**0.4776** |
+| `exclusion_beneficios_economicos` (n_pos=0, sin AUC) | — | media_neg 0.5541→0.2144 | 0.0224→**0.2578** |
+
+El control absurdo empeoró en los tres, en un caso de forma extrema
+(`rechazo_proyecto`: 2.2%→47.8%). En `derechos_vulnerados` el AUC y la separación
+mejoraron, pero coincide con el patrón exacto de la regla 1: el AUC sube y el control
+empeora. Se interpreta como un efecto de formato: las tres reescrituras alargan la
+hipótesis con sustantivos concretos («la ejecución de un proyecto específico»,
+«compensaciones o beneficios económicos», «denunció la vulneración de sus derechos») que
+calzan con una plantilla narrativa («alguien se opuso a algo», «alguien denunció algo»)
+muy común en prensa, y el modelo tiende a confirmarla por la forma, no por el contenido
+— igual que ya pasó tres veces antes con el marco metalingüístico (regla 1).
+
+**Decisión:** RECHAZADAS las tres reescrituras. Se conserva el texto vigente de las 26
+hipótesis en `src/Transformer_optimo.py` sin cambios.
+
+**Cierra:** esta redacción puntual de las tres hipótesis, con este método de plata
+(anotación manual sobre Antioquia). No se reintenta sin evidencia nueva.
+**Abre:** el problema real que motivó el cambio (falsos positivos observados en
+`rechazo_proyecto`/`exclusion_beneficios_economicos`, solapamiento en
+`derechos_vulnerados`) sigue sin resolver — una reformulación futura debería evitar
+sustantivos concretos tipo "proyecto específico"/"compensaciones" que parecen inflar el
+control absurdo, y probarse con el mismo método (plata manual + control absurdo en el
+formato de la variante) antes de mirar el AUC. Ampliar el estándar de plata manual más
+allá de Antioquia (backlog punto 4) ayudaría a que `exclusion_beneficios_economicos`
+deje de depender de n=0.
