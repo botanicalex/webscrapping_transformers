@@ -509,7 +509,7 @@
       var q = inputTerritorio.value.trim();
       clearTimeout(debounceTimer);
       if (q.length < 2) { renderSugerencias([]); return; }
-      debounceTimer = setTimeout(function () { buscarSugerencias(q); }, 250);
+      debounceTimer = setTimeout(function () { buscarSugerencias(q); }, 500);
     });
 
     // ── Loading (progreso animado hasta la respuesta real) ────────────────────
