@@ -293,27 +293,40 @@ async def lugares_options(request: Request):
     )
 
 
+# Cache en memoria de los municipios de DIVIPOLA (lista chica y estable). El LIKE
+# de SoQL es sensible a tildes y nom_mpio las trae ("MEDELLÍN"); por eso se filtra
+# en Python con _norm (sin tildes) en vez de en la query.
+_MUNICIPIOS_CACHE = None
+
+
+def _municipios_divipola():
+    global _MUNICIPIOS_CACHE
+    if _MUNICIPIOS_CACHE is None:
+        with httpx.Client(timeout=DIVIPOLA_TIMEOUT) as cliente:
+            r = cliente.get(DIVIPOLA_URL, params={
+                "$select": "nom_mpio,dpto,tipo_municipio",
+                "$limit": 1200,
+            })
+            r.raise_for_status()
+            _MUNICIPIOS_CACHE = r.json()
+    return _MUNICIPIOS_CACHE
+
+
 @app.get("/lugares")
 def lugares(q: str = Query(..., min_length=2, description="Texto a autocompletar")):
     """Autocompletado de municipios y departamentos via DIVIPOLA (DANE).
-    Nota: gdxc-w37w no incluye veredas."""
-    # LIKE con % a ambos lados: coincide en cualquier parte del nombre (DIVIPOLA
-    # no devuelve prefijos cortos con $q). Se escapan comillas simples (SoQL).
-    q_soql = q.replace("'", "''")
-    params = {
-        "$where": f"upper(nom_mpio) like upper('%{q_soql}%')",
-        "$limit": 10,
-        "$order": "nom_mpio",
-    }
+    DIVIPOLA guarda 'MEDELLÍN' con tilde y el LIKE de SoQL es sensible a acentos,
+    asi que se filtra en Python con _norm (sin tildes). gdxc-w37w no incluye veredas."""
     try:
-        with httpx.Client(timeout=DIVIPOLA_TIMEOUT) as cliente:
-            r = cliente.get(DIVIPOLA_URL, params=params)
-            r.raise_for_status()
-            filas = r.json()
+        todos = _municipios_divipola()
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Fallo DIVIPOLA: {e}")
 
     q_norm = _norm(q)
+    filas = [f for f in todos if q_norm in _norm(f.get("nom_mpio", ""))]
+    filas.sort(key=lambda f: str(f.get("nom_mpio", "")))
+    filas = filas[:10]
+
     sugerencias, vistos = [], set()
 
     for fila in filas:
