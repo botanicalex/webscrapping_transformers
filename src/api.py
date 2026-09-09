@@ -294,7 +294,14 @@ async def lugares_options(request: Request):
 def lugares(q: str = Query(..., min_length=2, description="Texto a autocompletar")):
     """Autocompletado de municipios y departamentos via DIVIPOLA (DANE).
     Nota: gdxc-w37w no incluye veredas."""
-    params = {"$q": q, "$limit": 30}
+    # LIKE con % a ambos lados: coincide en cualquier parte del nombre (DIVIPOLA
+    # no devuelve prefijos cortos con $q). Se escapan comillas simples (SoQL).
+    q_soql = q.replace("'", "''")
+    params = {
+        "$where": f"upper(nom_mpio) like upper('%{q_soql}%')",
+        "$limit": 10,
+        "$order": "nom_mpio",
+    }
     try:
         with httpx.Client(timeout=DIVIPOLA_TIMEOUT) as cliente:
             r = cliente.get(DIVIPOLA_URL, params=params)
