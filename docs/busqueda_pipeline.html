@@ -25,59 +25,34 @@
     .head h1 { font-size: 26px; font-weight: 700; color: #1B4F72; margin: 0 0 6px; }
     .head p { font-size: 13px; color: #64748B; margin: 0; }
 
-    /* Pasos (secciones numeradas) */
-    .step {
-      background: white; border-radius: 16px; padding: 22px 24px; margin-bottom: 16px;
+    .card {
+      background: white; border-radius: 16px; padding: 28px;
       box-shadow: 0 2px 12px rgba(0,0,0,0.07); border: 1px solid #E2E8F0;
-      animation: fadeIn 0.3s ease;
     }
-    .step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-    .step-num {
-      width: 26px; height: 26px; border-radius: 50%; background: #CBD5E1; color: white;
-      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0;
-      transition: background 0.2s;
-    }
-    .step.on .step-num { background: #1B4F72; }
-    .step.done .step-num { background: #10B981; }
-    .step-title { font-size: 14px; font-weight: 700; color: #374151; }
 
     label.field { font-size: 12px; font-weight: 600; color: #374151; display: block; margin-bottom: 6px; }
+    .group { margin-bottom: 20px; }
 
-    /* Tipo de territorio */
-    .tipo-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    @media (max-width: 520px) { .tipo-grid { grid-template-columns: 1fr; } }
-    .tipo-card {
-      border: 2px solid #E2E8F0; border-radius: 12px; padding: 16px 10px; text-align: center;
-      cursor: pointer; background: white; transition: all 0.15s; user-select: none;
-    }
-    .tipo-card:hover { border-color: #94A3B8; }
-    .tipo-card.active { border-color: #1B4F72; background: #F0F6FB; }
-    .tipo-emoji { font-size: 26px; line-height: 1; }
-    .tipo-label { font-size: 12px; font-weight: 600; color: #374151; margin-top: 8px; }
-
-    .field-wrap { position: relative; }
-    .input {
+    .input, select.input {
       width: 100%; padding: 11px 14px; border: 2px solid #E2E8F0; border-radius: 10px;
       font-size: 14px; outline: none; color: #1A202C; background: white; transition: border-color 0.15s;
     }
-    .input:focus { border-color: #1B4F72; }
-    .input.sel { border-color: #10B981; }
-    .check-ok { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #10B981; font-size: 16px; }
+    .input:focus, select.input:focus { border-color: #1B4F72; }
+    select.input.sel { border-color: #10B981; }
 
-    .sug-list {
-      position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: white;
-      border-radius: 10px; margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-      border: 1px solid #E2E8F0; overflow: hidden; max-height: 260px; overflow-y: auto;
-    }
-    .sug-item { padding: 10px 14px; font-size: 13px; cursor: pointer; color: #374151; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #F1F5F9; }
-    .sug-item:hover { background: #F8FAFC; }
-    .sug-item .pin { color: #94A3B8; font-size: 11px; }
+    /* Chips de fuentes */
+    .fuentes-panel { margin-top: 12px; animation: fadeIn 0.25s ease; }
+    .fuentes-head { font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 8px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    .chip-green { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+    .chip-blue { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
 
     .grid-fechas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
     .btn-primary {
       width: 100%; padding: 13px 0; background: #1B4F72; color: white; border: none;
-      border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 4px;
+      border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 8px;
     }
     .btn-primary:disabled { background: #CBD5E1; cursor: not-allowed; }
     .btn-outline { background: none; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px 16px; font-size: 13px; color: #64748B; cursor: pointer; }
@@ -120,80 +95,32 @@
 
   <div class="container">
 
-    <!-- FORMULARIO (3 pasos) -->
+    <!-- FORMULARIO -->
     <section id="form">
       <div class="head">
         <h1>Nueva consulta</h1>
-        <p>Sigue los tres pasos para analizar los indicadores de riesgo social de un territorio</p>
+        <p>Elige un departamento y, si querés, un lugar específico para analizar los indicadores de riesgo social</p>
       </div>
 
-      <!-- PASO 1 — Tipo de territorio -->
-      <div id="paso1" class="step on">
-        <div class="step-head">
-          <div class="step-num">1</div>
-          <div class="step-title">Tipo de territorio</div>
-        </div>
-        <div class="tipo-grid">
-          <div class="tipo-card" data-tipo="departamento">
-            <div class="tipo-emoji">🏛️</div>
-            <div class="tipo-label">Departamento</div>
-          </div>
-          <div class="tipo-card" data-tipo="municipio">
-            <div class="tipo-emoji">🏙️</div>
-            <div class="tipo-label">Municipio</div>
-          </div>
-          <div class="tipo-card" data-tipo="vereda">
-            <div class="tipo-emoji">🌿</div>
-            <div class="tipo-label">Vereda / Corregimiento</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- PASO 2 — Territorio -->
-      <div id="paso2" class="step" hidden>
-        <div class="step-head">
-          <div class="step-num">2</div>
-          <div class="step-title">Territorio</div>
-        </div>
-
-        <!-- Municipio: autocompletado /lugares (obligatorio elegir) -->
-        <div id="p2-municipio" hidden>
-          <label class="field" for="input-municipio">Municipio</label>
-          <div class="field-wrap">
-            <input id="input-municipio" class="input" autocomplete="off" placeholder="Ej: Medellín, Maicao..." />
-            <div id="chk-muni" class="check-ok" hidden>✓</div>
-            <div id="sug-muni" class="sug-list" hidden></div>
+      <div class="card">
+        <!-- Departamento (obligatorio) -->
+        <div class="group">
+          <label class="field" for="sel-departamento">Departamento</label>
+          <select id="sel-departamento" class="input"></select>
+          <div id="fuentes-panel" class="fuentes-panel" hidden>
+            <div class="fuentes-head">Fuentes de prensa a consultar</div>
+            <div id="chips-fuentes" class="chips"></div>
           </div>
         </div>
 
-        <!-- Vereda / Corregimiento: texto libre -->
-        <div id="p2-vereda" hidden>
-          <label class="field" for="input-vereda">Vereda / Corregimiento</label>
-          <div class="field-wrap">
-            <input id="input-vereda" class="input" autocomplete="off" placeholder="Ej: El Carmen, Paraguachón..." />
-            <div id="chk-vereda" class="check-ok" hidden>✓</div>
-          </div>
+        <!-- Lugar específico (opcional) -->
+        <div class="group">
+          <label class="field" for="input-lugar">Lugar específico</label>
+          <input id="input-lugar" class="input" autocomplete="off" placeholder="Municipio, vereda o corregimiento (opcional)" />
         </div>
 
-        <!-- Departamento: autocompletado local (obligatorio elegir).
-             Es el territorio en tipo=departamento y el depto en tipo=vereda. -->
-        <div id="p2-depto" hidden style="margin-top:14px;">
-          <label class="field" for="input-depto">Departamento</label>
-          <div class="field-wrap">
-            <input id="input-depto" class="input" autocomplete="off" placeholder="Escribe y elige un departamento" />
-            <div id="chk-depto" class="check-ok" hidden>✓</div>
-            <div id="sug-depto" class="sug-list" hidden></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- PASO 3 — Fechas -->
-      <div id="paso3" class="step" hidden>
-        <div class="step-head">
-          <div class="step-num">3</div>
-          <div class="step-title">Rango de fechas</div>
-        </div>
-        <div class="grid-fechas">
+        <!-- Fechas -->
+        <div class="group grid-fechas">
           <div>
             <label class="field" for="fecha-inicio">Fecha inicio</label>
             <input id="fecha-inicio" class="input" type="date" value="2023-01-01" />
@@ -203,9 +130,9 @@
             <input id="fecha-fin" class="input" type="date" value="2023-12-31" />
           </div>
         </div>
-      </div>
 
-      <button id="btn-analizar" class="btn-primary" disabled>Completa los 3 pasos para analizar</button>
+        <button id="btn-analizar" class="btn-primary" disabled>Selecciona un departamento</button>
+      </div>
     </section>
 
     <!-- LOADING -->
@@ -251,6 +178,55 @@
       "Valle del Cauca", "Vaupés", "Vichada"
     ];
 
+    // Mismo mapa que MAPA_TERRITORIO_PERIODICOS de src/api.py (claves normalizadas).
+    // Los departamentos que no figuran caen a ["eltiempo"], igual que la API.
+    const MAPA_TERRITORIO_PERIODICOS = {
+      "antioquia":          ["elcolombiano", "eltiempo"],
+      "atlantico":          ["elheraldo", "eltiempo"],
+      "bolivar":            ["eluniversal", "eltiempo"],
+      "boyaca":             ["eldiarioboyaca", "ultimahoraboy", "eltiempo"],
+      "caldas":             ["bcnoticias", "eltiempo"],
+      "caqueta":            ["eltiempo"],
+      "cauca":              ["diariodelcauca", "eltiempo"],
+      "cesar":              ["cesarnoticias", "elpaisvallenato", "elpilon", "eltiempo"],
+      "choco":              ["eltiempo"],
+      "cordoba":            ["chicanoticias", "rionoticias", "eltiempo"],
+      "cundinamarca":       ["eltiempo"],
+      "guaviare":           ["marandua", "eltiempo"],
+      "huila":              ["eltiempo"],
+      "la guajira":         ["laguajirahoy", "eltiempo"],
+      "magdalena":          ["santamartaaldia", "elheraldo", "eltiempo"],
+      "meta":               ["llanoalmundo", "periodicodelmeta", "viveelmeta", "eltiempo"],
+      "narino":             ["diariodelsur", "eltiempo"],
+      "norte de santander": ["eltiempo"],
+      "putumayo":           ["miputumayo", "eltiempo"],
+      "quindio":            ["elquindiano", "quindionoticias", "eltiempo"],
+      "risaralda":          ["elexpreso", "ciudadregion", "eltiempo"],
+      "san andres":         ["archipielagopress", "eltiempo"],
+      "santander":          ["corrillos", "eltiempo"],
+      "sucre":              ["chicanoticias", "rionoticias", "eltiempo"],
+      "tolima":             ["eltiempo"],
+      "valle del cauca":    ["diariooccidente", "eltiempo"],
+      "vaupes":             ["eltiempo"],
+      "vichada":            ["elmorichal", "eltiempo"]
+    };
+    const PERIODICOS_DEFECTO = ["eltiempo"];
+    const FUENTES_NACIONALES = { "eltiempo": true, "verdadabierta": true };
+
+    const NOMBRES_PERIODICOS = {
+      "elcolombiano": "El Colombiano", "elheraldo": "El Heraldo", "eluniversal": "El Universal",
+      "eldiarioboyaca": "El Diario de Boyacá", "ultimahoraboy": "Última Hora Boyacá",
+      "bcnoticias": "BC Noticias", "diariodelcauca": "Diario del Cauca", "cesarnoticias": "Cesar Noticias",
+      "elpaisvallenato": "El País Vallenato", "elpilon": "El Pilón", "chicanoticias": "Chica Noticias",
+      "rionoticias": "Río Noticias", "marandua": "Marandúa Stereo", "laguajirahoy": "La Guajira Hoy",
+      "santamartaaldia": "Santa Marta Al Día", "llanoalmundo": "Llano al Mundo",
+      "periodicodelmeta": "Periódico del Meta", "viveelmeta": "Vive el Meta", "diariodelsur": "Diario del Sur",
+      "miputumayo": "Mi Putumayo", "elquindiano": "El Quindiano", "quindionoticias": "Quindío Noticias",
+      "elexpreso": "El Expreso", "ciudadregion": "Ciudad Región", "archipielagopress": "The Archipelago Press",
+      "corrillos": "Corrillos", "diariooccidente": "Diario Occidente", "elmorichal": "El Morichal",
+      "boyaca7dias": "Boyacá 7 Días", "eltiempo": "El Tiempo", "verdadabierta": "VerdadAbierta"
+    };
+
     const ETAPAS = [
       "Conectando con los periódicos...",
       "Descargando artículos...",
@@ -260,19 +236,12 @@
     ];
 
     // ── Estado ────────────────────────────────────────────────────────────────
-    var tipo = null;          // 'departamento' | 'municipio' | 'vereda'
-    var muniSel = null;       // sugerencia de municipio confirmada (objeto) o null
-    var deptoSel = null;      // departamento confirmado (string) o null
     var territorioAnalizado = "";
-    var debounceTimer = null, abortCtrl = null, intervalId = null;
-    var etapa = 0, progreso = 0;
+    var intervalId = null, etapa = 0, progreso = 0;
 
     var $ = function (id) { return document.getElementById(id); };
-    var inputMunicipio = $("input-municipio");
-    var inputVereda = $("input-vereda");
-    var inputDepto = $("input-depto");
-    var sugMuni = $("sug-muni");
-    var sugDepto = $("sug-depto");
+    var selDepartamento = $("sel-departamento");
+    var inputLugar = $("input-lugar");
     var btnAnalizar = $("btn-analizar");
     var fechaInicio = $("fecha-inicio");
     var fechaFin = $("fecha-fin");
@@ -282,162 +251,62 @@
         .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
-    // minúsculas + sin tildes, para filtrar departamentos sin importar acentos.
     function norm(s) {
-      return String(s == null ? "" : s).toLowerCase()
-        .normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+      return String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+    }
+
+    // ── Poblar el <select> de departamentos ────────────────────────────────────
+    selDepartamento.innerHTML = '<option value="">Selecciona un departamento</option>' +
+      DEPARTAMENTOS.map(function (d) { return '<option>' + esc(d) + '</option>'; }).join("");
+
+    // ── Chips de fuentes ────────────────────────────────────────────────────────
+    function resolverPeriodicos(depto) {
+      return MAPA_TERRITORIO_PERIODICOS[norm(depto)] || PERIODICOS_DEFECTO;
+    }
+    function pintarFuentes(depto) {
+      if (!depto) { $("fuentes-panel").hidden = true; return; }
+      var fuentes = resolverPeriodicos(depto);
+      $("chips-fuentes").innerHTML = fuentes.map(function (p) {
+        var nacional = !!FUENTES_NACIONALES[p];
+        var cls = nacional ? "chip chip-blue" : "chip chip-green";
+        var suf = nacional ? ' <span style="opacity:.6;font-size:9px;">nacional</span>' : "";
+        return '<span class="' + cls + '">' + esc(NOMBRES_PERIODICOS[p] || p) + suf + '</span>';
+      }).join("");
+      $("fuentes-panel").hidden = false;
     }
 
     // ── Valores derivados ─────────────────────────────────────────────────────
-    function territorioValor() {
-      if (tipo === "departamento") return deptoSel || "";
-      if (tipo === "municipio")    return muniSel ? muniSel.nombre : "";
-      if (tipo === "vereda")       return inputVereda.value.trim();
-      return "";
-    }
-    function deptoHint() {
-      if (tipo === "departamento") return deptoSel || "";
-      if (tipo === "municipio")    return muniSel ? (muniSel.departamento || "") : "";
-      if (tipo === "vereda")       return deptoSel || "";
-      return "";
-    }
-    function paso2Completo() {
-      if (tipo === "departamento") return !!deptoSel;
-      if (tipo === "municipio")    return !!muniSel;
-      if (tipo === "vereda")       return inputVereda.value.trim().length >= 2 && !!deptoSel;
-      return false;
-    }
     function fechasValidas() {
       var a = fechaInicio.value, b = fechaFin.value;
       return !!a && !!b && a <= b;
     }
-
-    // ── Selección de tipo ─────────────────────────────────────────────────────
-    document.querySelectorAll(".tipo-card").forEach(function (card) {
-      card.addEventListener("click", function () {
-        tipo = card.dataset.tipo;
-        document.querySelectorAll(".tipo-card").forEach(function (c) { c.classList.toggle("active", c === card); });
-        // reset del paso 2
-        muniSel = null; deptoSel = null;
-        inputMunicipio.value = ""; inputVereda.value = ""; inputDepto.value = "";
-        sugMuni.hidden = true; sugMuni.innerHTML = "";
-        sugDepto.hidden = true; sugDepto.innerHTML = "";
-        refrescar();
-      });
-    });
-
-    // ── Autocompletado de MUNICIPIO (via /lugares) ─────────────────────────────
-    function renderMuniSug(items) {
-      if (!items || items.length === 0) { sugMuni.hidden = true; sugMuni.innerHTML = ""; return; }
-      sugMuni.innerHTML = items.slice(0, 8).map(function (s, i) {
-        return '<div class="sug-item" data-i="' + i + '"><span class="pin">📍</span>' +
-          esc(s.tipo === "Departamento" ? (s.nombre + " — Departamento") : (s.nombre + " — " + s.tipo + ", " + s.departamento)) +
-          '</div>';
-      }).join("");
-      sugMuni._items = items.slice(0, 8);
-      sugMuni.hidden = false;
+    function territorioValor() {
+      var lugar = inputLugar.value.trim();
+      return lugar || selDepartamento.value;   // lugar específico o el departamento
     }
-    function buscarMunicipios(q) {
-      if (abortCtrl) abortCtrl.abort();
-      abortCtrl = new AbortController();
-      fetch(API_BASE + "/lugares?q=" + encodeURIComponent(q), {
-        signal: abortCtrl.signal,
-        headers: { "ngrok-skip-browser-warning": "69420" },
-      })
-        .then(function (res) { if (!res.ok) throw new Error("lugares " + res.status); return res.json(); })
-        .then(function (data) { renderMuniSug(Array.isArray(data) ? data : []); })
-        .catch(function (e) { if (e.name !== "AbortError") { console.warn("Autocompletado:", e.message); renderMuniSug([]); } });
-    }
-    sugMuni.addEventListener("mousedown", function (ev) {
-      var item = ev.target.closest(".sug-item");
-      if (!item) return;
-      ev.preventDefault();
-      var s = (sugMuni._items || [])[parseInt(item.getAttribute("data-i"), 10)];
-      if (!s) return;
-      muniSel = s;
-      inputMunicipio.value = s.nombre;
-      sugMuni.hidden = true; sugMuni.innerHTML = "";
-      refrescar();
-    });
-    inputMunicipio.addEventListener("input", function () {
-      muniSel = null;               // escribir invalida la selección previa
-      refrescar();
-      var q = inputMunicipio.value.trim();
-      clearTimeout(debounceTimer);
-      if (q.length < 2) { renderMuniSug([]); return; }
-      debounceTimer = setTimeout(function () { buscarMunicipios(q); }, 500);
-    });
-    inputMunicipio.addEventListener("blur", function () { setTimeout(function () { sugMuni.hidden = true; }, 120); });
 
-    // ── Autocompletado de DEPARTAMENTO (lista local) ───────────────────────────
-    function renderDeptoSug(items) {
-      if (!items.length) { sugDepto.hidden = true; sugDepto.innerHTML = ""; return; }
-      sugDepto.innerHTML = items.map(function (d) {
-        return '<div class="sug-item" data-d="' + esc(d) + '"><span class="pin">🏛️</span>' + esc(d) + '</div>';
-      }).join("");
-      sugDepto.hidden = false;
-    }
-    function filtrarDeptos(q) {
-      var nq = norm(q);
-      if (!nq) return [];
-      return DEPARTAMENTOS.filter(function (d) { return norm(d).indexOf(nq) !== -1; });
-    }
-    sugDepto.addEventListener("mousedown", function (ev) {
-      var item = ev.target.closest(".sug-item");
-      if (!item) return;
-      ev.preventDefault();
-      deptoSel = item.getAttribute("data-d");
-      inputDepto.value = deptoSel;
-      sugDepto.hidden = true; sugDepto.innerHTML = "";
-      refrescar();
-    });
-    inputDepto.addEventListener("input", function () {
-      deptoSel = null;              // escribir invalida la selección previa
-      refrescar();
-      renderDeptoSug(filtrarDeptos(inputDepto.value.trim()));
-    });
-    inputDepto.addEventListener("focus", function () {
-      if (!deptoSel) renderDeptoSug(filtrarDeptos(inputDepto.value.trim()));
-    });
-    inputDepto.addEventListener("blur", function () { setTimeout(function () { sugDepto.hidden = true; }, 120); });
+    // ── Refrescar botón + fuentes ──────────────────────────────────────────────
+    function refrescar() {
+      var depto = selDepartamento.value;
+      selDepartamento.classList.toggle("sel", !!depto);
+      pintarFuentes(depto);
 
-    // Vereda: texto libre, sin sugerencias.
-    inputVereda.addEventListener("input", refrescar);
+      var lugar = inputLugar.value.trim();
+      var listo = !!depto && fechasValidas();
+      btnAnalizar.disabled = !listo;
+      if (!depto) {
+        btnAnalizar.textContent = "Selecciona un departamento";
+      } else if (lugar) {
+        btnAnalizar.textContent = "Analizar " + lugar + ", " + depto;
+      } else {
+        btnAnalizar.textContent = "Analizar " + depto;
+      }
+    }
 
+    selDepartamento.addEventListener("change", refrescar);
+    inputLugar.addEventListener("input", refrescar);
     fechaInicio.addEventListener("change", refrescar);
     fechaFin.addEventListener("change", refrescar);
-
-    // ── Refrescar visibilidad de pasos + estado del botón ──────────────────────
-    function refrescar() {
-      $("paso1").classList.toggle("done", !!tipo);
-
-      $("paso2").hidden = !tipo;
-      $("p2-municipio").hidden = tipo !== "municipio";
-      $("p2-vereda").hidden = tipo !== "vereda";
-      $("p2-depto").hidden = !(tipo === "departamento" || tipo === "vereda");
-
-      // checks verdes: selección confirmada (muni/depto) o texto válido (vereda)
-      inputMunicipio.classList.toggle("sel", !!muniSel);
-      $("chk-muni").hidden = !muniSel;
-      inputDepto.classList.toggle("sel", !!deptoSel);
-      $("chk-depto").hidden = !deptoSel;
-      var veredaOk = inputVereda.value.trim().length >= 2;
-      inputVereda.classList.toggle("sel", veredaOk);
-      $("chk-vereda").hidden = !veredaOk;
-
-      var p2 = paso2Completo();
-      $("paso2").classList.toggle("on", !!tipo && !p2);
-      $("paso2").classList.toggle("done", p2);
-
-      $("paso3").hidden = !p2;
-      var p3 = fechasValidas();
-      $("paso3").classList.toggle("on", p2 && !p3);
-      $("paso3").classList.toggle("done", p2 && p3);
-
-      var listo = !!tipo && p2 && p3;
-      btnAnalizar.disabled = !listo;
-      btnAnalizar.textContent = listo ? ("Analizar " + territorioValor()) : "Completa los 3 pasos para analizar";
-    }
 
     // ── Loading helpers ─────────────────────────────────────────────────────
     function pintarDots() {
@@ -458,9 +327,9 @@
 
     // ── Análisis ───────────────────────────────────────────────────────────
     function analizar() {
+      var depto = selDepartamento.value;
+      if (!(depto && fechasValidas())) return;
       var territorio = territorioValor();
-      if (!(tipo && paso2Completo() && fechasValidas())) return;
-      var hint = deptoHint();
 
       territorioAnalizado = territorio;
       $("loading-territorio").textContent = territorio;
@@ -480,7 +349,7 @@
         headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "69420" },
         body: JSON.stringify({
           territorio: territorio,
-          departamento_hint: hint || null,
+          departamento_hint: depto,   // siempre el departamento elegido
           fecha_inicio: fechaInicio.value,
           fecha_fin: fechaFin.value,
         }),
@@ -508,13 +377,9 @@
 
     function nuevaConsulta() {
       clearInterval(intervalId);
-      if (abortCtrl) abortCtrl.abort();
-      tipo = null; muniSel = null; deptoSel = null;
-      inputMunicipio.value = ""; inputVereda.value = ""; inputDepto.value = "";
-      sugMuni.hidden = true; sugMuni.innerHTML = "";
-      sugDepto.hidden = true; sugDepto.innerHTML = "";
+      selDepartamento.value = "";
+      inputLugar.value = "";
       progreso = 0; etapa = 0;
-      document.querySelectorAll(".tipo-card").forEach(function (c) { c.classList.remove("active"); });
       refrescar();
       mostrar("form");
     }
