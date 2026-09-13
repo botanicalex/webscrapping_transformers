@@ -120,7 +120,6 @@
         <div class="cap">Radar de Riesgo Social — Indicadores de Riesgo y Conflicto</div>
         <h1 id="h-lugar"></h1>
         <div class="meta" id="h-fechas"></div>
-        <div class="meta" id="h-arts"></div>
         <div class="meta" id="h-fuentes"></div>
       </div>
       <div style="text-align:center">
@@ -275,7 +274,6 @@ function renderDashboard() {
   // ── Header ──
   document.getElementById("h-lugar").textContent = DATOS.lugar || "—";
   document.getElementById("h-fechas").textContent = `📅 ${DATOS.fecha_inicio} → ${DATOS.fecha_fin}`;
-  document.getElementById("h-arts").textContent = `📰 ${DATOS.n_articulos} artículos`;
   document.getElementById("h-fuentes").textContent =
     (DATOS.fuentes && DATOS.fuentes.length) ? `Fuentes: ${DATOS.fuentes.join(", ")}` : "";
 
@@ -311,7 +309,7 @@ function renderDashboard() {
   // ── Tabla resumen ──
   const tbody = document.getElementById("resumen-body");
   DATOS.bloques.forEach(b => {
-    b.indicadores.forEach(ind => {
+    b.indicadores.slice().sort((x, y) => y.score - x.score).forEach(ind => {
       const s100 = Math.round(ind.score * 100);
       const c = colorRiesgo100(s100);
       const tr = document.createElement("tr");
@@ -375,9 +373,9 @@ function mostrarDetalle(b) {
   document.getElementById("detalle-card").style.display = "block";
   document.getElementById("detalle-titulo").textContent = `Dimensión ${b.id} — ${nombreBonito(b.nombre)}`;
   document.getElementById("detalle-sub").innerHTML =
-    `Haz clic en un indicador para ver sus artículos ·
-     <span style="color:#059669;font-weight:600">● Con artículos</span>&nbsp;
-     <span style="color:#9CA3AF">● Sin artículos</span>`;
+    `Haz clic en un indicador para ver el artículo que lo activó ·
+     <span style="color:#059669;font-weight:600">● Activado</span>&nbsp;
+     <span style="color:#9CA3AF">● Sin activación</span>`;
 
   const grid = document.getElementById("detalle-grid");
   grid.innerHTML = "";
@@ -394,8 +392,8 @@ function mostrarDetalle(b) {
       <div class="ind-footer">
         <span class="ind-bar-wrap"><span class="ind-bar-fill" style="width:${s100}%; background:${badgeColor}"></span></span>
         <div style="text-align:right">
-          <div class="ind-arts">${ind.arts} artículos →</div>
-          <div class="${ind.real ? 'nota-real' : 'nota-est'}">${ind.real ? '● Con artículos' : '● Sin artículos'}</div>
+          <div class="ind-arts">${ind.real ? 'Ver artículo →' : ''}</div>
+          <div class="${ind.real ? 'nota-real' : 'nota-est'}">${ind.real ? '● Activado' : '● Sin activación'}</div>
         </div>
       </div>
     `;
@@ -410,23 +408,23 @@ function abrirModal(ind) {
   indActivo = ind;
   document.getElementById("modal-title").textContent = nombreBonito(ind.col);
   document.getElementById("modal-sub").innerHTML =
-    `Score: <b>${(ind.score * 100).toFixed(1)}</b> · ${ind.arts} artículos`;
+    `Score: <b>${(ind.score * 100).toFixed(1)}</b>`;
 
   const arts = (DATOS.articulos && DATOS.articulos[ind.col]) || [];
   const body = document.getElementById("modal-body");
   if (arts.length === 0) {
-    body.innerHTML = `<div class="empty-msg">No hay artículos asociados a este indicador.</div>`;
+    body.innerHTML = `<div class="empty-msg">No hay un artículo que active este indicador.</div>`;
   } else {
-    const cards = arts.map(a => `
+    // Solo el artículo de mayor score (articulos[col] viene ordenado descendente).
+    const a = arts[0];
+    body.innerHTML = `
       <div class="art-card">
         <div class="art-title">${a.url
           ? `<a href="${esc(a.url)}" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:none">${esc(a.titulo)} ↗</a>`
           : esc(a.titulo)}</div>
         <div class="art-meta">${esc(a.periodico)} · ${esc(a.fecha)}</div>
-        <span class="art-score">Score NLI: ${a.score}</span>
-      </div>
-    `).join("");
-    body.innerHTML = `<div class="art-scroll">${cards}</div>`;
+        <span class="art-score">Score: ${a.score}</span>
+      </div>`;
   }
   document.getElementById("modal").classList.add("open");
 }
