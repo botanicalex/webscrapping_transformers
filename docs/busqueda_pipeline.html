@@ -230,10 +230,14 @@
     const ETAPAS = [
       "Conectando con los periódicos...",
       "Descargando artículos...",
+      "Validando relevancia territorial...",
+      "Validando temática social...",
       "Ejecutando análisis NLP...",
       "Calculando indicadores de riesgo...",
       "Generando resultados...",
     ];
+    // Progreso de la barra según el número de etapa que manda el back (SSE).
+    const PROGRESO_ETAPA = { 1: 10, 2: 25, 3: 40, 4: 55, 5: 70, 6: 85, 7: 95, 8: 100 };
 
     // ── Estado ────────────────────────────────────────────────────────────────
     var territorioAnalizado = "";
@@ -326,6 +330,25 @@
     }
 
     // ── Análisis ───────────────────────────────────────────────────────────
+    // Aplica un evento SSE del back a la UI de loading.
+    function procesarEvento(obj) {
+      if (obj.error) { throw new Error(obj.error); }   // lo captura el .catch
+      if (obj.resultado) {
+        progreso = 100; pintarLoading();
+        sessionStorage.setItem("radar_resultado", JSON.stringify(obj.resultado));
+        window.location.href = "visualizacion_riesgo.html" + window.location.search;
+        return true;   // terminado
+      }
+      if (obj.etapa) {
+        etapa = Math.min(obj.etapa - 1, ETAPAS.length - 1);   // 0-based para dots/texto
+        progreso = PROGRESO_ETAPA[obj.etapa] || progreso;
+        $("loading-etapa").textContent = obj.msg || ETAPAS[etapa] || "";
+        $("barra-progreso").style.width = progreso + "%";
+        pintarDots();
+      }
+      return false;
+    }
+
     function analizar() {
       var depto = selDepartamento.value;
       if (!(depto && fechasValidas())) return;
@@ -336,13 +359,6 @@
       etapa = 0; progreso = 8;
       pintarLoading();
       mostrar("loading");
-
-      clearInterval(intervalId);
-      intervalId = setInterval(function () {
-        etapa = Math.min(etapa + 1, ETAPAS.length - 1);
-        progreso = Math.min(progreso + 12, 95);
-        pintarLoading();
-      }, 1500);
 
       fetch(API_BASE + "/analizar", {
         method: "POST",
@@ -355,21 +371,38 @@
         }),
       })
         .then(function (res) {
-          if (!res.ok) {
+          // Error HTTP (no SSE): intenta leer el detalle JSON.
+          if (!res.ok || !res.body) {
             return res.json().catch(function () { return {}; }).then(function (j) {
               throw new Error(j.detail || ("La API respondió " + res.status));
             });
           }
-          return res.json();
-        })
-        .then(function (data) {
-          clearInterval(intervalId);
-          progreso = 100; pintarLoading();
-          sessionStorage.setItem("radar_resultado", JSON.stringify(data));
-          window.location.href = "visualizacion_riesgo.html" + window.location.search;
+          // Lee el stream SSE (data: {...}\n\n) en tiempo real.
+          var reader = res.body.getReader();
+          var decoder = new TextDecoder();
+          var buffer = "";
+          var terminado = false;
+          function leer() {
+            return reader.read().then(function (r) {
+              if (terminado || r.done) return;
+              buffer += decoder.decode(r.value, { stream: true });
+              var partes = buffer.split("\n\n");
+              buffer = partes.pop();   // el resto (posible evento incompleto)
+              for (var i = 0; i < partes.length; i++) {
+                var linea = partes[i].split("\n").filter(function (l) { return l.indexOf("data:") === 0; })[0];
+                if (!linea) continue;
+                var payload = linea.slice(5).trim();
+                if (!payload) continue;
+                var obj;
+                try { obj = JSON.parse(payload); } catch (e) { continue; }
+                if (procesarEvento(obj)) { terminado = true; return; }
+              }
+              return leer();
+            });
+          }
+          return leer();
         })
         .catch(function (err) {
-          clearInterval(intervalId);
           $("error-msg").textContent = err.message || "No se pudo conectar con la API";
           mostrar("error");
         });

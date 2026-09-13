@@ -26,7 +26,9 @@ ADVERTENCIA: /analizar scrapea en vivo y corre mDeBERTa. Una request puede
 tardar varios minutos (el front tiene pantalla de loading). El modelo NLI se
 carga UNA sola vez (perezoso, al primer request) y se reutiliza.
 """
+import json
 import os
+import random
 import sys
 import unicodedata
 from typing import List, Optional
@@ -35,7 +37,7 @@ import httpx
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
 # ── Rutas: src/ al path para que los imports por nombre de Santiago funcionen ─
@@ -359,47 +361,108 @@ def lugares(q: str = Query(..., min_length=2, description="Texto a autocompletar
     return sugerencias
 
 
+# Umbral de las validaciones NLI (etapas 3 y 4) y tope de la muestra.
+UMBRAL_VALIDACION = 0.15
+MAX_MUESTRA_VALIDACION = 20
+
+
 @app.post("/analizar")
 def analizar(sol: SolicitudAnalisis):
-    import scrappers as sc  # import diferido: arrastra playwright/aiohttp
+    """Analiza un territorio emitiendo el progreso por SSE (text/event-stream).
+    Cada evento es una linea `data: {...}`. Las etapas 3 y 4 validan con NLI
+    (relevancia territorial y tematica social) sobre una muestra <=20: si nadie
+    de la muestra pasa el umbral, se rechaza todo el corpus con un evento
+    {"error": ...}. La etapa 8 trae el resultado final."""
 
-    termino = _termino_busqueda(sol.territorio)
-    if sol.periodicos:
-        periodicos = sol.periodicos
-    elif sol.departamento_hint:
-        periodicos = _periodicos_de_departamento(sol.departamento_hint)
-    else:
-        periodicos = _resolver_periodicos(sol.territorio, termino)
+    def _sse(obj: dict) -> str:
+        return "data: " + json.dumps(obj, ensure_ascii=False) + "\n\n"
 
-    # 1. Scraping en vivo del territorio
-    try:
-        df = sc.scrape_municipio(
-            municipio=termino,
-            fecha_desde=sol.fecha_inicio,
-            fecha_hasta=sol.fecha_fin,
-            periodicos=periodicos,
-            min_menciones=1,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Fallo el scraping: {e}")
+    def eventos():
+        import scrappers as sc  # import diferido: arrastra playwright/aiohttp
 
-    if df is None or df.empty:
-        return _respuesta_vacia(sol)
+        termino = _termino_busqueda(sol.territorio)
+        if sol.periodicos:
+            periodicos = sol.periodicos
+        elif sol.departamento_hint:
+            periodicos = _periodicos_de_departamento(sol.departamento_hint)
+        else:
+            periodicos = _resolver_periodicos(sol.territorio, termino)
 
-    # El pipeline agrupa por 'departamento'; aqui es el territorio pedido.
-    df = df.copy()
-    df["departamento"] = sol.territorio
-    for c in ["periodico", "titulo", "fecha", "texto", "url"]:
-        if c not in df.columns:
-            df[c] = None
+        # Etapa 1: scraping en vivo
+        yield _sse({"etapa": 1, "msg": "Conectando con los periódicos..."})
+        try:
+            df = sc.scrape_municipio(
+                municipio=termino,
+                fecha_desde=sol.fecha_inicio,
+                fecha_hasta=sol.fecha_fin,
+                periodicos=periodicos,
+                min_menciones=1,
+            )
+        except Exception as e:
+            yield _sse({"error": f"Fallo el scraping: {e}"})
+            return
 
-    # 2. NLI (26 hipotesis V2). Modelo reutilizado.
-    try:
-        df_proc = _get_pipeline().procesar(df)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fallo el pipeline NLI: {e}")
+        if df is None or df.empty:
+            yield _sse({"error": "No se encontraron noticias del territorio seleccionado en el período indicado"})
+            return
 
-    return _construir_respuesta(sol, df_proc)
+        # El pipeline agrupa por 'departamento'; aqui es el territorio pedido.
+        df = df.copy()
+        df["departamento"] = sol.territorio
+        for c in ["periodico", "titulo", "fecha", "texto", "url"]:
+            if c not in df.columns:
+                df[c] = None
+
+        # Etapa 2: cantidad descargada
+        yield _sse({"etapa": 2, "msg": "Descargando artículos...", "n": int(len(df))})
+
+        pipe = _get_pipeline()
+        textos = [t for t in df["texto"].fillna("").astype(str).tolist() if t.strip()]
+        # Muestra <=20 (aleatoria) para que las validaciones sean rapidas.
+        muestra = random.sample(textos, min(MAX_MUESTRA_VALIDACION, len(textos))) if textos else []
+
+        # Etapa 3: relevancia territorial (NLI, umbral UMBRAL_VALIDACION)
+        yield _sse({"etapa": 3, "msg": "Validando relevancia territorial..."})
+        ref = sol.departamento_hint or sol.territorio
+        hip_terr = f"Este artículo habla sobre eventos en {ref}"
+        ent_terr = pipe._nli_batch(muestra, hip_terr) if muestra else []
+        if not any(e >= UMBRAL_VALIDACION for e in ent_terr):
+            yield _sse({"error": "No se encontraron noticias del territorio seleccionado en el período indicado"})
+            return
+
+        # Etapa 4: tematica social (NLI, umbral UMBRAL_VALIDACION)
+        yield _sse({"etapa": 4, "msg": "Validando temática social..."})
+        hip_tema = "Este artículo trata temas sociales, conflicto, comunidades o derechos"
+        ent_tema = pipe._nli_batch(muestra, hip_tema) if muestra else []
+        if not any(e >= UMBRAL_VALIDACION for e in ent_tema):
+            yield _sse({"error": "Las noticias encontradas no son de temática social o de conflicto"})
+            return
+
+        # Etapa 5: NLI completo (26 hipotesis V2)
+        yield _sse({"etapa": 5, "msg": "Ejecutando análisis NLP..."})
+        try:
+            df_proc = pipe.procesar(df)
+        except Exception as e:
+            yield _sse({"error": f"Fallo el pipeline NLI: {e}"})
+            return
+
+        # Etapa 6/7: indicadores + armado de la respuesta
+        yield _sse({"etapa": 6, "msg": "Calculando indicadores de riesgo..."})
+        yield _sse({"etapa": 7, "msg": "Generando resultados..."})
+        try:
+            resultado = _construir_respuesta(sol, df_proc)
+        except Exception as e:
+            yield _sse({"error": f"Fallo al generar el resultado: {e}"})
+            return
+
+        # Etapa 8: resultado final
+        yield _sse({"etapa": 8, "resultado": resultado})
+
+    return StreamingResponse(
+        eventos(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 def _respuesta_vacia(sol: SolicitudAnalisis) -> dict:
