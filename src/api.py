@@ -31,6 +31,7 @@ import os
 import random
 import sys
 import unicodedata
+from difflib import get_close_matches
 from typing import List, Optional
 
 import httpx
@@ -46,6 +47,7 @@ sys.path.insert(0, DIR_SRC)
 
 import config_pipeline as cfg          # noqa: E402
 from radar import CalculadorRadar       # noqa: E402
+from municipios_colombia import MUNICIPIOS_POR_DEPTO  # noqa: E402
 
 # ── Parametros de presentacion (ajustables, NO tocan el pipeline) ────────────
 # Un articulo "apoya" un indicador si su score por articulo supera esto. Sirve
@@ -137,6 +139,16 @@ def _norm(txt: str) -> str:
     return " ".join(t.split()).strip()
 
 
+def _municipios_del_departamento(nombre_depto: str) -> List[str]:
+    """Lista de municipios (nombres presentables) del departamento, o [] si no
+    coincide ninguna clave de MUNICIPIOS_POR_DEPTO (comparacion normalizada)."""
+    objetivo = _norm(nombre_depto)
+    for clave, municipios in MUNICIPIOS_POR_DEPTO.items():
+        if _norm(clave) == objetivo:
+            return municipios
+    return []
+
+
 def _titulo(txt: str) -> str:
     """DIVIPOLA devuelve en mayusculas; se presenta en Title Case."""
     return str(txt).strip().title()
@@ -225,6 +237,8 @@ class SolicitudAnalisis(BaseModel):
     # opcional: departamento indicado por el usuario (dropdown del front) para
     # resolver los periodicos sin llamar a DIVIPOLA (util en texto libre/veredas).
     departamento_hint: Optional[str] = None
+    # opcional: si True, saltea la validacion de municipio (boton "No, buscar igual").
+    forzar_lugar: Optional[bool] = False
 
 
 app = FastAPI(title="Radar de Riesgo Territorial — API", version="1.0")
@@ -390,6 +404,25 @@ def analizar(sol: SolicitudAnalisis):
         else:
             periodicos = _resolver_periodicos(sol.territorio, termino)
 
+        # Validacion de lugar especifico contra los municipios del departamento
+        # (DANE/DIVIPOLA). Solo aplica si hay lugar distinto del depto y no se
+        # forzo la busqueda ("No, buscar igual").
+        hint = sol.departamento_hint or ""
+        es_lugar_especifico = bool(sol.territorio) and _norm(sol.territorio) != _norm(hint)
+        piso_vereda = False   # True => se asume vereda: se exige un minimo de articulos
+        if es_lugar_especifico and hint and not sol.forzar_lugar:
+            municipios = _municipios_del_departamento(hint)
+            norm_a_nombre = {_norm(m): m for m in municipios}
+            objetivo = _norm(termino)
+            if objetivo not in norm_a_nombre:   # no es un municipio exacto
+                cercanos = get_close_matches(objetivo, list(norm_a_nombre.keys()), n=3, cutoff=0.6)
+                if cercanos:
+                    yield _sse({"sugerencia": [norm_a_nombre[c] for c in cercanos],
+                                "msg": "¿Quisiste decir alguno de estos?"})
+                    return
+                # Sin municipio exacto ni sugerencias -> se asume vereda/corregimiento.
+                piso_vereda = True
+
         # Etapa 1: scraping en vivo
         yield _sse({"etapa": 1, "msg": "Conectando con los periódicos..."})
         try:
@@ -404,6 +437,11 @@ def analizar(sol: SolicitudAnalisis):
             yield _sse({"error": f"Fallo el scraping: {e}"})
             return
 
+        n_art = 0 if (df is None or df.empty) else len(df)
+        # Piso de veredas: si asumimos vereda y hay < 5 articulos, no hay cobertura.
+        if piso_vereda and n_art < 5:
+            yield _sse({"error": f"No se encontró cobertura de prensa para '{sol.territorio}' en {hint or sol.territorio}. Verifica el nombre o prueba con el departamento."})
+            return
         if df is None or df.empty:
             yield _sse({"error": "No se encontraron noticias del territorio seleccionado en el período indicado"})
             return

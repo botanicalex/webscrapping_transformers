@@ -160,6 +160,13 @@
       </div>
     </section>
 
+    <!-- SUGERENCIA (municipio no exacto) -->
+    <section id="estado-sugerencia" class="card-center" hidden>
+      <div class="err-title" id="sug-msg" style="color:#1B4F72;margin-bottom:16px;">¿Quisiste decir alguno de estos?</div>
+      <div id="sug-botones" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+      <button id="btn-buscar-igual" class="btn-outline">No, buscar igual</button>
+    </section>
+
   </div>
 
   <script>
@@ -327,12 +334,35 @@
       $("form").hidden = seccion !== "form";
       $("estado-loading").hidden = seccion !== "loading";
       $("estado-error").hidden = seccion !== "error";
+      $("estado-sugerencia").hidden = seccion !== "sugerencia";
+    }
+
+    // Pantalla de "¿Quisiste decir...?": botones por sugerencia (vuelven al form
+    // con ese nombre) + "No, buscar igual" (fuerza la búsqueda original).
+    function mostrarSugerencias(lista, msg) {
+      $("sug-msg").textContent = msg || "¿Quisiste decir alguno de estos?";
+      var cont = $("sug-botones");
+      cont.innerHTML = "";
+      (lista || []).forEach(function (nombre) {
+        var b = document.createElement("button");
+        b.className = "btn-primary";
+        b.style.marginTop = "0";
+        b.textContent = nombre;
+        b.addEventListener("click", function () {
+          inputLugar.value = nombre;   // el departamento sigue seleccionado
+          refrescar();
+          mostrar("form");
+        });
+        cont.appendChild(b);
+      });
+      mostrar("sugerencia");
     }
 
     // ── Análisis ───────────────────────────────────────────────────────────
     // Aplica un evento SSE del back a la UI de loading.
     function procesarEvento(obj) {
       if (obj.error) { throw new Error(obj.error); }   // lo captura el .catch
+      if (obj.sugerencia) { mostrarSugerencias(obj.sugerencia, obj.msg); return true; }
       if (obj.resultado) {
         progreso = 100; pintarLoading();
         sessionStorage.setItem("radar_resultado", JSON.stringify(obj.resultado));
@@ -349,7 +379,7 @@
       return false;
     }
 
-    function analizar() {
+    function analizar(forzar) {
       var depto = selDepartamento.value;
       if (!(depto && fechasValidas())) return;
       var territorio = territorioValor();
@@ -366,6 +396,7 @@
         body: JSON.stringify({
           territorio: territorio,
           departamento_hint: depto,   // siempre el departamento elegido
+          forzar_lugar: !!forzar,     // "No, buscar igual" saltea la validación de municipio
           fecha_inicio: fechaInicio.value,
           fecha_fin: fechaFin.value,
         }),
@@ -418,8 +449,9 @@
     }
 
     // ── Eventos ───────────────────────────────────────────────────────────────
-    btnAnalizar.addEventListener("click", analizar);
-    $("btn-reintentar").addEventListener("click", analizar);
+    btnAnalizar.addEventListener("click", function () { analizar(false); });
+    $("btn-reintentar").addEventListener("click", function () { analizar(false); });
+    $("btn-buscar-igual").addEventListener("click", function () { analizar(true); });
     $("btn-nueva-error").addEventListener("click", nuevaConsulta);
 
     // init
