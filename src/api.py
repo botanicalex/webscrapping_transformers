@@ -361,8 +361,10 @@ def lugares(q: str = Query(..., min_length=2, description="Texto a autocompletar
     return sugerencias
 
 
-# Umbral de las validaciones NLI (etapas 3 y 4) y tope de la muestra.
-UMBRAL_VALIDACION = 0.15
+# Umbrales de las validaciones NLI y tope de la muestra.
+UMBRAL_VALIDACION = 0.15          # tematica social (etapa 4)
+UMBRAL_TERRITORIAL = 0.20         # relevancia territorial (etapa 3)
+FRACCION_MIN_TERRITORIAL = 0.30   # etapa 3: al menos 30% de la muestra debe pasar
 MAX_MUESTRA_VALIDACION = 20
 
 
@@ -421,12 +423,25 @@ def analizar(sol: SolicitudAnalisis):
         # Muestra <=20 (aleatoria) para que las validaciones sean rapidas.
         muestra = random.sample(textos, min(MAX_MUESTRA_VALIDACION, len(textos))) if textos else []
 
-        # Etapa 3: relevancia territorial (NLI, umbral UMBRAL_VALIDACION)
+        # Etapa 3: relevancia territorial (NLI). La hipotesis usa el LUGAR
+        # especifico cuando lo hay (distinto del depto); si no, el departamento.
+        # Gate: al menos FRACCION_MIN_TERRITORIAL de la muestra sobre el umbral.
         yield _sse({"etapa": 3, "msg": "Validando relevancia territorial..."})
-        ref = sol.departamento_hint or sol.territorio
-        hip_terr = f"Este artículo habla sobre eventos en {ref}"
+        hint = sol.departamento_hint or ""
+        if sol.territorio and _norm(sol.territorio) != _norm(hint):
+            lugar_ref = sol.territorio
+        else:
+            lugar_ref = hint or sol.territorio
+        hip_terr = f"Este artículo habla sobre {lugar_ref}"
         ent_terr = pipe._nli_batch(muestra, hip_terr) if muestra else []
-        if not any(e >= UMBRAL_VALIDACION for e in ent_terr):
+        n_terr = len(ent_terr)
+        n_pasan = sum(1 for e in ent_terr if e >= UMBRAL_TERRITORIAL)
+        avg_terr = (sum(ent_terr) / n_terr) if n_terr else 0.0
+        _dbg = (f"Validación territorial: score promedio {avg_terr:.2f}, "
+                f"pasaron {n_pasan}/{n_terr} artículos (umbral {int(FRACCION_MIN_TERRITORIAL * 100)}%)")
+        print(f"[/analizar] {_dbg}")          # visible en los logs de Colab (api.log)
+        yield _sse({"debug": _dbg})
+        if n_terr == 0 or (n_pasan / n_terr) < FRACCION_MIN_TERRITORIAL:
             yield _sse({"error": "No se encontraron noticias del territorio seleccionado en el período indicado"})
             return
 
