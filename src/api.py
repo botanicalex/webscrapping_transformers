@@ -26,7 +26,9 @@ ADVERTENCIA: /analizar scrapea en vivo y corre mDeBERTa. Una request puede
 tardar varios minutos (el front tiene pantalla de loading). El modelo NLI se
 carga UNA sola vez (perezoso, al primer request) y se reutiliza.
 """
+import concurrent.futures
 import json
+import multiprocessing as mp
 import os
 import random
 import sys
@@ -48,6 +50,12 @@ sys.path.insert(0, DIR_SRC)
 import config_pipeline as cfg          # noqa: E402
 from radar import CalculadorRadar       # noqa: E402
 from municipios_colombia import MUNICIPIOS_POR_DEPTO  # noqa: E402
+import scrape_worker                    # noqa: E402  (scraping en subproceso; NO importa scrappers al cargar)
+
+# El scraping corre en un subproceso 'spawn' (interprete fresco): asi el patron
+# de event-loop de scrappers.py no desarma el loop de uvicorn, y ademas 'spawn'
+# (no 'fork') evita heredar la sesion CUDA del modelo NLI ya cargado.
+_MP_CTX = mp.get_context("spawn")
 
 # ── Parametros de presentacion (ajustables, NO tocan el pipeline) ────────────
 # Un articulo "apoya" un indicador si su score por articulo supera esto. Sirve
@@ -273,6 +281,16 @@ def _get_pipeline():
     return _PIPELINE
 
 
+def _scrape_en_subproceso(termino, fecha_desde, fecha_hasta, periodicos):
+    """Ejecuta scrape_worker.scrape en un proceso aparte ('spawn') y devuelve el
+    DataFrame. Aisla el manejo de event loop de scrappers del loop de uvicorn.
+    Corre dentro del generador SSE (que ya vive en un thread), asi que bloquear
+    aca no afecta al event loop del server."""
+    with concurrent.futures.ProcessPoolExecutor(max_workers=1, mp_context=_MP_CTX) as ex:
+        fut = ex.submit(scrape_worker.scrape, termino, fecha_desde, fecha_hasta, periodicos)
+        return fut.result()
+
+
 @app.get("/health")
 def health():
     return {
@@ -407,8 +425,6 @@ def analizar(
         return "data: " + json.dumps(obj, ensure_ascii=False) + "\n\n"
 
     def eventos():
-        import scrappers as sc  # import diferido: arrastra playwright/aiohttp
-
         termino = _termino_busqueda(sol.territorio)
         if sol.periodicos:
             periodicos = sol.periodicos
@@ -436,16 +452,12 @@ def analizar(
                 # Sin municipio exacto ni sugerencias -> se asume vereda/corregimiento.
                 piso_vereda = True
 
-        # Etapa 1: scraping en vivo
+        # Etapa 1: scraping en vivo (en un subproceso aparte, ver
+        # _scrape_en_subproceso: scrappers.py maneja su propio event loop y
+        # apagaria el de uvicorn si corriera aca).
         yield _sse({"etapa": 1, "msg": "Conectando con los periódicos..."})
         try:
-            df = sc.scrape_municipio(
-                municipio=termino,
-                fecha_desde=sol.fecha_inicio,
-                fecha_hasta=sol.fecha_fin,
-                periodicos=periodicos,
-                min_menciones=1,
-            )
+            df = _scrape_en_subproceso(termino, sol.fecha_inicio, sol.fecha_fin, periodicos)
         except Exception as e:
             yield _sse({"error": f"Fallo el scraping: {e}"})
             return
