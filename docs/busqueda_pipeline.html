@@ -249,6 +249,7 @@
     // ── Estado ────────────────────────────────────────────────────────────────
     var territorioAnalizado = "";
     var intervalId = null, etapa = 0, progreso = 0;
+    var es = null;   // EventSource activo del /analizar (SSE)
 
     var $ = function (id) { return document.getElementById(id); };
     var selDepartamento = $("sel-departamento");
@@ -390,57 +391,44 @@
       pintarLoading();
       mostrar("loading");
 
-      fetch(API_BASE + "/analizar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "69420" },
-        body: JSON.stringify({
-          territorio: territorio,
-          departamento_hint: depto,   // siempre el departamento elegido
-          forzar_lugar: !!forzar,     // "No, buscar igual" saltea la validación de municipio
-          fecha_inicio: fechaInicio.value,
-          fecha_fin: fechaFin.value,
-        }),
-      })
-        .then(function (res) {
-          // Error HTTP (no SSE): intenta leer el detalle JSON.
-          if (!res.ok || !res.body) {
-            return res.json().catch(function () { return {}; }).then(function (j) {
-              throw new Error(j.detail || ("La API respondió " + res.status));
-            });
-          }
-          // Lee el stream SSE (data: {...}\n\n) en tiempo real.
-          var reader = res.body.getReader();
-          var decoder = new TextDecoder();
-          var buffer = "";
-          var terminado = false;
-          function leer() {
-            return reader.read().then(function (r) {
-              if (terminado || r.done) return;
-              buffer += decoder.decode(r.value, { stream: true });
-              var partes = buffer.split("\n\n");
-              buffer = partes.pop();   // el resto (posible evento incompleto)
-              for (var i = 0; i < partes.length; i++) {
-                var linea = partes[i].split("\n").filter(function (l) { return l.indexOf("data:") === 0; })[0];
-                if (!linea) continue;
-                var payload = linea.slice(5).trim();
-                if (!payload) continue;
-                var obj;
-                try { obj = JSON.parse(payload); } catch (e) { continue; }
-                if (procesarEvento(obj)) { terminado = true; return; }
-              }
-              return leer();
-            });
-          }
-          return leer();
-        })
-        .catch(function (err) {
+      // EventSource (SSE por GET): maneja mejor el streaming a través de ngrok
+      // que fetch+ReadableStream. Los parámetros van en la query string.
+      var qs = new URLSearchParams({
+        territorio: territorio,
+        departamento_hint: depto,        // siempre el departamento elegido
+        forzar_lugar: forzar ? "true" : "false",   // "No, buscar igual"
+        fecha_inicio: fechaInicio.value,
+        fecha_fin: fechaFin.value,
+      });
+
+      if (es) { try { es.close(); } catch (e) {} }
+      var terminado = false;
+      es = new EventSource(API_BASE + "/analizar?" + qs.toString());
+
+      es.onmessage = function (ev) {
+        var obj;
+        try { obj = JSON.parse(ev.data); } catch (e) { return; }
+        try {
+          if (procesarEvento(obj)) { terminado = true; es.close(); }   // resultado/sugerencia
+        } catch (err) {   // procesarEvento lanza en {"error": ...}
+          terminado = true; es.close();
           $("error-msg").textContent = err.message || "No se pudo conectar con la API";
           mostrar("error");
-        });
+        }
+      };
+
+      es.onerror = function () {
+        if (terminado) return;                 // cierre normal tras un evento terminal
+        terminado = true;
+        try { es.close(); } catch (e) {}       // evita que EventSource reintente (re-análisis)
+        $("error-msg").textContent = "Se perdió la conexión con la API";
+        mostrar("error");
+      };
     }
 
     function nuevaConsulta() {
       clearInterval(intervalId);
+      if (es) { try { es.close(); } catch (e) {} }
       selDepartamento.value = "";
       inputLugar.value = "";
       progreso = 0; etapa = 0;

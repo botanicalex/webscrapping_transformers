@@ -291,7 +291,7 @@ async def analizar_options(request: Request):
         status_code=200,
         headers={
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, ngrok-skip-browser-warning",
         },
     )
@@ -382,13 +382,26 @@ FRACCION_MIN_TERRITORIAL = 0.30   # etapa 3: al menos 30% de la muestra debe pas
 MAX_MUESTRA_VALIDACION = 20
 
 
-@app.post("/analizar")
-def analizar(sol: SolicitudAnalisis):
+@app.get("/analizar")
+def analizar(
+    territorio: str = Query(..., description="Lugar a analizar"),
+    fecha_inicio: str = Query(...),
+    fecha_fin: str = Query(...),
+    departamento_hint: Optional[str] = Query(None),
+    forzar_lugar: bool = Query(False),
+):
     """Analiza un territorio emitiendo el progreso por SSE (text/event-stream).
-    Cada evento es una linea `data: {...}`. Las etapas 3 y 4 validan con NLI
-    (relevancia territorial y tematica social) sobre una muestra <=20: si nadie
-    de la muestra pasa el umbral, se rechaza todo el corpus con un evento
-    {"error": ...}. La etapa 8 trae el resultado final."""
+    Es GET (no POST) con los parametros en la query string para que el front
+    pueda usar EventSource, que solo soporta GET y streamea mejor a traves de
+    proxies como ngrok. Cada evento es una linea `data: {...}`. Las etapas 3 y 4
+    validan con NLI sobre una muestra <=20; la etapa 8 trae el resultado final."""
+    sol = SolicitudAnalisis(
+        territorio=territorio,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        departamento_hint=departamento_hint,
+        forzar_lugar=forzar_lugar,
+    )
 
     def _sse(obj: dict) -> str:
         return "data: " + json.dumps(obj, ensure_ascii=False) + "\n\n"
