@@ -237,19 +237,14 @@
     const ETAPAS = [
       "Conectando con los periódicos...",
       "Descargando artículos...",
-      "Validando relevancia territorial...",
-      "Validando temática social...",
       "Ejecutando análisis NLP...",
       "Calculando indicadores de riesgo...",
       "Generando resultados...",
     ];
-    // Progreso de la barra según el número de etapa que manda el back (SSE).
-    const PROGRESO_ETAPA = { 1: 10, 2: 25, 3: 40, 4: 55, 5: 70, 6: 85, 7: 95, 8: 100 };
 
     // ── Estado ────────────────────────────────────────────────────────────────
     var territorioAnalizado = "";
     var intervalId = null, etapa = 0, progreso = 0;
-    var es = null;   // EventSource activo del /analizar (SSE)
 
     var $ = function (id) { return document.getElementById(id); };
     var selDepartamento = $("sel-departamento");
@@ -359,27 +354,7 @@
       mostrar("sugerencia");
     }
 
-    // ── Análisis ───────────────────────────────────────────────────────────
-    // Aplica un evento SSE del back a la UI de loading.
-    function procesarEvento(obj) {
-      if (obj.error) { throw new Error(obj.error); }   // lo captura el .catch
-      if (obj.sugerencia) { mostrarSugerencias(obj.sugerencia, obj.msg); return true; }
-      if (obj.resultado) {
-        progreso = 100; pintarLoading();
-        sessionStorage.setItem("radar_resultado", JSON.stringify(obj.resultado));
-        window.location.href = "visualizacion_riesgo.html" + window.location.search;
-        return true;   // terminado
-      }
-      if (obj.etapa) {
-        etapa = Math.min(obj.etapa - 1, ETAPAS.length - 1);   // 0-based para dots/texto
-        progreso = PROGRESO_ETAPA[obj.etapa] || progreso;
-        $("loading-etapa").textContent = obj.msg || ETAPAS[etapa] || "";
-        $("barra-progreso").style.width = progreso + "%";
-        pintarDots();
-      }
-      return false;
-    }
-
+    // ── Análisis (POST + JSON síncrono) ──────────────────────────────────────
     function analizar(forzar) {
       var depto = selDepartamento.value;
       if (!(depto && fechasValidas())) return;
@@ -391,44 +366,53 @@
       pintarLoading();
       mostrar("loading");
 
-      // EventSource (SSE por GET): maneja mejor el streaming a través de ngrok
-      // que fetch+ReadableStream. Los parámetros van en la query string.
-      var qs = new URLSearchParams({
-        territorio: territorio,
-        departamento_hint: depto,        // siempre el departamento elegido
-        forzar_lugar: forzar ? "true" : "false",   // "No, buscar igual"
-        fecha_inicio: fechaInicio.value,
-        fecha_fin: fechaFin.value,
-      });
+      // Progreso "animado" mientras esperamos la respuesta (sin SSE): avanza hasta
+      // 95% y llega a 100% al recibir el resultado.
+      clearInterval(intervalId);
+      intervalId = setInterval(function () {
+        etapa = Math.min(etapa + 1, ETAPAS.length - 1);
+        progreso = Math.min(progreso + 12, 95);
+        pintarLoading();
+      }, 1500);
 
-      if (es) { try { es.close(); } catch (e) {} }
-      var terminado = false;
-      es = new EventSource(API_BASE + "/analizar?" + qs.toString());
-
-      es.onmessage = function (ev) {
-        var obj;
-        try { obj = JSON.parse(ev.data); } catch (e) { return; }
-        try {
-          if (procesarEvento(obj)) { terminado = true; es.close(); }   // resultado/sugerencia
-        } catch (err) {   // procesarEvento lanza en {"error": ...}
-          terminado = true; es.close();
+      fetch(API_BASE + "/analizar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "69420" },
+        body: JSON.stringify({
+          territorio: territorio,
+          departamento_hint: depto,        // siempre el departamento elegido
+          forzar_lugar: !!forzar,          // "No, buscar igual"
+          fecha_inicio: fechaInicio.value,
+          fecha_fin: fechaFin.value,
+        }),
+      })
+        .then(function (res) {
+          if (!res.ok) {
+            return res.json().catch(function () { return {}; }).then(function (j) {
+              throw new Error(j.detail || ("La API respondió " + res.status));
+            });
+          }
+          return res.json();
+        })
+        .then(function (data) {
+          clearInterval(intervalId);
+          if (data && data.sugerencia) {   // municipio no exacto → pantalla de sugerencias
+            mostrarSugerencias(data.sugerencia, data.msg);
+            return;
+          }
+          progreso = 100; pintarLoading();
+          sessionStorage.setItem("radar_resultado", JSON.stringify(data));
+          window.location.href = "visualizacion_riesgo.html" + window.location.search;
+        })
+        .catch(function (err) {
+          clearInterval(intervalId);
           $("error-msg").textContent = err.message || "No se pudo conectar con la API";
           mostrar("error");
-        }
-      };
-
-      es.onerror = function () {
-        if (terminado) return;                 // cierre normal tras un evento terminal
-        terminado = true;
-        try { es.close(); } catch (e) {}       // evita que EventSource reintente (re-análisis)
-        $("error-msg").textContent = "Se perdió la conexión con la API";
-        mostrar("error");
-      };
+        });
     }
 
     function nuevaConsulta() {
       clearInterval(intervalId);
-      if (es) { try { es.close(); } catch (e) {} }
       selDepartamento.value = "";
       inputLugar.value = "";
       progreso = 0; etapa = 0;
