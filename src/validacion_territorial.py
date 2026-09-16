@@ -201,8 +201,7 @@ def validar_territorio(territorio: str,
             return ResultadoValidacion(
                 valido=False, tipo="invalido", termino=termino,
                 departamento=hint_oficial,
-                mensaje=(f"'{termino}' no es un territorio de {hint_oficial}. "
-                         f"Figura en: {otros}."),
+                mensaje=f"'{termino}' no es un municipio de {hint_oficial}. Existe en: {otros}.",
             )
 
         # 5. No figura en la tabla del DANE.
@@ -217,9 +216,8 @@ def validar_territorio(territorio: str,
         return ResultadoValidacion(
             valido=False, tipo="invalido", termino=termino,
             departamento=hint_oficial, forzable=True,
-            mensaje=(f"'{termino}' no figura como municipio de {hint_oficial} "
-                     f"en la division oficial del DANE, que solo llega a nivel "
-                     f"municipal. Puede ser una vereda o un corregimiento."),
+            mensaje=(f"'{termino}' no es un municipio de {hint_oficial}. "
+                     f"Puede ser una vereda o un corregimiento."),
         )
 
     # ── Sin departamento indicado ────────────────────────────────────────────
@@ -261,8 +259,8 @@ def validar_territorio(territorio: str,
         )
     return ResultadoValidacion(
         valido=False, tipo="invalido", termino=termino, forzable=True,
-        mensaje=(f"'{termino}' no figura en la division territorial oficial "
-                 f"del DANE (32 departamentos, {TOTAL_MUNICIPIOS} municipios)."),
+        mensaje=(f"'{termino}' no coincide con ningún municipio. "
+                 f"Puede ser una vereda o un corregimiento."),
     )
 
 
