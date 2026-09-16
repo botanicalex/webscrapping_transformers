@@ -156,6 +156,9 @@
       <div id="error-msg" class="err-msg"></div>
       <div class="err-actions">
         <button id="btn-reintentar" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 13px; margin-top: 0;">Reintentar</button>
+        <!-- Solo visible cuando la API marca el rechazo como forzable (vereda/
+             corregimiento que no figura en la tabla). Nunca por string matching. -->
+        <button id="btn-forzar-error" class="btn-outline" hidden>No, buscar igual</button>
         <button id="btn-nueva-error" class="btn-outline">Nueva consulta</button>
       </div>
     </section>
@@ -389,7 +392,9 @@
         .then(function (res) {
           if (!res.ok) {
             return res.json().catch(function () { return {}; }).then(function (j) {
-              throw new Error(j.detail || ("La API respondió " + res.status));
+              var e = new Error(j.detail || ("La API respondió " + res.status));
+              e.forzable = !!j.forzable;   // la API lo marca; no se infiere del mensaje
+              throw e;
             });
           }
           return res.json();
@@ -407,6 +412,7 @@
         .catch(function (err) {
           clearInterval(intervalId);
           $("error-msg").textContent = err.message || "No se pudo conectar con la API";
+          $("btn-forzar-error").hidden = !err.forzable;
           mostrar("error");
         });
     }
@@ -424,6 +430,7 @@
     btnAnalizar.addEventListener("click", function () { analizar(false); });
     $("btn-reintentar").addEventListener("click", function () { analizar(false); });
     $("btn-buscar-igual").addEventListener("click", function () { analizar(true); });
+    $("btn-forzar-error").addEventListener("click", function () { analizar(true); });
     $("btn-nueva-error").addEventListener("click", nuevaConsulta);
 
     // init

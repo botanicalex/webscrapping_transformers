@@ -916,3 +916,31 @@ propuesto aparte; este commit es solo la capa API (`refactor(api)`).
 **Cierra:** la dependencia de red de la demo en el autocompletado y la validacion.
 **Abre:** cablear el front a las nuevas respuestas del FILTRO 1 (hint, forzar, chooser de
 homonimos).
+
+## [2026-09-16] El rechazo 422 del FILTRO 1 ahora distingue `forzable` — ADOPTADA
+
+Seguimiento de la entrada anterior. El rechazo duro de `/analizar` (y la respuesta de
+`/validar`) ahora lleva `forzable: bool` junto al `detail`. La API responde ese caso con un
+`JSONResponse(status_code=422, ...)` con header `Access-Control-Allow-Origin: *` (como el
+`global_exception_handler`); `detail` sigue siendo string, asi que ningun front viejo se
+rompe.
+
+- `forzable=True` solo cuando el territorio NO figura en la tabla (posible vereda o
+  corregimiento, con o sin departamento elegido).
+- `forzable=False` cuando el texto esta vacio o cuando el municipio existe pero en OTRO
+  departamento: ahi forzar scrapearia prensa equivocada; el usuario debe corregir el
+  dropdown, no forzar.
+
+El campo vive en `ResultadoValidacion` (validacion_territorial.py), asi ambos endpoints lo
+exponen sin recomputar.
+
+**Por que:** era justo lo que faltaba para que Paraguachon (y toda vereda) tenga salida en
+la UI. El front desplegado (`docs/busqueda_pipeline.html`, el de GitHub Pages) enviaba un
+`departamento_hint` valido siempre, asi que una vereda caia en el 422 duro -> pantalla de
+error, que NO tenia el boton "buscar igual" (vivia solo en la pantalla de sugerencias). El
+mensaje decia "usa 'buscar igual'" y el boton no estaba. Ahora la pantalla de error muestra
+"No, buscar igual" solo si `forzable` es true, sin string matching sobre el mensaje.
+
+**Front real:** el desplegado es `docs/busqueda_pipeline.html` (GitHub Pages sirve `docs/`).
+`frontend/busqueda_pipeline.jsx` era un prototipo anterior no desplegado (sin build, sin
+referencias) y se elimino en un commit de limpieza aparte.

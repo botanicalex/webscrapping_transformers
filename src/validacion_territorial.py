@@ -125,6 +125,10 @@ class ResultadoValidacion:
     - valido=False -> cortar. `sugerencias` no vacio => pantalla "quisiste decir".
     - exige_cobertura=True -> es un lugar forzado (vereda/corregimiento): la capa
       de arriba debe exigir un minimo de articulos antes de puntuar.
+    - forzable=True -> el rechazo se puede saltar con forzar=True porque el
+      territorio NO figura en la tabla (posible vereda/corregimiento). Es False
+      cuando el texto esta vacio o cuando existe pero en OTRO departamento: ahi
+      forzar scrapearia prensa equivocada, el usuario debe corregir el dropdown.
     """
     valido: bool
     tipo: str
@@ -134,6 +138,7 @@ class ResultadoValidacion:
     sugerencias: List[str] = field(default_factory=list)
     mensaje: str = ""
     exige_cobertura: bool = False
+    forzable: bool = False
 
 
 def validar_territorio(territorio: str,
@@ -209,7 +214,7 @@ def validar_territorio(territorio: str,
             )
         return ResultadoValidacion(
             valido=False, tipo="invalido", termino=termino,
-            departamento=hint_oficial,
+            departamento=hint_oficial, forzable=True,
             mensaje=(f"'{termino}' no figura como municipio de {hint_oficial} "
                      f"en la division oficial del DANE. Si es una vereda o un "
                      f"corregimiento, usa 'buscar igual'."),
@@ -253,7 +258,7 @@ def validar_territorio(territorio: str,
             mensaje="¿Quisiste decir alguno de estos?",
         )
     return ResultadoValidacion(
-        valido=False, tipo="invalido", termino=termino,
+        valido=False, tipo="invalido", termino=termino, forzable=True,
         mensaje=(f"'{termino}' no figura en la division territorial oficial "
                  f"del DANE (32 departamentos, {TOTAL_MUNICIPIOS} municipios)."),
     )

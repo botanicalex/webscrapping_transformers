@@ -301,6 +301,7 @@ def validar(sol: SolicitudAnalisis):
         "sugerencia": r.sugerencias,
         "msg": r.mensaje,
         "exige_cobertura": r.exige_cobertura,
+        "forzable": r.forzable,
     }
 
 
@@ -321,7 +322,16 @@ def analizar(sol: SolicitudAnalisis):
         # sin ellas es un rechazo duro y se corta con 422.
         if val.sugerencias:
             return {"sugerencia": val.sugerencias, "msg": val.mensaje}
-        raise HTTPException(status_code=422, detail=val.mensaje)
+        # Rechazo duro. `forzable` le dice al front si tiene sentido ofrecer
+        # "buscar igual" (solo cuando el territorio no figura en la tabla, p. ej.
+        # una vereda). detail sigue siendo string: el front viejo no se rompe.
+        # Header CORS explicito, igual que global_exception_handler (un 422 que
+        # sube sin el header llega al navegador como error CORS enmascarado).
+        return JSONResponse(
+            status_code=422,
+            content={"detail": val.mensaje, "forzable": val.forzable},
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
 
     termino = val.termino               # nombre oficial ya normalizado
     piso_vereda = val.exige_cobertura   # lugar forzado => piso de cobertura
