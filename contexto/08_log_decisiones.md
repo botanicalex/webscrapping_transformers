@@ -993,3 +993,44 @@ el "sin cobertura tras scrapear" SI pueden cambiar en un reintento, asi que ahi 
 "Reintentar". El front distingue por la PRESENCIA de la clave `forzable` en el body (los
 HTTPException de scraping/cobertura/500 no la traen), sin string matching. Ademas, un rechazo
 forzable se presenta como advertencia (ambar) y no como error.
+
+## [2026-09-16] Filtro 2 (gate tematico) — ANALISIS, EN PAUSA (pendiente etiquetado)
+
+Objetivo: un gate binario que, antes de confiar en el radar de un lugar, descarte lugares
+cuya prensa scrapeada no es tematicamente relevante (el problema Amazonas: el departamento
+existe, las noticias son "sociales" pero hablan del rio). Decision de diseño: derivarlo de
+las 26 hipotesis V2 ya calculadas, no de una hipotesis "es social" nueva, para calibrar
+offline sin GPU y en la misma escala en la que se aplica.
+
+**Descartado con evidencia:**
+- **La metrica "fraccion de articulos con >=1 de 26 sobre el piso de sesgo" es degenerada.**
+  En escala V2 las 26 columnas ya vienen bias-discounted (clip(clip(ent-sesgo,0)*(1-neu),0,1)),
+  y ">0" lo cumple el 100% de los articulos de los 4 lugares. Se reemplaza por una señal
+  graduada: `max_26` (el indicador mas fuerte del articulo).
+- **El control absurdo (pinguinos/osos polares) NO es la clase mala de un gate tematico.**
+  Son hipotesis absurdas corridas sobre el mismo corpus para medir el sesgo "si-decidor" de
+  los indicadores; ese sesgo ya esta descontado (columna `sesgo`). No existe como corpus
+  reutilizable en la maquina, y conceptualmente mide otra cosa.
+
+**Datos:**
+- El pkl nacional V2 (`scores_v2_32deptos.pkl`) NO existe en la maquina; no se re-corrio el
+  corpus completo. La calibracion usa el pkl de 5 lugares en escala V2 (con `sesgo`, sin
+  `score_social`): `tablas_lugares_max/tablas_lugares_max/df_procesado_5lugares.pkl` (3-sep).
+  El otro `df_procesado_5lugares.pkl` (24-ago, en `tablas_indicadores_lugares/`) es la escala
+  VIEJA con pre-filtro social (fila entera 0 o 26) y NO se usa.
+- **La clase mala esta dentro del pkl de 5 lugares:** son los articulos no-sociales de la
+  prensa local (deportes, cultura, farandula, avisos), sobre todo de Maicao. Solo falta
+  ETIQUETARLA. Muestra de 60 articulos estratificada por `max_26`, barajada y sin `max_26`
+  a la vista, en `contexto/filtro2/`.
+
+**Limites de la calibracion (asumidos):**
+- Maicao aporta ~2/3 del pkl (1101/1647) y 77% de la muestra a etiquetar: la separacion
+  estara dominada por una sola prensa local; validez externa limitada.
+- La clase mala es interna al corpus (no hay off-topic externo scoreado).
+
+**Estado:** en pausa por falta de etiquetado. Sin impacto en el flujo end-to-end: el filtro 2
+no esta implementado en `src/` ni en `api.py`; el pipeline corre sin gate tematico, igual que
+antes.
+**Reabre:** con las 60 etiquetas -> distribucion de `max_26` por clase (3.2) -> umbral con
+basura rechazada y buenos perdidos (3.3). Insumos en `contexto/filtro2/` y pendiente en
+`contexto/07_backlog.md` punto 8.

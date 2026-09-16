@@ -331,6 +331,27 @@ mejoraría el insumo **más que cualquier ajuste de hipótesis**.
 
 ---
 
+## 8. Filtro 2 — gate tematico (EN PAUSA, pendiente etiquetado)
+
+Gate binario a nivel lugar: descartar un lugar cuya prensa scrapeada no es tematicamente
+relevante (problema Amazonas). Derivado de las 26 hipotesis V2 ya calculadas (sin NLI extra
+en vivo, a diferencia del gate SSE 30%/0.20 revertido por rollback tecnico, no por merito).
+
+**Hecho (analisis):** insumo V2 identificado (pkl 5 lugares con `sesgo`); metrica ">=1 de 26
+sobre el piso" descartada por degenerada (100% pasa) -> se usa `max_26`; clase mala = articulos
+no-sociales dentro del corpus (falta etiquetar); muestra de 60 estratificada y barajada lista
+en `contexto/filtro2/`.
+
+**Falta:** etiquetar los 60 (social/no_social/dudoso) -> distribucion de `max_26` por clase
+-> umbral (nivel articulo + fraccion por lugar) con basura rechazada y buenos perdidos.
+
+**Limites:** Maicao domina (~2/3 del corpus, 77% de la muestra); pkl nacional V2 no existe en
+la maquina. Detalle en `08_log_decisiones.md` [2026-09-16].
+
+**Costo:** el etiquetado (manual, ~1h); el resto es offline sin GPU.
+
+---
+
 ## Trabajo perdido que conviene rehacer
 
 Un workflow de 10 agentes quedó a medias al apagar el equipo. Cubría: propuestas de keywords
