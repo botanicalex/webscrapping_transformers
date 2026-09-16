@@ -131,11 +131,11 @@
         <div class="group grid-fechas">
           <div>
             <label class="field" for="fecha-inicio">Fecha inicio</label>
-            <input id="fecha-inicio" class="input" type="date" value="2023-01-01" />
+            <input id="fecha-inicio" class="input" type="date" />
           </div>
           <div>
             <label class="field" for="fecha-fin">Fecha fin</label>
-            <input id="fecha-fin" class="input" type="date" value="2023-12-31" />
+            <input id="fecha-fin" class="input" type="date" />
           </div>
         </div>
 
@@ -537,6 +537,29 @@
     $("btn-buscar-igual").addEventListener("click", function () { analizar(true); });
     $("btn-forzar-error").addEventListener("click", function () { analizar(true); });
     $("btn-nueva-error").addEventListener("click", nuevaConsulta);
+
+    // ── Fechas por defecto: fin = hoy, inicio = hace un mes ────────────────────
+    // Fecha LOCAL, no UTC: toISOString() en UTC-5 adelantaria un dia despues de las
+    // 7pm. Se arma el YYYY-MM-DD a mano. Al restar el mes se clampea al ultimo dia
+    // del mes anterior (31-mar => 28/29-feb, no 3-mar por el desborde de setMonth).
+    function fechaLocalISO(d) {
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, "0");
+      var dd = String(d.getDate()).padStart(2, "0");
+      return y + "-" + m + "-" + dd;
+    }
+    function haceUnMes(d) {
+      var dia = d.getDate();
+      var r = new Date(d.getFullYear(), d.getMonth() - 1, 1);  // primer dia del mes anterior
+      var ultimo = new Date(r.getFullYear(), r.getMonth() + 1, 0).getDate();  // su ultimo dia
+      r.setDate(Math.min(dia, ultimo));                        // clamp: evita el desborde
+      return r;
+    }
+    (function () {
+      var hoy = new Date();
+      fechaFin.value = fechaLocalISO(hoy);
+      fechaInicio.value = fechaLocalISO(haceUnMes(hoy));
+    })();
 
     // init
     refrescar();
