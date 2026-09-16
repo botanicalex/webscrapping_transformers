@@ -61,9 +61,13 @@
     .card-center { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); border: 1px solid #E2E8F0; text-align: center; animation: fadeIn 0.3s ease; }
     .spinner { width: 56px; height: 56px; border-radius: 50%; background: #1B4F72; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; animation: spin 1s linear infinite; }
     .loading-title { font-size: 16px; font-weight: 600; color: #1B4F72; margin-bottom: 6px; }
-    .loading-etapa { font-size: 13px; color: #64748B; margin-bottom: 24px; height: 20px; }
+    .loading-etapa { font-size: 13px; color: #64748B; margin-bottom: 6px; height: 20px; }
+    .loading-tiempo { font-size: 12px; color: #475569; font-variant-numeric: tabular-nums; margin-bottom: 20px; }
     .barra { width: 100%; height: 6px; background: #E2E8F0; border-radius: 3px; overflow: hidden; margin-bottom: 20px; }
-    .barra > div { height: 100%; background: linear-gradient(90deg, #1B4F72, #10B981); border-radius: 3px; transition: width 0.8s ease; }
+    /* Barra INDETERMINADA: sin SSE no hay progreso real, así que un segmento que se
+       desplaza en loop en vez de un porcentaje falso. */
+    .barra > div { height: 100%; width: 35%; background: linear-gradient(90deg, #1B4F72, #10B981); border-radius: 3px; animation: indet 1.5s ease-in-out infinite; }
+    @keyframes indet { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
     .dots { display: flex; justify-content: space-between; margin-bottom: 24px; }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: #E2E8F0; transition: background 0.3s; }
     .dot.on { background: #10B981; }
@@ -149,9 +153,10 @@
       </div>
       <div class="loading-title">Analizando <span id="loading-territorio"></span></div>
       <div id="loading-etapa" class="loading-etapa"></div>
-      <div class="barra"><div id="barra-progreso" style="width: 0%;"></div></div>
+      <div id="loading-tiempo" class="loading-tiempo"></div>
+      <div class="barra"><div id="barra-progreso"></div></div>
       <div id="dots" class="dots"></div>
-      <div class="loading-foot">Procesando con mDeBERTa-v3 · Pipeline FNCE — esto puede tardar varios minutos</div>
+      <div class="loading-foot">Los pasos son una estimación por tiempo; la duración real depende de la cobertura de prensa. mDeBERTa-v3 · Pipeline FNCE.</div>
     </section>
 
     <!-- ERROR / ADVERTENCIA (el título, el estilo y los botones se ajustan en JS
@@ -243,17 +248,20 @@
       "boyaca7dias": "Boyacá 7 Días", "eltiempo": "El Tiempo", "verdadabierta": "VerdadAbierta"
     };
 
-    const ETAPAS = [
-      "Conectando con los periódicos...",
-      "Descargando artículos...",
-      "Ejecutando análisis NLP...",
-      "Calculando indicadores de riesgo...",
-      "Generando resultados...",
+    // Fases ESTIMADAS por tiempo transcurrido (sin SSE no hay progreso real).
+    // `hasta` = segundo estimado en que termina la fase. La ULTIMA no tiene corte
+    // (Infinity): si la estimación se queda corta, se queda esperando ahí en vez de
+    // avanzar a algo falso.
+    // TIEMPOS PROVISIONALES — calibrar cronometrando un análisis real (ver backlog).
+    const FASES = [
+      { hasta: 60,       texto: "Buscando noticias (estimado)…" },
+      { hasta: 150,      texto: "Clasificando artículos (estimado)…" },
+      { hasta: Infinity, texto: "Calculando el índice (estimado)…" },
     ];
 
     // ── Estado ────────────────────────────────────────────────────────────────
     var territorioAnalizado = "";
-    var intervalId = null, etapa = 0, progreso = 0;
+    var intervalId = null, tInicio = 0, faseIdx = 0;
 
     var $ = function (id) { return document.getElementById(id); };
     var selDepartamento = $("sel-departamento");
@@ -324,15 +332,22 @@
     fechaInicio.addEventListener("change", refrescar);
     fechaFin.addEventListener("change", refrescar);
 
-    // ── Loading helpers ─────────────────────────────────────────────────────
+    // ── Loading helpers (fases estimadas por tiempo, sin SSE) ─────────────────
     function pintarDots() {
       var html = "";
-      for (var i = 0; i < ETAPAS.length; i++) html += '<div class="dot' + (i <= etapa ? " on" : "") + '"></div>';
+      for (var i = 0; i < FASES.length; i++) html += '<div class="dot' + (i <= faseIdx ? " on" : "") + '"></div>';
       $("dots").innerHTML = html;
     }
+    function _mmss(seg) {
+      var m = Math.floor(seg / 60), s = seg % 60;
+      return m + ":" + (s < 10 ? "0" : "") + s;
+    }
     function pintarLoading() {
-      $("loading-etapa").textContent = ETAPAS[etapa];
-      $("barra-progreso").style.width = progreso + "%";
+      var elapsed = Math.max(0, Math.floor((Date.now() - tInicio) / 1000));
+      faseIdx = FASES.length - 1;                 // por defecto, la última (sin corte)
+      for (var i = 0; i < FASES.length; i++) { if (elapsed < FASES[i].hasta) { faseIdx = i; break; } }
+      $("loading-etapa").textContent = FASES[faseIdx].texto;
+      $("loading-tiempo").textContent = "Transcurrido " + _mmss(elapsed);
       pintarDots();
     }
     function mostrar(seccion) {
@@ -397,18 +412,14 @@
 
       territorioAnalizado = territorio;
       $("loading-territorio").textContent = territorio;
-      etapa = 0; progreso = 8;
+      tInicio = Date.now(); faseIdx = 0;
       pintarLoading();
       mostrar("loading");
 
-      // Progreso "animado" mientras esperamos la respuesta (sin SSE): avanza hasta
-      // 95% y llega a 100% al recibir el resultado.
+      // Fase por tiempo transcurrido + contador real (1 Hz). Sin SSE no hay progreso
+      // real: la barra es indeterminada y la última fase no tiene corte.
       clearInterval(intervalId);
-      intervalId = setInterval(function () {
-        etapa = Math.min(etapa + 1, ETAPAS.length - 1);
-        progreso = Math.min(progreso + 12, 95);
-        pintarLoading();
-      }, 1500);
+      intervalId = setInterval(pintarLoading, 1000);
 
       fetch(API_BASE + "/analizar", {
         method: "POST",
@@ -438,7 +449,6 @@
             mostrarSugerencias(data.sugerencia, data.msg);
             return;
           }
-          progreso = 100; pintarLoading();
           sessionStorage.setItem("radar_resultado", JSON.stringify(data));
           window.location.href = "visualizacion_riesgo.html" + window.location.search;
         })
@@ -465,7 +475,7 @@
       clearInterval(intervalId);
       selDepartamento.value = "";
       inputLugar.value = "";
-      progreso = 0; etapa = 0;
+      faseIdx = 0;
       $("btn-forzar-error").hidden = true;   // no arrastrar el botón entre consultas
       refrescar();
       mostrar("form");

@@ -352,6 +352,21 @@ la maquina. Detalle en `08_log_decisiones.md` [2026-09-16].
 
 ---
 
+## 9. Pantalla de carga: fases reales requieren SSE (aproximacion por tiempo)
+
+`docs/busqueda_pipeline.html` muestra la fase del analisis (buscando noticias ->
+clasificando articulos -> calculando el indice) **estimada por tiempo transcurrido en el
+front**, con un contador real y barra indeterminada. NO son fases reales: `/analizar` es un
+POST unico que no reporta progreso. Las fases reales requieren **SSE** (streaming servidor
+-> cliente), que se implemento y se **revirtio en `ec986f1`** por problemas de event-loop/
+ngrok. Esto es una aproximacion honesta mientras no se retome SSE.
+
+**Pendiente:** los tiempos de `FASES` son PROVISIONALES. Cronometrar un analisis real
+(scraping + NLI + calculo) y ajustar los cortes `hasta` de cada fase. No hay medicion por
+fase en el repo ni en logs.
+
+---
+
 ## Trabajo perdido que conviene rehacer
 
 Un workflow de 10 agentes quedó a medias al apagar el equipo. Cubría: propuestas de keywords
