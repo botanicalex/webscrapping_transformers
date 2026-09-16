@@ -193,8 +193,10 @@ def validar_territorio(territorio: str,
                 mensaje="¿Quisiste decir alguno de estos?",
             )
 
-        # 4. Existe, pero en otro departamento. Error distinto y util.
-        if deptos_del_termino and not forzar:
+        # 4. Existe, pero en otro departamento. Rechazo NO forzable: forzar aqui
+        #    scrapearia la prensa del departamento equivocado. Se ignora forzar y
+        #    se devuelve el 422 igual (el usuario debe corregir el dropdown).
+        if deptos_del_termino:
             otros = ", ".join(deptos_del_termino)
             return ResultadoValidacion(
                 valido=False, tipo="invalido", termino=termino,

@@ -336,8 +336,35 @@
       $("estado-sugerencia").hidden = seccion !== "sugerencia";
     }
 
-    // Pantalla de "¿Quisiste decir...?": botones por sugerencia (vuelven al form
-    // con ese nombre) + "No, buscar igual" (fuerza la búsqueda original).
+    // Nombre oficial del departamento (respetando tildes) si `txt` es uno, o null.
+    function nombreDeptoOficial(txt) {
+      var n = norm(txt);
+      for (var i = 0; i < DEPARTAMENTOS.length; i++) {
+        if (norm(DEPARTAMENTOS[i]) === n) return DEPARTAMENTOS[i];
+      }
+      return null;
+    }
+
+    // Elegir una sugerencia: sigue DERECHO con el análisis (no vuelve al form).
+    // Una sugerencia de homónimo viene como "Villanueva (La Guajira)": el
+    // paréntesis es el departamento -> va al departamento_hint (dropdown), no al
+    // territorio. Se re-analiza sin forzar (forzar solo lo activan los botones
+    // "No, buscar igual").
+    function elegirSugerencia(sug) {
+      var m = /^\s*(.+?)\s*\(([^)]+)\)\s*$/.exec(sug);
+      var oficial = m ? nombreDeptoOficial(m[2]) : null;
+      if (oficial) {
+        selDepartamento.value = oficial;   // homónimo: fija el departamento
+        inputLugar.value = m[1];
+      } else {
+        inputLugar.value = sug;            // nombre simple; el depto elegido se mantiene
+      }
+      refrescar();
+      analizar(false);
+    }
+
+    // Pantalla de "¿Quisiste decir...?": botones por sugerencia (siguen el
+    // análisis) + "No, buscar igual" (fuerza la búsqueda original).
     function mostrarSugerencias(lista, msg) {
       $("sug-msg").textContent = msg || "¿Quisiste decir alguno de estos?";
       var cont = $("sug-botones");
@@ -347,17 +374,16 @@
         b.className = "btn-primary";
         b.style.marginTop = "0";
         b.textContent = nombre;
-        b.addEventListener("click", function () {
-          inputLugar.value = nombre;   // el departamento sigue seleccionado
-          refrescar();
-          mostrar("form");
-        });
+        b.addEventListener("click", function () { elegirSugerencia(nombre); });
         cont.appendChild(b);
       });
       mostrar("sugerencia");
     }
 
     // ── Análisis (POST + JSON síncrono) ──────────────────────────────────────
+    // `forzar` es un parámetro por-llamada, no un estado: nunca queda "pegado"
+    // entre búsquedas. Solo lo ponen en true los botones "No, buscar igual";
+    // toda otra entrada (Analizar, Reintentar, elegir sugerencia) manda false.
     function analizar(forzar) {
       var depto = selDepartamento.value;
       if (!(depto && fechasValidas())) return;
@@ -422,6 +448,7 @@
       selDepartamento.value = "";
       inputLugar.value = "";
       progreso = 0; etapa = 0;
+      $("btn-forzar-error").hidden = true;   // no arrastrar el botón entre consultas
       refrescar();
       mostrar("form");
     }

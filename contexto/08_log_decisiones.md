@@ -944,3 +944,41 @@ mensaje decia "usa 'buscar igual'" y el boton no estaba. Ahora la pantalla de er
 **Front real:** el desplegado es `docs/busqueda_pipeline.html` (GitHub Pages sirve `docs/`).
 `frontend/busqueda_pipeline.jsx` era un prototipo anterior no desplegado (sin build, sin
 referencias) y se elimino en un commit de limpieza aparte.
+
+## [2026-09-16] `forzar` solo aplica en rechazos forzables + UX de sugerencias — ADOPTADA
+
+Tres arreglos sobre el front desplegado (`docs/busqueda_pipeline.html`) y el validador,
+tras probar el flujo con payloads reales del POST capturados en el navegador.
+
+1. **`forzar` no se pega entre busquedas (front).** Se verifico que ya era un parametro
+   por-llamada, no un estado: una busqueda nueva siempre manda `forzar_lugar:false` (payload
+   real confirmado, incluso despues de usar "No, buscar igual"). Se endurecio el reset del
+   boton de forzar en "Nueva busqueda" y se documento la invariante.
+2. **`forzar_lugar` solo tiene efecto cuando el rechazo es forzable (validador).** Antes,
+   `forzar=true` salteaba los CUATRO rechazos: en particular "existe en otro departamento"
+   pasaba como sublugar y scrapeaba la prensa del departamento equivocado. Ahora ese caso
+   (case 4 de `validar_territorio`) rechaza igual con 422, ignorando `forzar`. El unico
+   camino que `forzar` habilita es el forzable (territorio que no figura en la tabla:
+   vereda/corregimiento). Vive en `validacion_territorial.py`, asi que cubre `/analizar` y
+   `/validar` por igual.
+3. **Elegir una sugerencia sigue derecho con el analisis (front).** Antes volvia al
+   formulario. Ademas, una sugerencia de homonimo viene como "Villanueva (La Guajira)": se
+   parsea el parentesis y el departamento va al `departamento_hint` (dropdown), no al
+   territorio; se re-analiza sin forzar.
+
+**Hipotesis descartada (forzar pegado):** el sintoma reportado (Medellin+Boyaca scrapea,
+Paraguachon sin pantalla de error) se atribuyo primero a que el front dejaba `forzar` pegado
+entre busquedas. Se DESCARTO con payloads reales del POST capturados en el navegador: una
+busqueda nueva manda `forzar_lugar:false`, incluso inmediatamente despues de usar "No, buscar
+igual". No hay estado persistente de forzar en el front.
+
+**Causa real del sintoma: la API de Colab corre codigo viejo.** El mensaje "No se encontro
+cobertura de prensa" solo sale del piso de cobertura. En el codigo nuevo ese piso se activa
+unicamente con `exige_cobertura=True` (lugar forzado). El codigo viejo ponia `piso_vereda=True`
+para "no es municipio exacto y sin sugerencias" — que es exactamente Medellin+Boyaca y
+Paraguachon: por eso scrapeaban y caian en ese piso, sin la pantalla nueva. NO lo causaba el
+punto 2: esta rama todavia no esta desplegada en Colab.
+
+**Como distinguir API vieja de nueva en caliente:** `POST /validar` da 404 en la vieja (el
+endpoint no existe) y 200 en la nueva. Es el chequeo rapido antes de confiar en cualquier
+prueba contra el backend de Colab.
