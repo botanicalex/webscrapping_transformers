@@ -14,8 +14,19 @@ hardcodean aqui.
 
 Endpoints:
   POST /analizar        territorio + fechas -> radar completo (scrapea + NLI)
-  GET  /lugares?q=...   autocompletado de municipios/departamentos via DIVIPOLA
+  POST /validar         solo FILTRO 1 (territorial), sin scrapear ni NLI
+  GET  /lugares?q=...   autocompletado de municipios/departamentos (tabla local)
   GET  /health          estado y cortes activos
+
+FILTRO 1 (territorial): antes de scrapear se valida que el texto escrito sea un
+territorio real del departamento elegido, contra `validacion_territorial.py`
+(tabla local del DANE). Si no lo es, se corta ahi: no hay scraping ni NLI.
+
+SIN DEPENDENCIA DE RED: la version anterior consultaba DIVIPOLA
+(datos.gov.co/resource/gdxc-w37w.json) en /lugares y para resolver el
+departamento de un municipio. Si esa API se caia, se caia el autocompletado y
+la validacion. Ahora todo sale de `municipios_colombia.py`, que es ese mismo
+dataset ya congelado en el repo (32 departamentos, 1121 municipios).
 
 Correr desde la raiz del proyecto:
     uvicorn src.api:app --host 0.0.0.0 --port 8000
@@ -24,15 +35,15 @@ o directamente:
 
 ADVERTENCIA: /analizar scrapea en vivo y corre mDeBERTa. Una request puede
 tardar varios minutos (el front tiene pantalla de loading). El modelo NLI se
-carga UNA sola vez (perezoso, al primer request) y se reutiliza.
+carga UNA sola vez AL ARRANCAR la app (no perezoso: instanciarlo dentro del
+thread del worker daba un 500 por conflicto CUDA/torch) y se reutiliza. Por eso
+uvicorn tarda varios minutos en responder /health la primera vez.
 """
 import os
 import sys
 import unicodedata
-from difflib import get_close_matches
 from typing import List, Optional
 
-import httpx
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -45,7 +56,7 @@ sys.path.insert(0, DIR_SRC)
 
 import config_pipeline as cfg          # noqa: E402
 from radar import CalculadorRadar       # noqa: E402
-from municipios_colombia import MUNICIPIOS_POR_DEPTO  # noqa: E402
+import validacion_territorial as vt     # noqa: E402
 
 # ── Parametros de presentacion (ajustables, NO tocan el pipeline) ────────────
 # Un articulo "apoya" un indicador si su score por articulo supera esto. Sirve
@@ -115,51 +126,21 @@ MAPA_TERRITORIO_PERIODICOS = {
 PERIODICOS_DEFECTO = ["eltiempo"]
 
 # Solo las claves que son departamentos (para el emparejamiento por
-# contenido cuando DIVIPOLA devuelve un nombre largo, p. ej. San Andres).
+# contenido cuando llega un nombre largo, p. ej. San Andres).
 _DEPARTAMENTOS_MAPA = {
     k for k in MAPA_TERRITORIO_PERIODICOS
     if k not in {"paraguachon", "maicao", "guintiva", "oicata"}
 }
 
-# ── DIVIPOLA (DANE) — solo departamentos y municipios (no veredas) ───────────
-DIVIPOLA_URL = "https://www.datos.gov.co/resource/gdxc-w37w.json"
-DIVIPOLA_TIMEOUT = 15.0
+# ── Helpers de texto ─────────────────────────────────────────────────────────
+# _norm y la limpieza de prefijos viven en validacion_territorial (unica fuente).
+_norm = vt.norm
+_termino_busqueda = vt.limpiar_termino
 
 
 def _slug(txt: str) -> str:
     t = unicodedata.normalize("NFD", str(txt).lower()).encode("ascii", "ignore").decode("ascii")
     return "".join(c if c.isalnum() else "_" for c in t).strip("_")
-
-
-def _norm(txt: str) -> str:
-    """Minusculas, sin tildes, espacios colapsados. Para casar contra el mapa."""
-    t = unicodedata.normalize("NFD", str(txt).lower()).encode("ascii", "ignore").decode("ascii")
-    return " ".join(t.split()).strip()
-
-
-def _municipios_del_departamento(nombre_depto: str) -> List[str]:
-    """Lista de municipios (nombres presentables) del departamento, o [] si no
-    coincide ninguna clave de MUNICIPIOS_POR_DEPTO (comparacion normalizada)."""
-    objetivo = _norm(nombre_depto)
-    for clave, municipios in MUNICIPIOS_POR_DEPTO.items():
-        if _norm(clave) == objetivo:
-            return municipios
-    return []
-
-
-def _titulo(txt: str) -> str:
-    """DIVIPOLA devuelve en mayusculas; se presenta en Title Case."""
-    return str(txt).strip().title()
-
-
-def _termino_busqueda(territorio: str) -> str:
-    """Quita el prefijo 'Municipio '/'Vereda ' — el filtro de scrappers usa
-    solo la primera palabra del termino (ver scrape_lugares.py)."""
-    t = territorio.strip()
-    for prefijo in ("municipio ", "vereda "):
-        if t.lower().startswith(prefijo):
-            return t[len(prefijo):].strip()
-    return t
 
 
 def _categoria(valor: float) -> str:
@@ -175,30 +156,18 @@ def _nombre_bonito(col: str) -> str:
     return col.replace("_", " ").title()
 
 
-# ── DIVIPOLA helpers ─────────────────────────────────────────────────────────
-def _divipola_departamento(municipio: str) -> Optional[str]:
-    """Departamento (crudo, mayusculas) al que pertenece un municipio, o None."""
-    nombre = municipio.replace("'", "''")  # escape SoQL
-    params = {
-        "$select": "dpto",
-        "$where": f"upper(nom_mpio) = upper('{nombre}')",
-        "$limit": 1,
-    }
-    try:
-        with httpx.Client(timeout=DIVIPOLA_TIMEOUT) as cliente:
-            r = cliente.get(DIVIPOLA_URL, params=params)
-            r.raise_for_status()
-            filas = r.json()
-    except Exception:
-        return None
-    if filas and filas[0].get("dpto"):
-        return filas[0]["dpto"]
-    return None
+# ── Resolucion de departamento (tabla local, sin red) ────────────────────────
+def _departamento_de_municipio(municipio: str) -> Optional[str]:
+    """Departamento al que pertenece un municipio, o None si no existe o si es
+    homonimo de varios (ahi hace falta que el usuario elija: no se adivina,
+    que es lo que hacia el $limit=1 de DIVIPOLA)."""
+    deptos = vt.departamentos_de_municipio(municipio)
+    return deptos[0] if len(deptos) == 1 else None
 
 
 def _periodicos_de_departamento(dpto: str) -> List[str]:
     """Periodicos del departamento segun el mapa. Exacto, luego por contenido
-    (nombres largos de DIVIPOLA, p. ej. 'Archipielago de San Andres...')."""
+    (por si llega un nombre largo, p. ej. 'Archipielago de San Andres...')."""
     clave = _norm(dpto)
     if clave in MAPA_TERRITORIO_PERIODICOS:
         return MAPA_TERRITORIO_PERIODICOS[clave]
@@ -211,14 +180,14 @@ def _periodicos_de_departamento(dpto: str) -> List[str]:
 def _resolver_periodicos(territorio: str, termino: str) -> List[str]:
     """Jerarquia pedida:
     a) territorio/termino en el mapa -> esos periodicos
-    b) si no, DIVIPOLA -> departamento del municipio -> periodicos del depto
+    b) si no, tabla local -> departamento del municipio -> periodicos del depto
     c) si tampoco -> ['eltiempo']
     """
     for clave in (_norm(termino), _norm(territorio)):
         if clave in MAPA_TERRITORIO_PERIODICOS:
             return MAPA_TERRITORIO_PERIODICOS[clave]
 
-    dpto = _divipola_departamento(termino)
+    dpto = _departamento_de_municipio(termino)
     if dpto:
         return _periodicos_de_departamento(dpto)
 
@@ -233,7 +202,7 @@ class SolicitudAnalisis(BaseModel):
     # opcional: si el front ya sabe los periodicos, los fuerza y saltea el mapa.
     periodicos: Optional[List[str]] = None
     # opcional: departamento indicado por el usuario (dropdown del front) para
-    # resolver los periodicos sin llamar a DIVIPOLA (util en texto libre/veredas).
+    # resolver los periodicos y validar el territorio (util en texto libre/veredas).
     departamento_hint: Optional[str] = None
     # opcional: si True, saltea la validacion de municipio (boton "No, buscar igual").
     forzar_lugar: Optional[bool] = False
@@ -307,103 +276,63 @@ async def lugares_options(request: Request):
     )
 
 
-# Cache en memoria de los municipios de DIVIPOLA (lista chica y estable). El LIKE
-# de SoQL es sensible a tildes y nom_mpio las trae ("MEDELLÍN"); por eso se filtra
-# en Python con _norm (sin tildes) en vez de en la query.
-_MUNICIPIOS_CACHE = None
-
-
-def _municipios_divipola():
-    global _MUNICIPIOS_CACHE
-    if _MUNICIPIOS_CACHE is None:
-        with httpx.Client(timeout=DIVIPOLA_TIMEOUT) as cliente:
-            r = cliente.get(DIVIPOLA_URL, params={
-                "$select": "nom_mpio,dpto,tipo_municipio",
-                "$limit": 1200,
-            })
-            r.raise_for_status()
-            _MUNICIPIOS_CACHE = r.json()
-    return _MUNICIPIOS_CACHE
-
-
 @app.get("/lugares")
 def lugares(q: str = Query(..., min_length=2, description="Texto a autocompletar")):
-    """Autocompletado de municipios y departamentos via DIVIPOLA (DANE).
-    DIVIPOLA guarda 'MEDELLÍN' con tilde y el LIKE de SoQL es sensible a acentos,
-    asi que se filtra en Python con _norm (sin tildes). gdxc-w37w no incluye veredas."""
-    try:
-        todos = _municipios_divipola()
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Fallo DIVIPOLA: {e}")
+    """Autocompletado de municipios y departamentos contra la tabla local del
+    DANE (`municipios_colombia.py`). Antes esto pegaba a DIVIPOLA en cada
+    pulsacion: si datos.gov.co se caia, el campo dejaba de sugerir. Ahora es un
+    lookup en memoria — instantaneo y sin red."""
+    return vt.autocompletar(q)
 
-    q_norm = _norm(q)
-    filas = [f for f in todos if q_norm in _norm(f.get("nom_mpio", ""))]
-    filas.sort(key=lambda f: str(f.get("nom_mpio", "")))
-    filas = filas[:10]
 
-    sugerencias, vistos = [], set()
-
-    for fila in filas:
-        mpio = fila.get("nom_mpio")
-        dpto = fila.get("dpto")
-        if not mpio or not dpto:
-            continue
-        # Municipio
-        clave_m = ("mpio", _norm(mpio), _norm(dpto))
-        if clave_m not in vistos:
-            vistos.add(clave_m)
-            sugerencias.append({
-                "nombre": _titulo(mpio),
-                "tipo": fila.get("tipo_municipio") or "Municipio",
-                "departamento": _titulo(dpto),
-            })
-        # Departamento (solo si el texto casa con su nombre)
-        if q_norm in _norm(dpto):
-            clave_d = ("dpto", _norm(dpto))
-            if clave_d not in vistos:
-                vistos.add(clave_d)
-                sugerencias.append({
-                    "nombre": _titulo(dpto),
-                    "tipo": "Departamento",
-                    "departamento": _titulo(dpto),
-                })
-
-    # Departamentos primero cuando el match es directo, luego municipios.
-    sugerencias.sort(key=lambda s: (s["tipo"] != "Departamento", s["nombre"]))
-    return sugerencias
+@app.post("/validar")
+def validar(sol: SolicitudAnalisis):
+    """FILTRO 1 aislado: valida el territorio sin scrapear ni cargar el NLI.
+    Permite que el front avise al instante, antes de lanzar un /analizar que
+    tarda minutos. /analizar aplica esta misma validacion igual, asi que
+    llamar aqui es opcional."""
+    r = vt.validar_territorio(sol.territorio, sol.departamento_hint,
+                              bool(sol.forzar_lugar))
+    return {
+        "valido": r.valido,
+        "tipo": r.tipo,
+        "territorio": r.nombre_oficial or r.termino,
+        "departamento": r.departamento,
+        "sugerencia": r.sugerencias,
+        "msg": r.mensaje,
+        "exige_cobertura": r.exige_cobertura,
+    }
 
 
 @app.post("/analizar")
 def analizar(sol: SolicitudAnalisis):
     """Analiza un territorio y devuelve el radar como JSON (POST sincrono).
-    Antes de scrapear valida el lugar especifico contra los municipios del
-    departamento (DANE/DIVIPOLA): si hay municipios cercanos devuelve
-    {"sugerencia": [...]}, y si parece una vereda exige un minimo de cobertura."""
+    Aplica primero el FILTRO 1 (territorial, tabla local): si el texto no es un
+    territorio del departamento elegido corta antes de scrapear — con
+    {"sugerencia": [...]} si hay candidatos parecidos, o 422 si no. Un lugar
+    forzado (vereda/corregimiento) pasa pero exige cobertura minima."""
     import scrappers as sc  # import diferido: arrastra playwright/aiohttp
 
-    termino = _termino_busqueda(sol.territorio)
+    # ── FILTRO 1: territorial. Tabla local, sin red, antes de scrapear nada. ──
+    val = vt.validar_territorio(sol.territorio, sol.departamento_hint,
+                                bool(sol.forzar_lugar))
+    if not val.valido:
+        # Con sugerencias se responde 200 (el front muestra "¿quisiste decir?");
+        # sin ellas es un rechazo duro y se corta con 422.
+        if val.sugerencias:
+            return {"sugerencia": val.sugerencias, "msg": val.mensaje}
+        raise HTTPException(status_code=422, detail=val.mensaje)
+
+    termino = val.termino               # nombre oficial ya normalizado
+    piso_vereda = val.exige_cobertura   # lugar forzado => piso de cobertura
+
     if sol.periodicos:
         periodicos = sol.periodicos
-    elif sol.departamento_hint:
-        periodicos = _periodicos_de_departamento(sol.departamento_hint)
+    elif val.departamento:
+        periodicos = _periodicos_de_departamento(val.departamento)
     else:
         periodicos = _resolver_periodicos(sol.territorio, termino)
-
-    # Validacion de lugar especifico contra los municipios del departamento.
-    hint = sol.departamento_hint or ""
-    es_lugar_especifico = bool(sol.territorio) and _norm(sol.territorio) != _norm(hint)
-    piso_vereda = False   # True => se asume vereda: se exige un minimo de articulos
-    if es_lugar_especifico and hint and not sol.forzar_lugar:
-        municipios = _municipios_del_departamento(hint)
-        norm_a_nombre = {_norm(m): m for m in municipios}
-        objetivo = _norm(termino)
-        if objetivo not in norm_a_nombre:   # no es un municipio exacto
-            cercanos = get_close_matches(objetivo, list(norm_a_nombre.keys()), n=3, cutoff=0.6)
-            if cercanos:
-                return {"sugerencia": [norm_a_nombre[c] for c in cercanos],
-                        "msg": "¿Quisiste decir alguno de estos?"}
-            # Sin municipio exacto ni sugerencias -> se asume vereda/corregimiento.
-            piso_vereda = True
+    hint = val.departamento or sol.departamento_hint or ""
 
     # Scraping en vivo. El endpoint es un `def` sincrono, asi que FastAPI lo corre
     # en un threadpool: el manejo de event loop de scrappers no toca el de uvicorn.

@@ -871,3 +871,48 @@ parche):
 no lo estaba: faltaba correr el comando documentado.
 **Abre:** decidir qué corpus debe cargar producción (punto 1 de los no corregidos), que
 bloquea el re-puntuado nacional.
+
+## [2026-09-15] Eliminada la dependencia de DIVIPOLA en la API; validacion territorial local (FILTRO 1) — ADOPTADA
+
+**Rama:** `integracion-front-back` (capa API+front, no toca el pipeline ni `src/` de produccion del radar).
+
+**Problema.** `src/api.py` consultaba la API publica de DIVIPOLA (datos.gov.co,
+`gdxc-w37w`) en dos puntos: `/lugares` (autocompletado, una llamada por pulsacion) y la
+resolucion municipio->departamento dentro de `/analizar`. Si datos.gov.co se caia, se caia
+el autocompletado y la validacion — o sea, la demo. Pedido explicito de la profesora:
+que la demo no dependa de esa API.
+
+**Decision.** Toda la resolucion territorial pasa a la tabla local
+`src/municipios_colombia.py`, que ES el mismo dataset del DANE ya congelado en el repo
+(32 departamentos, 1121 municipios). No se consiguen datos nuevos: la tabla local alcanza.
+
+- **CAMBIO 1** — fuera de `src/api.py`: `DIVIPOLA_URL`, `DIVIPOLA_TIMEOUT`,
+  `_MUNICIPIOS_CACHE`, `_municipios_divipola()`, `_divipola_departamento()`, el import de
+  `httpx` y los helpers `_titulo`/`_municipios_del_departamento`. `/lugares` y la
+  resolucion municipio->departamento salen de la tabla local.
+- **Homonimos NO se adivinan.** Hay 67 municipios homonimos (Villanueva en 4 deptos,
+  Albania en 3, etc.). El `$limit=1` de DIVIPOLA devolvia uno arbitrario; ahora la
+  ambiguedad se hace explicita y se pide al usuario que elija el departamento.
+- **CAMBIO 2** — archivo nuevo `src/validacion_territorial.py` (FILTRO 1): valida ANTES de
+  scrapear que el texto sea un territorio real del departamento elegido. 4 salidas:
+  municipio valido -> sigue; parecido -> sugerencias (200, "quisiste decir"); existe en
+  otro departamento -> se dice cual (422); no existe -> 422. Veredas/corregimientos nunca
+  estuvieron en DIVIPOLA: pasan solo con `forzar_lugar=True` y quedan marcados
+  `exige_cobertura=True` (sigue aplicando el piso de 5 articulos post-scraping).
+- Se agrega `POST /validar`: corre solo el FILTRO 1, sin scrapear ni cargar el NLI (permite
+  que el front avise al instante, antes de un `/analizar` que tarda minutos).
+
+**Verificacion.** `test_integracion.py` (10 tests, sin GPU) sigue en verde. Smoke del
+validador sobre los 8 casos clave (departamento, municipio unico, homonimo sin/con hint,
+municipio de otro depto, vereda forzada, typo con sugerencia): las 4 salidas se comportan
+segun lo pedido. No se corrio GPU (esta capa no la necesita).
+
+**Nota pendiente (front).** El front (`frontend/busqueda_pipeline.jsx`) todavia manda a
+`/analizar` solo `{territorio, fecha_inicio, fecha_fin}`: no envia `departamento_hint` ni
+`forzar_lugar`, ni maneja la respuesta `{"sugerencia":[...]}`. Sin ese cambio, la
+desambiguacion de homonimos y el forzado de veredas quedan inaccesibles desde la UI. Queda
+propuesto aparte; este commit es solo la capa API (`refactor(api)`).
+
+**Cierra:** la dependencia de red de la demo en el autocompletado y la validacion.
+**Abre:** cablear el front a las nuevas respuestas del FILTRO 1 (hint, forzar, chooser de
+homonimos).
