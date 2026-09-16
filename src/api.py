@@ -41,11 +41,14 @@ uvicorn tarda varios minutos en responder /health la primera vez.
 """
 import os
 import sys
+import threading
+import time
 import unicodedata
+import uuid
 from typing import List, Optional
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
@@ -240,6 +243,46 @@ def _get_pipeline():
     return _PIPELINE
 
 
+# ── Registro de jobs en memoria (polling) ────────────────────────────────────
+# POST /analizar encola un job y devuelve {job_id}; GET /analizar/{job_id} reporta
+# {estado, fase, resultado?}. El trabajo corre en un hilo worker, nunca en el loop
+# de uvicorn. Con una sola GPU, un segundo analisis concurrente recibe 429; el
+# semaforo protege ademas la seccion NLI. Registro con TTL para acotar memoria.
+# Requiere un unico worker de uvicorn (el registro vive en el proceso).
+_JOBS: dict = {}
+_JOBS_LOCK = threading.Lock()
+_NLI_SEM = threading.Semaphore(1)      # una sola corrida NLI a la vez (1 GPU)
+_JOB_TTL_SEG = 1800                     # 30 min: se purgan jobs terminados viejos
+
+
+def _cors_json(status: int, content: dict) -> JSONResponse:
+    """JSONResponse con el header CORS explicito (igual que el resto de la API)."""
+    return JSONResponse(status_code=status, content=content,
+                        headers={"Access-Control-Allow-Origin": "*"})
+
+
+def _job_set(job_id: str, **campos):
+    """Actualiza campos de un job de forma atomica y marca 'actualizado'."""
+    with _JOBS_LOCK:
+        j = _JOBS.get(job_id)
+        if j is None:
+            return
+        j.update(campos)
+        j["actualizado"] = time.time()
+
+
+def _purgar_jobs_vencidos():
+    """Borra jobs TERMINADOS (listo/error) mas viejos que el TTL. Los 'ejecutando'
+    no se tocan: son la guarda de concurrencia (429) hasta que terminan."""
+    ahora = time.time()
+    with _JOBS_LOCK:
+        muertos = [k for k, j in _JOBS.items()
+                   if j["estado"] in ("listo", "error")
+                   and ahora - j["actualizado"] > _JOB_TTL_SEG]
+        for k in muertos:
+            _JOBS.pop(k, None)
+
+
 @app.get("/health")
 def health():
     return {
@@ -266,6 +309,18 @@ async def analizar_options(request: Request):
 
 @app.options("/lugares")
 async def lugares_options(request: Request):
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, ngrok-skip-browser-warning",
+        },
+    )
+
+
+@app.options("/analizar/{job_id}")
+async def analizar_job_options(job_id: str):
     return Response(
         status_code=200,
         headers={
@@ -307,35 +362,25 @@ def validar(sol: SolicitudAnalisis):
 
 @app.post("/analizar")
 def analizar(sol: SolicitudAnalisis):
-    """Analiza un territorio y devuelve el radar como JSON (POST sincrono).
-    Aplica primero el FILTRO 1 (territorial, tabla local): si el texto no es un
-    territorio del departamento elegido corta antes de scrapear — con
-    {"sugerencia": [...]} si hay candidatos parecidos, o 422 si no. Un lugar
-    forzado (vereda/corregimiento) pasa pero exige cobertura minima."""
-    import scrappers as sc  # import diferido: arrastra playwright/aiohttp
-
-    # ── FILTRO 1: territorial. Tabla local, sin red, antes de scrapear nada. ──
+    """Crea un job de analisis y devuelve {job_id} de inmediato (patron polling).
+    El FILTRO 1 (territorial, tabla local) se corre AQUI, sincrono y sin scrapear:
+    si el texto no es un territorio del departamento elegido corta antes de encolar
+    nada — {"sugerencia": [...]} (200) si hay candidatos parecidos, o 422 si no.
+    Solo un territorio valido crea job. Con una sola GPU, si ya hay un analisis en
+    curso responde 429. El scraping + NLI corren en un hilo worker (_ejecutar_job);
+    el front sigue el avance con GET /analizar/{job_id}."""
+    # ── FILTRO 1: territorial. Tabla local, sin red, sin scrapear. ──
     val = vt.validar_territorio(sol.territorio, sol.departamento_hint,
                                 bool(sol.forzar_lugar))
     if not val.valido:
-        # Con sugerencias se responde 200 (el front muestra "¿quisiste decir?");
-        # sin ellas es un rechazo duro y se corta con 422.
         if val.sugerencias:
             return {"sugerencia": val.sugerencias, "msg": val.mensaje}
-        # Rechazo duro. `forzable` le dice al front si tiene sentido ofrecer
-        # "buscar igual" (solo cuando el territorio no figura en la tabla, p. ej.
-        # una vereda). detail sigue siendo string: el front viejo no se rompe.
-        # Header CORS explicito, igual que global_exception_handler (un 422 que
-        # sube sin el header llega al navegador como error CORS enmascarado).
-        return JSONResponse(
-            status_code=422,
-            content={"detail": val.mensaje, "forzable": val.forzable},
-            headers={"Access-Control-Allow-Origin": "*"},
-        )
+        # Rechazo duro. `forzable` le dice al front si ofrecer "analizar de todas
+        # formas". detail sigue siendo string: no rompe clientes viejos.
+        return _cors_json(422, {"detail": val.mensaje, "forzable": val.forzable})
 
     termino = val.termino               # nombre oficial ya normalizado
     piso_vereda = val.exige_cobertura   # lugar forzado => piso de cobertura
-
     if sol.periodicos:
         periodicos = sol.periodicos
     elif val.departamento:
@@ -344,38 +389,107 @@ def analizar(sol: SolicitudAnalisis):
         periodicos = _resolver_periodicos(sol.territorio, termino)
     hint = val.departamento or sol.departamento_hint or ""
 
-    # Scraping en vivo. El endpoint es un `def` sincrono, asi que FastAPI lo corre
-    # en un threadpool: el manejo de event loop de scrappers no toca el de uvicorn.
+    # Una sola GPU: check-and-create ATOMICO bajo el mismo lock (evita que dos POST
+    # casi simultaneos pasen la guarda). Si ya hay uno en curso, 429 (no hay cola).
+    _purgar_jobs_vencidos()
+    job_id = uuid.uuid4().hex
+    ahora = time.time()
+    with _JOBS_LOCK:
+        if any(j["estado"] == "ejecutando" for j in _JOBS.values()):
+            return _cors_json(429, {"detail": "Ya hay un análisis en curso. Probá de nuevo en unos minutos."})
+        _JOBS[job_id] = {
+            "estado": "ejecutando", "fase": "Buscando noticias",
+            "resultado": None, "error": None,
+            "creado": ahora, "actualizado": ahora,
+        }
+    hilo = threading.Thread(
+        target=_ejecutar_job,
+        args=(job_id, sol, termino, periodicos, piso_vereda, hint),
+        daemon=True,
+    )
+    hilo.start()
+    return _cors_json(202, {"job_id": job_id})
+
+
+def _ejecutar_job(job_id, sol, termino, periodicos, piso_vereda, hint):
+    """Trabajo pesado en un hilo worker: scraping (cada scraper usa su propio event
+    loop y cierra su Chromium con `async with async_playwright()` + finally, tambien
+    ante excepcion) y NLI (bajo semaforo, 1 GPU). Escribe la fase real en cada paso.
+    NO carga el modelo aqui: usa el _PIPELINE ya cargado al arrancar (evita el 500
+    por conflicto CUDA/torch).
+
+    Todo el cuerpo va dentro de un try/except: PASE LO QUE PASE el job termina en
+    estado terminal (listo|error). Si un fallo inesperado lo dejara en 'ejecutando',
+    el guard de 1-GPU responderia 429 para siempre (el TTL solo purga terminados)
+    hasta reiniciar uvicorn. El semaforo se libera con el `with` (context manager)
+    aunque procesar() falle."""
+    import scrappers as sc  # import diferido: arrastra playwright/aiohttp
     try:
-        df = sc.scrape_municipio(
-            municipio=termino,
-            fecha_desde=sol.fecha_inicio,
-            fecha_hasta=sol.fecha_fin,
-            periodicos=periodicos,
-            min_menciones=1,
-        )
+        # Fase 1: scraping.
+        _job_set(job_id, fase="Buscando noticias")
+        try:
+            df = sc.scrape_municipio(
+                municipio=termino,
+                fecha_desde=sol.fecha_inicio,
+                fecha_hasta=sol.fecha_fin,
+                periodicos=periodicos,
+                min_menciones=1,
+            )
+        except Exception as e:
+            _job_set(job_id, estado="error", error=f"Fallo el scraping: {e}")
+            return
+
+        n_art = 0 if (df is None or df.empty) else len(df)
+        if piso_vereda and n_art < 5:
+            _job_set(job_id, estado="error",
+                     error=f"No se encontró cobertura de prensa para '{sol.territorio}' en {hint or sol.territorio}. Verifica el nombre o prueba con el departamento.")
+            return
+        if df is None or df.empty:
+            _job_set(job_id, estado="error",
+                     error="No se encontraron noticias del territorio seleccionado en el período indicado")
+            return
+
+        df = df.copy()
+        df["departamento"] = sol.territorio
+        for c in ["periodico", "titulo", "fecha", "texto", "url"]:
+            if c not in df.columns:
+                df[c] = None
+
+        # Fase 2: NLI (26 hipotesis V2, sin inferencia extra). Semaforo: 1 GPU a la
+        # vez; el `with` garantiza el release aunque procesar() falle.
+        _job_set(job_id, fase="Clasificando artículos")
+        with _NLI_SEM:
+            try:
+                df_proc = _get_pipeline().procesar(df)
+            except Exception as e:
+                _job_set(job_id, estado="error", error=f"Fallo el pipeline NLI: {e}")
+                return
+
+        # Fase 3: agregacion y armado de la respuesta.
+        _job_set(job_id, fase="Calculando el índice")
+        resultado = _construir_respuesta(sol, df_proc)
+        _job_set(job_id, estado="listo", fase="Listo", resultado=resultado)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Fallo el scraping: {e}")
+        # Red de seguridad: cualquier fallo fuera de los try internos (p. ej. en el
+        # armado de la respuesta, o algo inesperado) deja el job en estado terminal,
+        # nunca colgado en 'ejecutando'.
+        _job_set(job_id, estado="error", error=f"Fallo el análisis: {e}")
 
-    n_art = 0 if (df is None or df.empty) else len(df)
-    if piso_vereda and n_art < 5:
-        raise HTTPException(status_code=422, detail=f"No se encontró cobertura de prensa para '{sol.territorio}' en {hint or sol.territorio}. Verifica el nombre o prueba con el departamento.")
-    if df is None or df.empty:
-        raise HTTPException(status_code=422, detail="No se encontraron noticias del territorio seleccionado en el período indicado")
 
-    # El pipeline agrupa por 'departamento'; aqui es el territorio pedido.
-    df = df.copy()
-    df["departamento"] = sol.territorio
-    for c in ["periodico", "titulo", "fecha", "texto", "url"]:
-        if c not in df.columns:
-            df[c] = None
-
-    try:
-        df_proc = _get_pipeline().procesar(df)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fallo el pipeline NLI: {e}")
-
-    return _construir_respuesta(sol, df_proc)
+@app.get("/analizar/{job_id}")
+def estado_analisis(job_id: str):
+    """Estado de un job de analisis (el front lo consulta cada ~2s)."""
+    _purgar_jobs_vencidos()
+    with _JOBS_LOCK:
+        j = _JOBS.get(job_id)
+        if j is None:
+            return _cors_json(404, {"detail": "Análisis desconocido o expirado"})
+        salida = {"estado": j["estado"], "fase": j["fase"]}
+        if j["estado"] == "listo":
+            salida["resultado"] = j["resultado"]
+        elif j["estado"] == "error":
+            salida["error"] = j["error"]
+    return _cors_json(200, salida)
 
 
 def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame) -> dict:

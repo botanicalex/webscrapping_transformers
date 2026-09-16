@@ -248,20 +248,13 @@
       "boyaca7dias": "Boyacá 7 Días", "eltiempo": "El Tiempo", "verdadabierta": "VerdadAbierta"
     };
 
-    // Fases ESTIMADAS por tiempo transcurrido (sin SSE no hay progreso real).
-    // `hasta` = segundo estimado en que termina la fase. La ULTIMA no tiene corte
-    // (Infinity): si la estimación se queda corta, se queda esperando ahí en vez de
-    // avanzar a algo falso.
-    // TIEMPOS PROVISIONALES — calibrar cronometrando un análisis real (ver backlog).
-    const FASES = [
-      { hasta: 60,       texto: "Buscando noticias (estimado)…" },
-      { hasta: 150,      texto: "Clasificando artículos (estimado)…" },
-      { hasta: Infinity, texto: "Calculando el índice (estimado)…" },
-    ];
+    // Fases REALES reportadas por el backend (polling). Este arreglo solo fija el
+    // ORDEN para pintar los puntos; el texto que se muestra es el que manda la API.
+    const FASES_ORDEN = ["Buscando noticias", "Clasificando artículos", "Calculando el índice"];
 
     // ── Estado ────────────────────────────────────────────────────────────────
     var territorioAnalizado = "";
-    var intervalId = null, tInicio = 0, faseIdx = 0;
+    var tickId = null, pollId = null, tInicio = 0, faseActual = "", faseIdx = 0;
 
     var $ = function (id) { return document.getElementById(id); };
     var selDepartamento = $("sel-departamento");
@@ -332,23 +325,45 @@
     fechaInicio.addEventListener("change", refrescar);
     fechaFin.addEventListener("change", refrescar);
 
-    // ── Loading helpers (fases estimadas por tiempo, sin SSE) ─────────────────
+    // ── Loading helpers (fases REALES del backend + contador de tiempo real) ──
     function pintarDots() {
       var html = "";
-      for (var i = 0; i < FASES.length; i++) html += '<div class="dot' + (i <= faseIdx ? " on" : "") + '"></div>';
+      for (var i = 0; i < FASES_ORDEN.length; i++) html += '<div class="dot' + (i <= faseIdx ? " on" : "") + '"></div>';
       $("dots").innerHTML = html;
     }
     function _mmss(seg) {
       var m = Math.floor(seg / 60), s = seg % 60;
       return m + ":" + (s < 10 ? "0" : "") + s;
     }
-    function pintarLoading() {
+    // Ticker a 1 Hz: pinta la fase que reporta el backend (faseActual) y el tiempo
+    // transcurrido real. El polling (cada 2s) solo actualiza faseActual.
+    function _tickLoading() {
       var elapsed = Math.max(0, Math.floor((Date.now() - tInicio) / 1000));
-      faseIdx = FASES.length - 1;                 // por defecto, la última (sin corte)
-      for (var i = 0; i < FASES.length; i++) { if (elapsed < FASES[i].hasta) { faseIdx = i; break; } }
-      $("loading-etapa").textContent = FASES[faseIdx].texto;
+      $("loading-etapa").textContent = faseActual || "Procesando…";
       $("loading-tiempo").textContent = "Transcurrido " + _mmss(elapsed);
+      faseIdx = FASES_ORDEN.indexOf(faseActual);
+      if (faseIdx < 0) faseIdx = 0;
       pintarDots();
+    }
+    function _pararLoading() {
+      clearInterval(tickId); clearInterval(pollId); tickId = null; pollId = null;
+    }
+    function _mostrarError(err) {
+      _pararLoading();
+      var forzable = !!(err && err.forzable);
+      var esValidacion = !!(err && err.esValidacion);
+      $("error-msg").textContent = (err && err.message) || "No se pudo conectar con la API";
+      // forzable => advertencia (ámbar): no está en la división oficial pero se puede
+      // analizar igual. Resto => error (rojo): fallo real o rechazo no forzable.
+      $("estado-error").classList.toggle("warn", forzable);
+      $("err-title").textContent = forzable
+        ? "Territorio no encontrado en la división oficial"
+        : "No se pudo completar el análisis";
+      $("btn-forzar-error").hidden = !forzable;
+      // Reintentar solo si el resultado podría cambiar: NO en rechazos de validación
+      // (deterministas); sí en fallos reales, 429, 404 y sin-cobertura.
+      $("btn-reintentar").hidden = esValidacion;
+      mostrar("error");
     }
     function mostrar(seccion) {
       $("form").hidden = seccion !== "form";
@@ -401,7 +416,7 @@
       mostrar("sugerencia");
     }
 
-    // ── Análisis (POST + JSON síncrono) ──────────────────────────────────────
+    // ── Análisis (polling: POST crea el job, GET reporta la fase real) ─────────
     // `forzar` es un parámetro por-llamada, no un estado: nunca queda "pegado"
     // entre búsquedas. Solo lo ponen en true los botones "No, buscar igual";
     // toda otra entrada (Analizar, Reintentar, elegir sugerencia) manda false.
@@ -412,15 +427,11 @@
 
       territorioAnalizado = territorio;
       $("loading-territorio").textContent = territorio;
-      tInicio = Date.now(); faseIdx = 0;
-      pintarLoading();
+      tInicio = Date.now(); faseActual = "Buscando noticias"; _tickLoading();
       mostrar("loading");
+      _pararLoading();
 
-      // Fase por tiempo transcurrido + contador real (1 Hz). Sin SSE no hay progreso
-      // real: la barra es indeterminada y la última fase no tiene corte.
-      clearInterval(intervalId);
-      intervalId = setInterval(pintarLoading, 1000);
-
+      // POST crea el job y devuelve {job_id} de inmediato (o valida/rechaza).
       fetch(API_BASE + "/analizar", {
         method: "POST",
         headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "69420" },
@@ -433,49 +444,73 @@
         }),
       })
         .then(function (res) {
-          if (!res.ok) {
-            return res.json().catch(function () { return {}; }).then(function (j) {
-              var e = new Error(j.detail || ("La API respondió " + res.status));
-              e.forzable = !!j.forzable;        // la API lo marca; no se infiere del mensaje
-              e.esValidacion = ("forzable" in j); // solo el filtro territorial trae la clave
-              throw e;
-            });
-          }
-          return res.json();
+          return res.json().catch(function () { return {}; }).then(function (j) {
+            return { ok: res.ok, status: res.status, j: j };
+          });
         })
-        .then(function (data) {
-          clearInterval(intervalId);
-          if (data && data.sugerencia) {   // municipio no exacto → pantalla de sugerencias
-            mostrarSugerencias(data.sugerencia, data.msg);
+        .then(function (o) {
+          if (o.status === 429) {                 // otra corrida en curso (1 GPU)
+            _mostrarError({ message: o.j.detail || "Ya hay un análisis en curso. Probá en unos minutos." });
             return;
           }
-          sessionStorage.setItem("radar_resultado", JSON.stringify(data));
-          window.location.href = "visualizacion_riesgo.html" + window.location.search;
+          if (!o.ok) {                            // 422: rechazo del filtro territorial
+            _mostrarError({
+              message: o.j.detail || ("La API respondió " + o.status),
+              forzable: !!o.j.forzable,
+              esValidacion: ("forzable" in o.j),
+            });
+            return;
+          }
+          if (o.j.sugerencia) {                   // municipio no exacto → sugerencias
+            mostrarSugerencias(o.j.sugerencia, o.j.msg);
+            return;
+          }
+          if (!o.j.job_id) { _mostrarError({ message: "Respuesta inesperada de la API" }); return; }
+          // Job creado: arranca el contador (1s) y el polling (2s).
+          tickId = setInterval(_tickLoading, 1000);
+          pollId = setInterval(function () { _pollJob(o.j.job_id); }, 2000);
         })
-        .catch(function (err) {
-          clearInterval(intervalId);
-          var forzable = !!err.forzable;
-          var esValidacion = !!err.esValidacion;
-          $("error-msg").textContent = err.message || "No se pudo conectar con la API";
-          // forzable => advertencia (ámbar): no está en la división oficial pero se
-          // puede analizar igual. Resto => error (rojo): fallo real o rechazo no forzable.
-          $("estado-error").classList.toggle("warn", forzable);
-          $("err-title").textContent = forzable
-            ? "Territorio no encontrado en la división oficial"
-            : "No se pudo completar el análisis";
-          $("btn-forzar-error").hidden = !forzable;
-          // Reintentar solo si el resultado podría cambiar: NO en rechazos de
-          // validación (deterministas); sí en fallos reales y en sin-cobertura.
-          $("btn-reintentar").hidden = esValidacion;
-          mostrar("error");
-        });
+        .catch(function (err) { _mostrarError(err); });
+    }
+
+    // Consulta el estado del job. Actualiza faseActual (lo pinta el ticker), navega
+    // al resultado cuando está listo, o muestra error. Un fallo de red transitorio
+    // se ignora y el polling sigue.
+    function _pollJob(jobId) {
+      fetch(API_BASE + "/analizar/" + jobId, {
+        headers: { "ngrok-skip-browser-warning": "69420" },
+      })
+        .then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (j) {
+            return { status: res.status, j: j };
+          });
+        })
+        .then(function (o) {
+          if (o.status === 404) {
+            _mostrarError({ message: "El análisis expiró o no existe. Volvé a intentar." });
+            return;
+          }
+          var j = o.j;
+          if (j.estado === "ejecutando") { if (j.fase) faseActual = j.fase; return; }
+          if (j.estado === "listo") {
+            _pararLoading();
+            sessionStorage.setItem("radar_resultado", JSON.stringify(j.resultado));
+            window.location.href = "visualizacion_riesgo.html" + window.location.search;
+            return;
+          }
+          if (j.estado === "error") {
+            _mostrarError({ message: j.error || "No se pudo completar el análisis" });
+            return;
+          }
+        })
+        .catch(function () { /* red transitoria: se ignora, sigue el polling */ });
     }
 
     function nuevaConsulta() {
-      clearInterval(intervalId);
+      _pararLoading();
       selDepartamento.value = "";
       inputLugar.value = "";
-      faseIdx = 0;
+      faseActual = ""; faseIdx = 0;
       $("btn-forzar-error").hidden = true;   // no arrastrar el botón entre consultas
       refrescar();
       mostrar("form");
