@@ -240,6 +240,13 @@ def _get_pipeline():
     return _PIPELINE
 
 
+# ── Estado del analisis en curso ─────────────────────────────────────────────
+# Una sola var global (no por-request, no job_id): solo puede correr UN analisis
+# a la vez porque hay UNA GPU. `analizar` la va moviendo por sus fases y el front
+# la lee con GET /progreso para pintar la barra de carga. Nadie mas la escribe.
+_estado_actual = {"fase": "idle"}
+
+
 @app.get("/health")
 def health():
     return {
@@ -261,6 +268,29 @@ async def analizar_options(request: Request):
             "Access-Control-Allow-Methods": "POST, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, ngrok-skip-browser-warning",
         },
+    )
+
+
+@app.options("/progreso")
+async def progreso_options(request: Request):
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, ngrok-skip-browser-warning",
+        },
+    )
+
+
+@app.get("/progreso")
+async def progreso():
+    """Fase del analisis en curso (idle|buscando|clasificando|calculando). Solo
+    LEE la var global; no scrapea, no toca el pipeline, no bloquea. El front la
+    pollea cada 1s mientras espera /analizar para pintar la barra de carga."""
+    return JSONResponse(
+        content={"fase": _estado_actual["fase"]},
+        headers={"Access-Control-Allow-Origin": "*"},
     )
 
 
@@ -346,36 +376,46 @@ def analizar(sol: SolicitudAnalisis):
 
     # Scraping en vivo. El endpoint es un `def` sincrono, asi que FastAPI lo corre
     # en un threadpool: el manejo de event loop de scrappers no toca el de uvicorn.
+    # El try/finally solo mueve la var de fase (para GET /progreso) y la resetea a
+    # "idle" pase lo que pase (exito o excepcion). NO cambia como se llama a
+    # scrape_municipio ni el hilo/contexto en que corre: sigue siendo la misma
+    # llamada sincrona de siempre, solo con una asignacion antes y otra despues.
     try:
-        df = sc.scrape_municipio(
-            municipio=termino,
-            fecha_desde=sol.fecha_inicio,
-            fecha_hasta=sol.fecha_fin,
-            periodicos=periodicos,
-            min_menciones=1,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Fallo el scraping: {e}")
+        _estado_actual["fase"] = "buscando"
+        try:
+            df = sc.scrape_municipio(
+                municipio=termino,
+                fecha_desde=sol.fecha_inicio,
+                fecha_hasta=sol.fecha_fin,
+                periodicos=periodicos,
+                min_menciones=1,
+            )
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Fallo el scraping: {e}")
+        _estado_actual["fase"] = "clasificando"
 
-    n_art = 0 if (df is None or df.empty) else len(df)
-    if piso_vereda and n_art < 5:
-        raise HTTPException(status_code=422, detail=f"No se encontró cobertura de prensa para '{sol.territorio}' en {hint or sol.territorio}. Verifica el nombre o prueba con el departamento.")
-    if df is None or df.empty:
-        raise HTTPException(status_code=422, detail="No se encontraron noticias del territorio seleccionado en el período indicado")
+        n_art = 0 if (df is None or df.empty) else len(df)
+        if piso_vereda and n_art < 5:
+            raise HTTPException(status_code=422, detail=f"No se encontró cobertura de prensa para '{sol.territorio}' en {hint or sol.territorio}. Verifica el nombre o prueba con el departamento.")
+        if df is None or df.empty:
+            raise HTTPException(status_code=422, detail="No se encontraron noticias del territorio seleccionado en el período indicado")
 
-    # El pipeline agrupa por 'departamento'; aqui es el territorio pedido.
-    df = df.copy()
-    df["departamento"] = sol.territorio
-    for c in ["periodico", "titulo", "fecha", "texto", "url"]:
-        if c not in df.columns:
-            df[c] = None
+        # El pipeline agrupa por 'departamento'; aqui es el territorio pedido.
+        df = df.copy()
+        df["departamento"] = sol.territorio
+        for c in ["periodico", "titulo", "fecha", "texto", "url"]:
+            if c not in df.columns:
+                df[c] = None
 
-    try:
-        df_proc = _get_pipeline().procesar(df)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fallo el pipeline NLI: {e}")
+        _estado_actual["fase"] = "calculando"
+        try:
+            df_proc = _get_pipeline().procesar(df)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Fallo el pipeline NLI: {e}")
 
-    return _construir_respuesta(sol, df_proc)
+        return _construir_respuesta(sol, df_proc)
+    finally:
+        _estado_actual["fase"] = "idle"
 
 
 def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame) -> dict:

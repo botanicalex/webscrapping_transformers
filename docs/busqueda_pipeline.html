@@ -64,10 +64,10 @@
     .loading-etapa { font-size: 13px; color: #64748B; margin-bottom: 6px; height: 20px; }
     .loading-tiempo { font-size: 12px; color: #475569; font-variant-numeric: tabular-nums; margin-bottom: 20px; }
     .barra { width: 100%; height: 6px; background: #E2E8F0; border-radius: 3px; overflow: hidden; margin-bottom: 20px; }
-    /* Barra INDETERMINADA: sin SSE no hay progreso real, así que un segmento que se
-       desplaza en loop en vez de un porcentaje falso. */
-    .barra > div { height: 100%; width: 35%; background: linear-gradient(90deg, #1B4F72, #10B981); border-radius: 3px; animation: indet 1.5s ease-in-out infinite; }
-    @keyframes indet { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+    /* Barra DETERMINADA anclada a la fase real (GET /progreso): arranca en 0% y el
+       ancho lo maneja el JS. La transición suaviza cada paso del easing; no hay
+       porcentaje falso por tiempo, el avance sigue la fase confirmada por el poll. */
+    .barra > div { height: 100%; width: 0%; background: linear-gradient(90deg, #1B4F72, #10B981); border-radius: 3px; transition: width 0.2s linear; }
     .dots { display: flex; justify-content: space-between; margin-bottom: 24px; }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: #E2E8F0; transition: background 0.3s; }
     .dot.on { background: #10B981; }
@@ -156,7 +156,7 @@
       <div id="loading-tiempo" class="loading-tiempo"></div>
       <div class="barra"><div id="barra-progreso"></div></div>
       <div id="dots" class="dots"></div>
-      <div class="loading-foot">Los pasos son una estimación por tiempo; la duración real depende de la cobertura de prensa. mDeBERTa-v3 · Pipeline FNCE.</div>
+      <div class="loading-foot">Los pasos reflejan la fase real del análisis; la duración depende de la cobertura de prensa. mDeBERTa-v3 · Pipeline FNCE.</div>
     </section>
 
     <!-- ERROR / ADVERTENCIA (el título, el estilo y los botones se ajustan en JS
@@ -248,20 +248,26 @@
       "boyaca7dias": "Boyacá 7 Días", "eltiempo": "El Tiempo", "verdadabierta": "VerdadAbierta"
     };
 
-    // Fases ESTIMADAS por tiempo transcurrido (sin SSE no hay progreso real).
-    // `hasta` = segundo estimado en que termina la fase. La ULTIMA no tiene corte
-    // (Infinity): si la estimación se queda corta, se queda esperando ahí en vez de
-    // avanzar a algo falso.
-    // TIEMPOS PROVISIONALES — calibrar cronometrando un análisis real (ver backlog).
-    const FASES = [
-      { hasta: 60,       texto: "Buscando noticias (estimado)…" },
-      { hasta: 150,      texto: "Clasificando artículos (estimado)…" },
-      { hasta: Infinity, texto: "Calculando el índice (estimado)…" },
-    ];
+    // Fases REALES del análisis, en el orden en que las reporta GET /progreso.
+    // Cada una manda un tramo fijo de la barra; el poll (no el tiempo) decide en
+    // cuál estamos. "idle" no está en el mapa: se ignora (ni antes de empezar ni
+    // al terminar mueve la barra hacia atrás). El texto/dots salen de aquí.
+    const FASES_INFO = {
+      buscando:     { texto: "Buscando noticias…",       tramo: 0 },
+      clasificando: { texto: "Clasificando artículos…",  tramo: 1 },
+      calculando:   { texto: "Calculando el índice…",    tramo: 2 },
+    };
+    // Tramos [inicio, fin] en %. La barra sube DENTRO del tramo por animación
+    // (cosmética, sin tocar el fin) y SALTA al inicio del siguiente cuando el poll
+    // confirma el cambio de fase. Nunca llega a 100% hasta que /analizar responde.
+    const TRAMOS = [[0, 33], [33, 66], [66, 100]];
+    const N_FASES = 3;                 // cantidad de dots
+    const MARGEN_TRAMO = 4;            // % por debajo del fin del tramo (no llegar al límite)
 
     // ── Estado ────────────────────────────────────────────────────────────────
     var territorioAnalizado = "";
-    var intervalId = null, tInicio = 0, faseIdx = 0;
+    var pollId = null, animId = null, tInicio = 0;
+    var tramoActual = 0, barraProgreso = 0;
 
     var $ = function (id) { return document.getElementById(id); };
     var selDepartamento = $("sel-departamento");
@@ -332,23 +338,68 @@
     fechaInicio.addEventListener("change", refrescar);
     fechaFin.addEventListener("change", refrescar);
 
-    // ── Loading helpers (fases estimadas por tiempo, sin SSE) ─────────────────
+    // ── Loading helpers (fase real por poll a GET /progreso) ──────────────────
     function pintarDots() {
       var html = "";
-      for (var i = 0; i < FASES.length; i++) html += '<div class="dot' + (i <= faseIdx ? " on" : "") + '"></div>';
+      for (var i = 0; i < N_FASES; i++) html += '<div class="dot' + (i <= tramoActual ? " on" : "") + '"></div>';
       $("dots").innerHTML = html;
     }
     function _mmss(seg) {
       var m = Math.floor(seg / 60), s = seg % 60;
       return m + ":" + (s < 10 ? "0" : "") + s;
     }
-    function pintarLoading() {
+    function pintarBarra() { $("barra-progreso").style.width = barraProgreso.toFixed(2) + "%"; }
+
+    // Sube suave hacia el fin del tramo actual sin llegar a tocarlo (easing
+    // exponencial hacia fin-MARGEN). No avanza de tramo: eso solo lo hace el poll.
+    function animarBarra() {
+      var objetivo = TRAMOS[tramoActual][1] - MARGEN_TRAMO;
+      if (barraProgreso < objetivo) {
+        barraProgreso += (objetivo - barraProgreso) * 0.06;
+        pintarBarra();
+      }
+    }
+
+    // Aplica la fase que devolvió el poll. Nunca retrocede (fases monótonas): si
+    // llega "idle" u otra desconocida, o una fase anterior, deja lo que ya se ve.
+    function aplicarFase(fase) {
+      var info = FASES_INFO[fase];
+      if (!info || info.tramo < tramoActual) return;
+      $("loading-etapa").textContent = info.texto;
+      if (info.tramo > tramoActual) {
+        tramoActual = info.tramo;
+        barraProgreso = TRAMOS[tramoActual][0];   // salta al inicio del nuevo tramo
+        pintarBarra();
+        pintarDots();
+      }
+    }
+
+    // Contador real (1 Hz) + poll de la fase real. Van juntos en un solo tick para
+    // que el tiempo siga corriendo aunque un poll falle (ahí se conserva la fase).
+    function tickLoading() {
       var elapsed = Math.max(0, Math.floor((Date.now() - tInicio) / 1000));
-      faseIdx = FASES.length - 1;                 // por defecto, la última (sin corte)
-      for (var i = 0; i < FASES.length; i++) { if (elapsed < FASES[i].hasta) { faseIdx = i; break; } }
-      $("loading-etapa").textContent = FASES[faseIdx].texto;
       $("loading-tiempo").textContent = "Transcurrido " + _mmss(elapsed);
+      fetch(API_BASE + "/progreso", { headers: { "ngrok-skip-browser-warning": "69420" } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (j && j.fase) aplicarFase(j.fase); })
+        .catch(function () { /* sin conexión momentánea: se conserva la última fase */ });
+    }
+
+    function iniciarLoading() {
+      tramoActual = 0; barraProgreso = 0;
+      $("loading-etapa").textContent = FASES_INFO.buscando.texto;
+      $("loading-tiempo").textContent = "Transcurrido 0:00";
+      pintarBarra();
       pintarDots();
+      clearInterval(pollId); clearInterval(animId);
+      tickLoading();                          // primer poll inmediato, sin esperar 1s
+      pollId = setInterval(tickLoading, 1000);
+      animId = setInterval(animarBarra, 60);  // avance cosmético continuo dentro del tramo
+    }
+
+    function detenerLoading() {
+      clearInterval(pollId); clearInterval(animId);
+      pollId = null; animId = null;
     }
     function mostrar(seccion) {
       $("form").hidden = seccion !== "form";
@@ -412,14 +463,13 @@
 
       territorioAnalizado = territorio;
       $("loading-territorio").textContent = territorio;
-      tInicio = Date.now(); faseIdx = 0;
-      pintarLoading();
+      tInicio = Date.now();
       mostrar("loading");
 
-      // Fase por tiempo transcurrido + contador real (1 Hz). Sin SSE no hay progreso
-      // real: la barra es indeterminada y la última fase no tiene corte.
-      clearInterval(intervalId);
-      intervalId = setInterval(pintarLoading, 1000);
+      // Fase real por poll a GET /progreso (1 Hz) + barra determinada anclada a la
+      // fase. La barra arranca en 0% y sube sola dentro del tramo; el poll la hace
+      // saltar de tramo. Nunca llega a 100% hasta que /analizar responda.
+      iniciarLoading();
 
       fetch(API_BASE + "/analizar", {
         method: "POST",
@@ -444,16 +494,18 @@
           return res.json();
         })
         .then(function (data) {
-          clearInterval(intervalId);
+          detenerLoading();
           if (data && data.sugerencia) {   // municipio no exacto → pantalla de sugerencias
             mostrarSugerencias(data.sugerencia, data.msg);
             return;
           }
+          // Respuesta OK: recién ahora la barra puede completar el 100%.
+          barraProgreso = 100; pintarBarra();
           sessionStorage.setItem("radar_resultado", JSON.stringify(data));
           window.location.href = "visualizacion_riesgo.html" + window.location.search;
         })
         .catch(function (err) {
-          clearInterval(intervalId);
+          detenerLoading();
           var forzable = !!err.forzable;
           var esValidacion = !!err.esValidacion;
           $("error-msg").textContent = err.message || "No se pudo conectar con la API";
@@ -472,10 +524,10 @@
     }
 
     function nuevaConsulta() {
-      clearInterval(intervalId);
+      detenerLoading();
       selDepartamento.value = "";
       inputLugar.value = "";
-      faseIdx = 0;
+      tramoActual = 0; barraProgreso = 0;
       $("btn-forzar-error").hidden = true;   // no arrastrar el botón entre consultas
       refrescar();
       mostrar("form");
