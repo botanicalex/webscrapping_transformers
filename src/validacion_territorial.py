@@ -218,8 +218,8 @@ def validar_territorio(territorio: str,
             valido=False, tipo="invalido", termino=termino,
             departamento=hint_oficial, forzable=True,
             mensaje=(f"'{termino}' no figura como municipio de {hint_oficial} "
-                     f"en la division oficial del DANE. Si es una vereda o un "
-                     f"corregimiento, usa 'buscar igual'."),
+                     f"en la division oficial del DANE, que solo llega a nivel "
+                     f"municipal. Puede ser una vereda o un corregimiento."),
         )
 
     # ── Sin departamento indicado ────────────────────────────────────────────

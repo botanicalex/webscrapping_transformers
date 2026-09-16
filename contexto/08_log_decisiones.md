@@ -982,3 +982,14 @@ punto 2: esta rama todavia no esta desplegada en Colab.
 **Como distinguir API vieja de nueva en caliente:** `POST /validar` da 404 en la vieja (el
 endpoint no existe) y 200 en la nueva. Es el chequeo rapido antes de confiar en cualquier
 prueba contra el backend de Colab.
+
+## [2026-09-16] Cuando se ofrece "Reintentar" en el front — DECISION DE PRODUCTO
+
+Los rechazos de validacion territorial (422 del FILTRO 1, que traen la clave `forzable` en el
+body) son DETERMINISTAS: reintentar con los mismos datos daria el mismo resultado. Por eso el
+front NO ofrece "Reintentar" en esos casos (solo "Nueva busqueda", mas "Analizar de todas
+formas" cuando el rechazo es forzable). Los fallos REALES (500, timeout, error de scraping) y
+el "sin cobertura tras scrapear" SI pueden cambiar en un reintento, asi que ahi se mantiene
+"Reintentar". El front distingue por la PRESENCIA de la clave `forzable` en el body (los
+HTTPException de scraping/cobertura/500 no la traen), sin string matching. Ademas, un rechazo
+forzable se presenta como advertencia (ambar) y no como error.
