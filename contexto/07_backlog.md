@@ -352,18 +352,24 @@ la maquina. Detalle en `08_log_decisiones.md` [2026-09-16].
 
 ---
 
-## 9. Pantalla de carga: fases reales requieren SSE (aproximacion por tiempo)
+## 9. Pantalla de carga: fases reales por polling a /progreso — HECHO
 
-`docs/busqueda_pipeline.html` muestra la fase del analisis (buscando noticias ->
-clasificando articulos -> calculando el indice) **estimada por tiempo transcurrido en el
-front**, con un contador real y barra indeterminada. NO son fases reales: `/analizar` es un
-POST unico que no reporta progreso. Las fases reales requieren **SSE** (streaming servidor
--> cliente), que se implemento y se **revirtio en `ec986f1`** por problemas de event-loop/
-ngrok. Esto es una aproximacion honesta mientras no se retome SSE.
+`docs/busqueda_pipeline.html` muestra la fase **real** del análisis (buscando noticias ->
+clasificando artículos -> calculando el índice) **poleando `GET /progreso` cada 1 s**
+mientras corre `/analizar`. El backend expone la fase en la global `_estado_actual`
+(`buscando`/`clasificando`/`calculando`/`idle`), que `analizar()` va moviendo en sus tres
+etapas. La barra es determinada: tres tramos fijos (0-33 / 33-66 / 66-100) anclados a la
+fase que confirma el poll; dentro de cada tramo sube por animación cosmética sin llegar al
+fin y salta al inicio del siguiente cuando el poll confirma el cambio. Nunca llega a 100%
+hasta que `/analizar` responde. Hay además un contador real de tiempo transcurrido.
 
-**Pendiente:** los tiempos de `FASES` son PROVISIONALES. Cronometrar un analisis real
-(scraping + NLI + calculo) y ajustar los cortes `hasta` de cada fase. No hay medicion por
-fase en el repo ni en logs.
+**Ya no es una estimación por tiempo** (la versión anterior —barra indeterminada, fase
+inferida del tiempo transcurrido— se reemplazó). No hace falta SSE: `/progreso` es un GET
+liviano que solo lee la global, no un stream. El intento previo con **SSE** se había
+revertido en `ec986f1` por problemas de event-loop/ngrok; el polling evita ese problema.
+
+**Relacionado:** el mismo modelo (POST síncrono largo + estado en una global) es lo que
+habilita la recuperación tras caída de conexión — ver entrada 10.
 
 ---
 
