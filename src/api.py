@@ -41,6 +41,7 @@ uvicorn tarda varios minutos en responder /health la primera vez.
 """
 import os
 import sys
+import time
 import unicodedata
 from typing import List, Optional
 
@@ -250,6 +251,14 @@ def _get_pipeline():
 # la lee con GET /progreso para pintar la barra de carga. Nadie mas la escribe.
 _estado_actual = {"fase": "idle"}
 
+# ── Ultimo resultado (parche anti-caida de ngrok) ────────────────────────────
+# `analizar` guarda aqui su resultado (o su error) ANTES de devolverlo. Si el POST
+# largo se corta por una caida de la conexion (ngrok), el analisis igual terminó en
+# el servidor: el front lo recupera con GET /ultimo_resultado. Una sola global
+# alcanza porque hay UN analisis a la vez (una GPU). NO es un mecanismo de jobs:
+# no hay hilo worker, job_id ni cola. Ver backlog 07 (parche, no la solucion).
+_ultimo_resultado = None
+
 
 @app.get("/health")
 def health():
@@ -294,6 +303,35 @@ async def progreso():
     pollea cada 1s mientras espera /analizar para pintar la barra de carga."""
     return JSONResponse(
         content={"fase": _estado_actual["fase"]},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+@app.options("/ultimo_resultado")
+async def ultimo_resultado_options(request: Request):
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, ngrok-skip-browser-warning",
+        },
+    )
+
+
+@app.get("/ultimo_resultado")
+async def ultimo_resultado():
+    """Ultimo resultado de /analizar (ok o error), con la huella de la consulta que
+    lo produjo. 404 si no hubo ninguno. Lo usa el front para recuperar un analisis
+    cuya respuesta se perdio por una caida de conexion. Solo LEE la global."""
+    if _ultimo_resultado is None:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "No hay un analisis previo."},
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
+    return JSONResponse(
+        content=_ultimo_resultado,
         headers={"Access-Control-Allow-Origin": "*"},
     )
 
@@ -346,6 +384,7 @@ def analizar(sol: SolicitudAnalisis):
     territorio del departamento elegido corta antes de scrapear — con
     {"sugerencia": [...]} si hay candidatos parecidos, o 422 si no. Un lugar
     forzado (vereda/corregimiento) pasa pero exige cobertura minima."""
+    global _ultimo_resultado
     import scrappers as sc  # import diferido: arrastra playwright/aiohttp
 
     # ── FILTRO 1: territorial. Tabla local, sin red, antes de scrapear nada. ──
@@ -378,12 +417,26 @@ def analizar(sol: SolicitudAnalisis):
         periodicos = _resolver_periodicos(sol.territorio, termino)
     hint = val.departamento or sol.departamento_hint or ""
 
+    # Huella de la consulta: identifica el resultado guardado para que el front (si
+    # la conexion se cae) verifique que /ultimo_resultado corresponde a ESTA consulta
+    # y no a otra. Guarda el territorio CRUDO (sol.territorio), no el oficial, porque
+    # es contra eso que el front compara lo que lanzo.
+    huella = {
+        "territorio": sol.territorio,
+        "departamento_hint": sol.departamento_hint,
+        "fecha_inicio": sol.fecha_inicio,
+        "fecha_fin": sol.fecha_fin,
+        "forzar_lugar": bool(sol.forzar_lugar),
+    }
+
     # Scraping en vivo. El endpoint es un `def` sincrono, asi que FastAPI lo corre
     # en un threadpool: el manejo de event loop de scrappers no toca el de uvicorn.
-    # El try/finally solo mueve la var de fase (para GET /progreso) y la resetea a
-    # "idle" pase lo que pase (exito o excepcion). NO cambia como se llama a
-    # scrape_municipio ni el hilo/contexto en que corre: sigue siendo la misma
-    # llamada sincrona de siempre, solo con una asignacion antes y otra despues.
+    # NO cambia como se llama a scrape_municipio ni el hilo/contexto en que corre.
+    #
+    # Orden CRITICO: el resultado se guarda en _ultimo_resultado ANTES de que el
+    # finally ponga "idle". El front pide /ultimo_resultado cuando ve "idle", asi que
+    # el resultado tiene que estar guardado para entonces. Sin hilo worker, sin
+    # job_id, sin BackgroundTasks: solo una asignacion mas antes de responder.
     try:
         _estado_actual["fase"] = "buscando"
         try:
@@ -423,7 +476,17 @@ def analizar(sol: SolicitudAnalisis):
         # (sol.territorio) ya no se muestra. df["departamento"] queda con el crudo:
         # es solo la clave de agrupacion interna del pipeline, no se muestra.
         nombre_mostrar = val.nombre_oficial or val.termino or sol.territorio
-        return _construir_respuesta(sol, df_proc, nombre_mostrar)
+        respuesta = _construir_respuesta(sol, df_proc, nombre_mostrar)
+        _ultimo_resultado = {"status": "ok", "consulta": huella,
+                             "resultado": respuesta, "ts": time.time()}
+        return respuesta
+    except Exception as e:
+        # Guardar tambien el error (incluye las HTTPException 422/500/502 de arriba)
+        # para que el front pueda recuperarlo si la conexion se cayo. Antes del idle.
+        detalle = e.detail if isinstance(e, HTTPException) else str(e)
+        _ultimo_resultado = {"status": "error", "consulta": huella,
+                             "detail": str(detalle), "ts": time.time()}
+        raise
     finally:
         _estado_actual["fase"] = "idle"
 

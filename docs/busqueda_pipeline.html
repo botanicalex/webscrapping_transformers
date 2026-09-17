@@ -273,6 +273,12 @@
     var territorioAnalizado = "";
     var pollId = null, animId = null, tInicio = 0;
     var tramoActual = 0, barraProgreso = 0;
+    // Modo recuperación (parche anti-caída de ngrok): si el POST /analizar se corta
+    // por red, seguimos poleando /progreso y, cuando el server termina, recuperamos
+    // el resultado con /ultimo_resultado. Ver contexto/07_backlog.md.
+    var recuperando = false, recuperacionDisparada = false;
+    var fallosProgreso = 0, intentosUltimoResultado = 0, consultaEnCurso = null;
+    var MAX_FALLOS_RECONEXION = 60;   // ~60 s sin /progreso => se da por perdido
 
     var $ = function (id) { return document.getElementById(id); };
     var selDepartamento = $("sel-departamento");
@@ -370,7 +376,9 @@
     function aplicarFase(fase) {
       var info = FASES_INFO[fase];
       if (!info || info.tramo < tramoActual) return;
-      $("loading-etapa").textContent = info.texto;
+      // En recuperación el texto queda fijo en "Reconectando…"; igual dejamos que
+      // la barra/dots avancen si el poll sigue reportando fases.
+      if (!recuperando) $("loading-etapa").textContent = info.texto;
       if (info.tramo > tramoActual) {
         tramoActual = info.tramo;
         barraProgreso = TRAMOS[tramoActual][0];   // salta al inicio del nuevo tramo
@@ -386,8 +394,24 @@
       $("loading-tiempo").textContent = "Transcurrido " + _mmss(elapsed);
       fetch(API_BASE + "/progreso", { headers: { "ngrok-skip-browser-warning": "69420" } })
         .then(function (r) { return r.json(); })
-        .then(function (j) { if (j && j.fase) aplicarFase(j.fase); })
-        .catch(function () { /* sin conexión momentánea: se conserva la última fase */ });
+        .then(function (j) {
+          fallosProgreso = 0;                     // /progreso respondió: reset del tope
+          if (j && j.fase) aplicarFase(j.fase);
+          // Recuperación: cuando el server llega a "idle" (terminó), pedir el
+          // resultado guardado. Una sola vez (recuperacionDisparada).
+          if (recuperando && !recuperacionDisparada && j && j.fase === "idle") {
+            recuperacionDisparada = true;
+            recuperarResultado();
+          }
+        })
+        .catch(function () {
+          // Fuera de recuperación: se conserva la última fase, como hoy.
+          // En recuperación: si /progreso tampoco responde, contar hacia el tope (60 s).
+          if (recuperando && ++fallosProgreso >= MAX_FALLOS_RECONEXION) {
+            detenerLoading();
+            mostrarErrorRecuperacion("Se perdió la conexión y no se pudo recuperar el análisis.");
+          }
+        });
     }
 
     function iniciarLoading() {
@@ -505,6 +529,16 @@
     // Lanza el análisis real (POST /analizar). Igual que antes; lo único nuevo es
     // que el rótulo del loading ya viene resuelto (nombreMostrar).
     function lanzarAnalisis(territorio, depto, forzar, nombreMostrar) {
+      // Reset del estado de recuperación y huella de ESTA consulta (para validar
+      // que un /ultimo_resultado recuperado corresponda a lo que se lanzó aquí).
+      recuperando = false; recuperacionDisparada = false;
+      fallosProgreso = 0; intentosUltimoResultado = 0;
+      consultaEnCurso = {
+        territorio: territorio, departamento_hint: depto,
+        fecha_inicio: fechaInicio.value, fecha_fin: fechaFin.value,
+        forzar_lugar: !!forzar,
+      };
+
       $("loading-territorio").textContent = nombreMostrar;
       tInicio = Date.now();
       mostrar("loading");
@@ -548,6 +582,10 @@
           window.location.href = "visualizacion_riesgo.html" + window.location.search;
         })
         .catch(function (err) {
+          // Caída de red (ngrok): NO es un rechazo del servidor. En vez de error,
+          // entrar en modo recuperación (seguir poleando /progreso). Un error HTTP
+          // (422/500/502) no llega aquí como error de red y sigue el flujo normal.
+          if (esErrorDeRed(err)) { entrarRecuperacion(); return; }
           detenerLoading();
           var forzable = !!err.forzable;
           var esValidacion = !!err.esValidacion;
@@ -564,6 +602,78 @@
           $("btn-reintentar").hidden = esValidacion;
           mostrar("error");
         });
+    }
+
+    // ── Recuperación tras caída de conexión (parche; ver contexto/07_backlog.md) ──
+    // Caída de red => fetch rechaza con TypeError ("Failed to fetch"/"NetworkError"/
+    // "Load failed"). Un error HTTP (422/500/502) NO llega así: la conexión funcionó
+    // y lo maneja el .catch normal. Con esto no confundimos una caída con un rechazo.
+    function esErrorDeRed(err) {
+      return (err instanceof TypeError) ||
+        /failed to fetch|networkerror|load failed|network request failed/i.test(String(err && err.message));
+    }
+
+    function entrarRecuperacion() {
+      recuperando = true; recuperacionDisparada = false; fallosProgreso = 0;
+      // El loading sigue vivo (no se detiene pollId/animId); tickLoading espera el
+      // "idle" y recupera. Texto explícito para que se vea que no se colgó.
+      $("loading-etapa").textContent = "Reconectando… el análisis sigue en el servidor";
+    }
+
+    // ¿El resultado guardado corresponde a la consulta que este front lanzó? Compara
+    // contra el territorio CRUDO (lo que se mandó), no contra el nombre oficial.
+    function huellaCoincide(c) {
+      return !!c && !!consultaEnCurso &&
+        c.territorio === consultaEnCurso.territorio &&
+        (c.departamento_hint || "") === (consultaEnCurso.departamento_hint || "") &&
+        c.fecha_inicio === consultaEnCurso.fecha_inicio &&
+        c.fecha_fin === consultaEnCurso.fecha_fin &&
+        !!c.forzar_lugar === !!consultaEnCurso.forzar_lugar;
+    }
+
+    // El server terminó (progreso == idle): pedir el resultado guardado. Solo se
+    // acepta si su huella coincide (evita tomar uno viejo o de otra pestaña).
+    function recuperarResultado() {
+      fetch(API_BASE + "/ultimo_resultado", { headers: { "ngrok-skip-browser-warning": "69420" } })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (obj) {
+          if (!obj || !huellaCoincide(obj.consulta)) {   // 404, o no es nuestro
+            detenerLoading();
+            mostrarErrorRecuperacion("No se encontró el resultado del análisis.");
+            return;
+          }
+          if (obj.status === "ok" && obj.resultado) {
+            recuperando = false;
+            detenerLoading();
+            barraProgreso = 100; pintarBarra();
+            sessionStorage.setItem("radar_resultado", JSON.stringify(obj.resultado));
+            window.location.href = "visualizacion_riesgo.html" + window.location.search;
+            return;
+          }
+          // El análisis terminó en error en el servidor: mostrarlo.
+          detenerLoading();
+          mostrarErrorRecuperacion(obj.detail || "El análisis terminó con un error.");
+        })
+        .catch(function () {
+          // /ultimo_resultado falló por red: reintentar en el próximo tick idle,
+          // con un tope para no quedar en bucle.
+          if (++intentosUltimoResultado < 5) {
+            recuperacionDisparada = false;
+          } else {
+            detenerLoading();
+            mostrarErrorRecuperacion("Se perdió la conexión y no se pudo recuperar el análisis.");
+          }
+        });
+    }
+
+    function mostrarErrorRecuperacion(msg) {
+      recuperando = false;
+      $("error-msg").textContent = msg;
+      $("estado-error").classList.remove("warn");
+      $("err-title").textContent = "No se pudo completar el análisis";
+      $("btn-forzar-error").hidden = true;
+      $("btn-reintentar").hidden = false;   // reintentar puede ayudar
+      mostrar("error");
     }
 
     function nuevaConsulta() {

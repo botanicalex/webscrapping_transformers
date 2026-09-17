@@ -367,6 +367,32 @@ fase en el repo ni en logs.
 
 ---
 
+## 10. Modo recuperación tras caída de conexión — PARCHE (la solución es arquitectónica)
+
+`/analizar` es un POST síncrono largo (Maicao con 4 fuentes tarda minutos). Si ngrok corta
+la conexión de esa request, el navegador ve "Failed to fetch" y **se perdía el resultado
+aunque el análisis hubiera terminado bien en el servidor**.
+
+**Parche (implementado):** el backend guarda el último resultado (o error) en una global
+`_ultimo_resultado` junto con la huella de la consulta que lo produjo, y expone
+`GET /ultimo_resultado`. Si el POST se cae por red, el front no muestra error: sigue
+poleando `GET /progreso` y, cuando llega a `idle`, pide `/ultimo_resultado`; si la huella
+coincide con lo que ese front lanzó, continúa el flujo normal (dashboard). Tope de 60 s sin
+`/progreso` para darse por vencido. NO agrega hilo worker, `job_id` ni `BackgroundTasks`:
+una GPU, un análisis a la vez. Orden crítico en el backend: se guarda el resultado **antes**
+de poner la fase en `idle` (el front pide `/ultimo_resultado` justo al ver `idle`).
+
+**Por qué es un parche y no la solución:** sigue dependiendo de que el cliente siga vivo
+para recuperar, y de una sola global (no soporta dos análisis concurrentes; la huella solo
+evita entregar el resultado equivocado, no habilita concurrencia). Lo correcto es que el
+análisis **no dependa de una conexión abierta**: encolar el trabajo y consultar estado/
+resultado por id. Esa es justamente la arquitectura de jobs que rompió el scraping cuando se
+intentó con SSE/BackgroundTasks (revertida en `ec986f1`; ver entrada 9). Rehacerla bien —sin
+romper el modelo de ejecución del scraping (threadpool síncrono, lock de Playwright, imports
+diferidos)— es el trabajo pendiente real.
+
+---
+
 ## Trabajo perdido que conviene rehacer
 
 Un workflow de 10 agentes quedó a medias al apagar el equipo. Cubría: propuestas de keywords
