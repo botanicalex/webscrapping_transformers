@@ -25,6 +25,13 @@ pero **57 URLs (74%) se solapan con Maicao** —es corregimiento suyo— y el de
 vereda y municipio lo decidió el orden de los archivos, no un criterio metodológico. Sus 26
 indicadores salen de 10 artículos relevantes.
 
+> **Rótulo (nota):** Paraguachón es en rigor **corregimiento** de Maicao, no vereda. Aun así,
+> la etiqueta `Vereda Paraguachón` se conserva tal cual en el dato (columna `departamento` de
+> `df_corpus_5lugares.pkl`), en el pkl individual `df_corpus_vereda_paraguachon.pkl` y en
+> `scrape_lugares.py`: corregirla haría que una corrida futura generara un pkl con otro nombre
+> y otra etiqueta, divergente del histórico. Se prefiere el rótulo impreciso a romper esa
+> correspondencia.
+
 **Güintiva no existe en el corpus: 0 artículos.** Se intentó con `boyaca7dias` y `eltiempo`;
 sin cobertura de prensa en 12 meses. Es un resultado plausible para una vereda, no un fallo.
 
