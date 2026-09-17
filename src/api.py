@@ -90,14 +90,14 @@ BADGE = {
 # Claves normalizadas (minusculas, sin tildes). Incluye los 4 lugares
 # sub-departamentales conocidos y los 32 departamentos.
 MAPA_TERRITORIO_PERIODICOS = {
-    "paraguachon":        ["laguajirahoy", "eltiempo"],
-    "maicao":             ["laguajirahoy", "eltiempo"],
+    "paraguachon":        ["diariodelnorte", "laguajirahoy", "elpilon", "eltiempo"],
+    "maicao":             ["diariodelnorte", "laguajirahoy", "elpilon", "eltiempo"],
     "guintiva":           ["boyaca7dias", "eltiempo"],
     "oicata":             ["boyaca7dias", "eltiempo"],
     "antioquia":          ["elcolombiano", "eltiempo"],
     "atlantico":          ["elheraldo", "eltiempo"],
     "bolivar":            ["eluniversal", "eltiempo"],
-    "boyaca":             ["eldiarioboyaca", "ultimahoraboy", "eltiempo"],
+    "boyaca":             ["boyaca7dias", "eltiempo"],
     "caldas":             ["bcnoticias", "eltiempo"],
     "caqueta":            ["eltiempo"],
     "cauca":              ["diariodelcauca", "eltiempo"],
@@ -107,7 +107,7 @@ MAPA_TERRITORIO_PERIODICOS = {
     "cundinamarca":       ["eltiempo"],
     "guaviare":           ["marandua", "eltiempo"],
     "huila":              ["eltiempo"],
-    "la guajira":         ["laguajirahoy", "eltiempo"],
+    "la guajira":         ["diariodelnorte", "laguajirahoy", "elpilon", "eltiempo"],
     "magdalena":          ["santamartaaldia", "elheraldo", "eltiempo"],
     "meta":               ["llanoalmundo", "periodicodelmeta", "viveelmeta", "eltiempo"],
     "narino":             ["diariodelsur", "eltiempo"],
