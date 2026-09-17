@@ -465,9 +465,47 @@
       var depto = selDepartamento.value;
       if (!(depto && fechasValidas())) return;
       var territorio = territorioValor();
-
       territorioAnalizado = territorio;
-      $("loading-territorio").textContent = territorio;
+
+      // (2) BLOQUEANTE: antes de pintar el loading, resolver el nombre OFICIAL con
+      // POST /validar (lookup en memoria, sin GPU ni scraping) para que la pantalla
+      // diga p.ej. "Oicatá" desde el primer frame, sin parpadeo crudo->oficial.
+      // Timeout 2s con fallback al texto crudo. El request a /analizar NO cambia:
+      // sigue mandando el territorio crudo; el backend resuelve el oficial para la
+      // respuesta (`lugar`), que es lo que lee el dashboard.
+      resolverNombreOficial(territorio, depto, !!forzar).then(function (nombreMostrar) {
+        lanzarAnalisis(territorio, depto, !!forzar, nombreMostrar);
+      });
+    }
+
+    // POST /validar -> nombre oficial de la tabla DANE. Solo cosmético (rótulo del
+    // loading); no decide el flujo. Devuelve el crudo si no es válido (forzado sin
+    // nombre en la tabla, sugerencia, inválido) o si /validar tarda >2s o falla.
+    function resolverNombreOficial(territorio, depto, forzar) {
+      var ctrl = new AbortController();
+      var t = setTimeout(function () { ctrl.abort(); }, 2000);
+      return fetch(API_BASE + "/validar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "69420" },
+        body: JSON.stringify({
+          territorio: territorio,
+          departamento_hint: depto,
+          forzar_lugar: forzar,
+          fecha_inicio: fechaInicio.value,   // /validar los ignora; el modelo los exige
+          fecha_fin: fechaFin.value,
+        }),
+        signal: ctrl.signal,
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { return (j && j.valido && j.territorio) ? j.territorio : territorio; })
+        .catch(function () { return territorio; })   // timeout / red: fallback al crudo
+        .then(function (nombre) { clearTimeout(t); return nombre; });
+    }
+
+    // Lanza el análisis real (POST /analizar). Igual que antes; lo único nuevo es
+    // que el rótulo del loading ya viene resuelto (nombreMostrar).
+    function lanzarAnalisis(territorio, depto, forzar, nombreMostrar) {
+      $("loading-territorio").textContent = nombreMostrar;
       tInicio = Date.now();
       mostrar("loading");
 

@@ -417,12 +417,19 @@ def analizar(sol: SolicitudAnalisis):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Fallo el pipeline NLI: {e}")
 
-        return _construir_respuesta(sol, df_proc)
+        # nombre_mostrar: el nombre oficial de la tabla DANE (con tildes/mayusculas)
+        # para municipio/departamento, o el texto del usuario para lugares forzados
+        # (ahi nombre_oficial == termino limpio). Es lo que el front pinta; el crudo
+        # (sol.territorio) ya no se muestra. df["departamento"] queda con el crudo:
+        # es solo la clave de agrupacion interna del pipeline, no se muestra.
+        nombre_mostrar = val.nombre_oficial or val.termino or sol.territorio
+        return _construir_respuesta(sol, df_proc, nombre_mostrar)
     finally:
         _estado_actual["fase"] = "idle"
 
 
-def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame) -> dict:
+def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame,
+                         nombre_mostrar: str) -> dict:
     indicadores = [c for c in CalculadorRadar.COLUMNAS_BINARIAS if c in df_proc.columns]
 
     # score por indicador = MAX del score por articulo (agregacion de esta rama)
@@ -471,7 +478,7 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame) -> dict:
     fuentes = sorted(str(p) for p in df_proc["periodico"].dropna().unique())
 
     return {
-        "lugar": sol.territorio,
+        "lugar": nombre_mostrar,
         "fecha_inicio": sol.fecha_inicio,
         "fecha_fin": sol.fecha_fin,
         "n_articulos": int(len(df_proc)),
