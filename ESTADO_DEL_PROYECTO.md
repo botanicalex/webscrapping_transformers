@@ -1,7 +1,9 @@
 # Estado del proyecto — Radar de riesgo territorial (Colombia)
 
-*Última actualización: 2026-08-31 (rama `radar-max_Septiembre`, derivada de `pruebas` a
-pedido del jefe: agregación **MAX** en vez de P75, ver "En qué estado está" abajo). Este
+*Última actualización: 2026-09-22 (rama `hipotesis-5ind-max`, derivada de
+`radar-max_Septiembre`: agregación **MAX** en vez de P75 a pedido del jefe, ver "En qué
+estado está" abajo; desde el 2026-09-22, compuerta léxica en `presencia_grupos_armados`,
+ver "Cambio del 2026-09-22"). Este
 documento está escrito para alguien que no ha seguido el proyecto día a día — un lector
 externo. Para trabajar en el código, ver `CLAUDE.md` y `contexto/`.*
 
@@ -51,8 +53,9 @@ los departamentos con más artículos en el corpus, con independencia del riesgo
 Recalibrando los cortes Bajo/Medio/Alto sobre la escala MAX (huecos naturales de la
 distribución, sin mirar el oficial, sin romper las anclas de validez aparente), la accuracy
 contra el DANE sobre los 32 departamentos da **34.4%** y la correlación de Spearman contra
-el valor oficial continuo da **−0.1653** (negativa, calculado offline desde
-`datos/scores/scores_v2_32deptos.pkl`, sin volver a tocar la GPU). Líneas base para
+el valor oficial continuo da **−0.1173** (negativa; era −0.1653 antes de la compuerta de
+grupos armados; calculado offline desde `datos/scores/scores_v2_32deptos.pkl`, sin volver a
+tocar la GPU). Cortes vigentes: `Bajo < 0.7574 <= Medio < 0.9233 <= Alto`. Líneas base para
 contexto:
 
 | Método | Accuracy |
@@ -107,6 +110,34 @@ fueron validadas a escala nacional sobre los 32 departamentos con el motor de ex
 (Spearman +0.42, con P75). Producción aún no se ha re-corrido sobre los 32 con su propio
 código (~4 h GPU, pendiente). Esta rama reemplaza únicamente la agregación por MAX; las
 otras dos correcciones (hipótesis V2, sesgo descontado) se mantienen.
+
+## Cambio del 2026-09-22: presencia de grupos armados
+
+Una auditoría externa de los Excel de lugares (Maicao, Oicatá, Paraguachón) señaló que cinco
+indicadores confunden su concepto con temas vecinos. Con MAX el valor de un indicador en un
+lugar es el de **un solo artículo**, y en `presencia_grupos_armados` ese artículo era a
+menudo un homicidio, un porte ilegal de armas o un "combo": delincuencia común, no un grupo
+armado.
+
+- **Qué cambió:** el puntaje de `presencia_grupos_armados` se multiplica por una compuerta
+  de palabras clave — 1 si el texto que ve el modelo nombra un grupo armado organizado
+  (ELN, FARC/disidencias, Clan del Golfo/AGC, autodefensas, paramilitares, guerrilla,
+  "frente 36"…), 0 si no. Sigue siendo el mismo modelo NLI más una regla de texto; no entra
+  ningún LLM a producción. Los otros 25 indicadores no cambian y **el radar sigue con 26**.
+- **Evidencia:** dos jueces LLM independientes y ciegos (solo para evaluar, en local)
+  etiquetaron los artículos candidatos. La proporción de artículos que de verdad reportan
+  un grupo armado entre los 10 más altos de cada lugar pasó de 0.17 a **0.93** en los 4
+  lugares de trabajo y de 0.47 a **0.77** en tres departamentos que no se usaron para
+  diseñar (Cauca, Chocó, Cundinamarca), sin empeorar el control absurdo. Acuerdo entre
+  jueces (kappa) 0.94 y 0.81.
+- **Consecuencia:** el corte Bajo/Medio se recalibró con el mismo procedimiento (0.766 →
+  0.7574; el Medio/Alto queda en 0.9233). Ningún departamento cambia de clase (6 Bajo /
+  19 Medio / 7 Alto) y ninguna de las anclas de validez aparente se rompe.
+- **Pendiente:** conflicto territorial, desplazamiento forzado, rechazo a proyecto y
+  exclusión de beneficios económicos tienen el mismo problema, pero ninguna variante pasó
+  el criterio fijado de antemano (en rechazo y exclusión casi no hay casos reales en el
+  corpus juzgado). Quedan para una segunda ronda. Informe completo:
+  `experimentos/INFORME_5ind_MAX.md`.
 
 ## Qué falta y qué lo bloquea
 

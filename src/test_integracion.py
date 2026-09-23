@@ -15,6 +15,10 @@ Checklist de aceptación:
   [8] ValidadorPrecondiciones.etapa_corpus acepta el corpus sintético
   [9] ValidadorPrecondiciones.etapa_salida_no_vacia acepta df_procesado y radar
   [10] evaluar_criterio_parada ejecuta y retorna bool sin excepción
+  [11] compuerta de presencia_grupos_armados: abre con ELN/disidencias, no con combo/banda
+  [12] la compuerta solo mira la premisa que ve el NLI (truncada con la hipótesis)
+  [13] procesar() multiplica solo presencia_grupos_armados por la compuerta (NLI simulado)
+  [14] la columna auxiliar compuerta_grupos_armados no entra al radar ni a los exportadores
 
 Restricciones de versión respetadas:
   pandas==2.3.3, numpy==2.3.4, openpyxl==3.1.5, matplotlib==3.10.7,
@@ -401,6 +405,86 @@ class TestIntegracionPipeline(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# Compuerta léxica de presencia_grupos_armados (V08)
+# ---------------------------------------------------------------------------
+
+class _TokenizadorPalabras:
+    """Tokenizador de juguete (un token por palabra, sin especiales) para
+    probar premisa_visible sin cargar el tokenizador del NLI."""
+
+    def __call__(self, textos, add_special_tokens=False):
+        if isinstance(textos, str):
+            return {"input_ids": textos.split()}
+        return {"input_ids": [t.split() for t in textos]}
+
+    def decode(self, ids, skip_special_tokens=True):
+        return " ".join(ids)
+
+
+class TestCompuertaGruposArmados(unittest.TestCase):
+
+    def test_11_compuerta_abre_con_grupos_organizados_y_no_con_delincuencia(self) -> None:
+        abren = [
+            "Hostigamiento del ELN en zona rural",
+            "Las disidencias de las Farc reclutan menores",
+            "Combates con el Clan del Golfo",
+            "El frente 36 opera en el norte",
+            "Presencia de las Autodefensas Conquistadoras",
+        ]
+        no_abren = [
+            "Capturan a integrantes de un combo en Medellín",
+            "Banda de hurto de celulares desarticulada",
+            "Capturado por porte ilegal de arma de fuego",
+            "Hombre asesinado a tiros por sicarios",
+            "Operativo contra el Tren de Aragua",
+        ]
+        self.assertEqual(tf.compuerta_grupos_armados(abren).tolist(), [1.0] * len(abren))
+        self.assertEqual(tf.compuerta_grupos_armados(no_abren).tolist(), [0.0] * len(no_abren))
+
+    def test_12_compuerta_solo_mira_la_premisa_visible(self) -> None:
+        tok = _TokenizadorPalabras()
+        # max_length 10 - 3 especiales - 3 de la hipótesis = 4 palabras visibles
+        textos = ["uno dos tres cuatro ELN", "ELN dos tres cuatro cinco"]
+        premisas = tf.premisa_visible(textos, tok, "hay grupos armados", max_length=10)
+        self.assertEqual(premisas, ["uno dos tres cuatro", "ELN dos tres cuatro"])
+        self.assertEqual(tf.compuerta_grupos_armados(premisas).tolist(), [0.0, 1.0])
+
+    def test_13_procesar_aplica_compuerta_solo_a_grupos_armados(self) -> None:
+        pipe = object.__new__(tf.PipelineTransformers)
+        pipe.tokenizer_nli = _TokenizadorPalabras()
+        pipe.eventos = {}
+        pipe.posturas = {"conflicto_activo": "Hay un conflicto activo."}
+        pipe.indicadores = {"presencia_grupos_armados": "Hay grupos armados."}
+        pipe.nulas_calibracion = ["nula"]
+
+        def _nli_simulado(textos, hipotesis, batch_size=32, devolver_neutral=False):
+            ent = [0.1 if hipotesis == "nula" else 0.9] * len(textos)
+            return (ent, [0.0] * len(textos)) if devolver_neutral else ent
+
+        pipe._nli_batch = _nli_simulado
+        df = pd.DataFrame({"texto": ["Hostigamiento del ELN en la vereda",
+                                     "Un combo robó celulares en el barrio"]})
+        out = pipe.procesar(df)
+        np.testing.assert_allclose(out["presencia_grupos_armados"], [0.8, 0.0])
+        np.testing.assert_allclose(out["conflicto_activo"], [0.8, 0.8])
+        self.assertEqual(out["compuerta_grupos_armados"].tolist(), [1.0, 0.0])
+
+    def test_14_columna_auxiliar_no_entra_al_radar(self) -> None:
+        self.assertNotIn("compuerta_grupos_armados", tf.CalculadorRadar.COLUMNAS_BINARIAS)
+        self.assertEqual(len(tf.CalculadorRadar.COLUMNAS_BINARIAS), 26)
+        df = _df_procesado_stub(_corpus_sintetico())
+        con_aux = df.assign(compuerta_grupos_armados=1.0)
+        r_sin = tf.CalculadorRadar().calcular(df)
+        r_con = tf.CalculadorRadar().calcular(con_aux)
+        pd.testing.assert_frame_equal(r_sin, r_con)
+        with tempfile.TemporaryDirectory() as d:
+            ruta_ind, ruta_fue = tf.exportar_indicadores_transformers_por_departamento(con_aux, d)
+            self.assertNotIn("compuerta_grupos_armados", pd.read_csv(ruta_ind).columns)
+            self.assertNotIn("compuerta_grupos_armados",
+                             set(pd.read_csv(ruta_fue)["indicador"]))
+
+
+# ---------------------------------------------------------------------------
 # Checklist de aceptación impresa al final
 # ---------------------------------------------------------------------------
 
@@ -415,6 +499,10 @@ _CHECKLIST = [
     ("ValidadorPrecondiciones corpus OK",                       "test_08"),
     ("ValidadorPrecondiciones salidas NLP y radar OK",          "test_09"),
     ("evaluar_criterio_parada retorna bool sin excepción",      "test_10"),
+    ("Compuerta grupos armados: ELN/disidencias sí, combo/banda no", "test_11"),
+    ("Compuerta solo sobre la premisa visible del NLI",         "test_12"),
+    ("procesar() aplica la compuerta solo a grupos armados",    "test_13"),
+    ("Columna compuerta_grupos_armados fuera del radar",        "test_14"),
 ]
 
 
@@ -441,7 +529,10 @@ def _imprimir_checklist(resultado: unittest.TestResult) -> None:
 
 if __name__ == "__main__":
     loader = unittest.TestLoader()
-    suite = loader.loadTestsFromTestCase(TestIntegracionPipeline)
+    suite = unittest.TestSuite([
+        loader.loadTestsFromTestCase(TestIntegracionPipeline),
+        loader.loadTestsFromTestCase(TestCompuertaGruposArmados),
+    ])
     runner = unittest.TextTestRunner(verbosity=2)
     resultado = runner.run(suite)
     _imprimir_checklist(resultado)

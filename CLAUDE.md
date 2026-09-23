@@ -42,7 +42,7 @@ optimizar indicadores — hay un techo estructural y una decisión de diseño pe
    viven únicamente en `src/Transformer_optimo.py`; no hay copia V0 aquí.
 6. **En esta rama no existe `nli_core`** (se eliminó con `experimentos/`), así que la
    verificación `verificar_contra_produccion_v2()` no aplica aquí. Para validar cambios,
-   correr `python src/test_integracion.py` (10 tests, sin GPU).
+   correr `python src/test_integracion.py` (14 tests, sin GPU).
 7. **Un experimento aísla UNA variable.** Dos cambios a la vez no se pueden atribuir.
 8. **No repetir GPU.** Puntuar los 32 departamentos son ~4 h. Se guardan `ent_` y `neu_`
    **sin enmascarar** en un pkl y todo el análisis posterior se hace sobre el pkl.
@@ -81,8 +81,15 @@ decisión técnica del historial, que fue P75 por rango más cercano; ver
 **Los tres están corregidos EN PRODUCCIÓN desde el 2026-08-31.** `src/` en `pruebas`/`master`
 corre P75; **en esta rama corre MAX**: hipótesis V2, **sin pre-filtro social** (rechazado:
 cuesta AUC), sesgo descontado, MAX por departamento, cortes fijos recalibrados sobre esa
-escala `Bajo < 0.766 <= Medio < 0.9233 <= Alto`, y la clasificación oficial del DANE leída de
+escala `Bajo < 0.7574 <= Medio < 0.9233 <= Alto`, y la clasificación oficial del DANE leída de
 su columna (antes se recalculaba con terciles propios — era un bug).
+
+**Desde el 2026-09-22 (rama `hipotesis-5ind-max`, F8):** `presencia_grupos_armados` = score
+corregido × compuerta léxica (1 si la premisa que ve el NLI nombra un grupo armado
+organizado; regex `REGEX_COMPUERTA_GRUPOS_ARMADOS` en `src/Transformer_optimo.py`, columna
+auxiliar `compuerta_grupos_armados`, fuera de los 26). Por eso el corte bajo pasó de 0.766 a
+0.7574 (misma clasificación 6/19/7, ninguna ancla rota). Los otros 25 no cambian; el radar
+sigue con 26. Ver `08_log_decisiones.md` [2026-09-22] F7 y F8.
 
 **Abierto:** ampliar el estándar de plata (cubre 2 de 26 — es la mayor debilidad, todas las
 conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos_ambientales`

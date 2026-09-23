@@ -1102,3 +1102,50 @@ Compuerta con la truncación de producción (premisa con la hipótesis vigente d
 más larga del experimento): difiere en 16 de 11.439 artículos y no cambia ningún MAX
 departamental (max|dif| radar 0) → en F8 se puede implementar con la truncación propia de
 la hipótesis.
+
+## [2026-09-22] F8 del plan 5ind MAX — V08 de `presencia_grupos_armados` promovida a `src/`; cortes 0.7574 / 0.9233
+
+Etiqueta local previa: `base-26ind-f7` (705a557, último commit con `src/` intacto).
+
+**Adoptado (promovido):**
+- `src/Transformer_optimo.py`: `procesar()` multiplica el score corregido de
+  `presencia_grupos_armados` por la compuerta léxica (V08). Regex (`REGEX_COMPUERTA_GRUPOS_ARMADOS`)
+  y `normalizar()` copiadas literal de `experimentos/hipotesis_5ind_max.py`; la compuerta mira la
+  premisa que ve el NLI con la hipótesis vigente de grupos (`texto` tokenizado sin especiales,
+  cortado a 512 − 3 − tokens(hipótesis), decodificado). `src/` no importa de `experimentos/`.
+  Columna auxiliar `compuerta_grupos_armados` (como `sesgo`), fuera de `COLUMNAS_BINARIAS`: no
+  entra al radar ni a los exportadores (todos filtran por esa lista; comprobado). NLI y los
+  otros 25 sin cambios; el radar sigue con 26.
+- `src/config_pipeline.py`: `CORTE_BAJO_MEDIO_RADAR` 0.766 → **0.7574**, `CORTE_MEDIO_ALTO_RADAR`
+  0.9233 (F7). Actualizados también `CLAUDE.md` (Estado técnico), `README.md`,
+  `explicacion_alexa.md` y `ESTADO_DEL_PROYECTO.md`. Los 0.766 que quedan en `experimentos/`
+  (plan, pre-registro, scripts) son el umbral congelado del experimento, no el corte del radar.
+
+**Verificación:**
+- `python src/test_integracion.py`: 14/14 (4 nuevos: la compuerta abre con ELN, disidencias,
+  Clan del Golfo, "frente 36", autodefensas y no con combo, banda, porte ilegal, sicarios, Tren
+  de Aragua; solo mira la premisa visible; `procesar()` con NLI simulado la aplica solo a
+  grupos; la columna auxiliar no cambia el radar ni aparece en los exportadores).
+- Equivalencia offline (`experimentos/exp_5ind_max_f8_equivalencia.py`, sin GPU, corpus
+  nacional + `scores_v2_32deptos.pkl`): compuerta de `src/` idéntica a la de F7 con truncación
+  de producción en los 11.439 (0 distintos; 16 respecto de la truncación del experimento, como
+  midió F7); MAX de grupos por departamento max|dif| 0; `radar_propio` de `CalculadorRadar` vs
+  F7 max|dif| 0; clase igual a F7 en los 32 (6/19/7); el procedimiento de `b060b3b` sobre ese
+  radar devuelve 0.7574/0.9233 sin romper anclas. (Aplicado sobre `radar_propio` ya redondeado
+  a 4 decimales daría 0.9234 — punto medio 0.92335 —; se aplica sin redondear, como en F7.)
+
+**Excel de lugares** (`experimentos/exp_5ind_max_f8_excel_lugares.py`, sin GPU; salida
+`experimentos/resultados/excel_lugares_f8/`). Formato tomado de los `radar_resumen_*.xlsx` de la
+profesora, que no están en el repo sino en Descargas del usuario (hoja `Resumen`: Dimensión |
+Indicador | Score (0-100) | URL artículo top, orden de bloques A–E); no hay script que los
+genere en ningún repo local (probablemente salieron de la app desplegada). Se añade una hoja
+`Radar` (valor, clase, cortes). Antes = V01 con 0.766; después = V08 (función de `src/`) con
+0.7574. Radar: Maicao 0.9625 Alto → 0.9624 Alto; Oicatá 0.6688 Bajo → 0.6437 Bajo; Paraguachón
+0.8188 Medio → 0.8188 Medio. Solo cambia grupos armados: Oicatá 65 → 0 (el máximo era un hurto);
+Maicao 98 → 98 con otro artículo (masacre en Maicao en vez de "fortalece su seguridad… contra
+el crimen"); Paraguachón 99 igual. Coincide con el MAX de V08 de F5 en los 3.
+**Hallazgo:** el "antes" regenerado difiere de los Excel de la profesora en 26 de 78 celdas
+(Maicao 9, Oicatá 3, Paraguachón 14), siempre con el nuestro mayor; todas sus URL top están en
+nuestro corpus con el mismo score (±0.5): sus Excel se hicieron sobre un subconjunto de los
+artículos actuales. Sus archivos dejan vacía la URL en scores bajos (≤ 7); los nuestros la
+ponen siempre que el score sea > 0.

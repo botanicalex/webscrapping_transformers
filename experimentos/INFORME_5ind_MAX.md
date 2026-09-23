@@ -1,7 +1,8 @@
 # Informe — Reformulación de 5 indicadores del radar bajo agregación MAX
 
-Fecha: 2026-09-22 · Rama: `hipotesis-5ind-max` (desde `radar-max_Septiembre`) · Estado: fases 0–5
-cerradas; fase 7 (holdout nacional) aprobada y pendiente.
+Fecha: 2026-09-22 · Rama: `hipotesis-5ind-max` (desde `radar-max_Septiembre`) · Estado: fases 0–8
+cerradas. V08 de `presencia_grupos_armados` adoptada y promovida a `src/` (commits locales, sin
+push ni merge). Los otros 4 indicadores, pendientes de una segunda ronda.
 
 Documentos fuente: plan `experimentos/PLAN_5ind_MAX.md`, pre-registro
 `experimentos/PREREG_5ind_MAX.md`, tablas `experimentos/RESULTADOS_5ind_MAX.md`, registro de
@@ -183,7 +184,7 @@ artículos del pool.
 
 | Indicador | Vigente (V01): M2 / top-1 | Mejor alternativa | Decisión |
 |---|---|---|---|
-| **Presencia de grupos armados** | 0.17 / 2 de 4 | **V08: 0.93 / 4 de 4**, AUC 0.788→0.879, control absurdo sin empeorar | **Finalista**; falta el holdout (fase 7) |
+| **Presencia de grupos armados** | 0.17 / 2 de 4 | **V08: 0.93 / 4 de 4**, AUC 0.788→0.879, control absurdo sin empeorar | **Adoptada**: pasó el holdout (fase 7) y está en `src/` (fase 8) |
 | Conflicto territorial | 0.07 / 1 de 4 | V09: 0.59 / 2 de 4; V08: 0.57 / 3 de 4 | Rechazado: no llega a 0.60 y el control absurdo supera 0.766 en Antioquia |
 | Desplazamiento forzado | 0.05 / 0 de 4 | V10: 0.40 / 1 de 4 | Rechazado |
 | Rechazo a proyecto | 0.00 / 0 de 4 | ≤ 0.03 | Rechazado (solo 4 positivos en todo el pool) |
@@ -200,6 +201,78 @@ artículos del pool.
 V08 no inventa una frase nueva: conserva la hipótesis de producción y le exige que el texto
 mencione un grupo armado identificable. Es la regla de palabras clave que la restricción de
 diseño permite en producción.
+
+### Fase 7 — holdout nacional y recalibración de cortes
+
+Scripts `experimentos/exp_5ind_max_{nacional,holdout,cortes}.py`; resultados en
+`experimentos/resultados/juicio_5ind_holdout/`. Solo se puntuó en GPU la gemela absurda de
+grupos armados sobre los 11.439 artículos (7.3 min); lo demás se reutilizó de
+`scores_v2_32deptos.pkl`.
+
+**Holdout** (Cauca 598, Chocó 148, Cundinamarca 371 artículos; departamentos que no se usaron
+para diseñar): pool de 94 artículos juzgados a ciegas por los mismos dos jueces.
+
+| Indicador | SÍ/SÍ | Kappa |
+|---|---|---|
+| Presencia de grupos armados | 40 | 0.81 |
+| Desplazamiento forzado | 18 (Cauca 5, Chocó 13) | 0.93 |
+| Conflicto territorial | 16 (Cauca 7, Chocó 8, Cund. 1) | 0.75 |
+| Rechazo a proyecto | 3 | 1.00 |
+| Exclusión de beneficios económicos | 0 (ningún SÍ de ningún juez) | indefinida |
+
+**Criterio 6 (grupos armados):** precisión en los 10 más altos, Cauca/Chocó/Cundinamarca, V01
+0.70/0.50/0.20 (media 0.47) → **V08 1.00/0.80/0.50 (media 0.77)**. Top-1 verdadero en los 3,
+0 violaciones de coherencia, gemela absurda de V08 ≤ la de V01 y < 0.766 en los 3. **V08 pasa
+los 6 criterios del pre-registro → se adopta.** A escala nacional (solo reporte), la gemela de
+objeto absurdo supera 0.766 en 3 de 32 departamentos con V01 y en 1 con V08 (Cesar, cuyo
+artículo sí nombra un grupo armado); V08 nunca sube el MAX de la gemela.
+
+**Cortes (regla 2, cambia lo medido).** Mismo procedimiento que la calibración original
+(huecos naturales > 0.008 en la distribución nacional de los 32, sin mirar el oficial,
+verificando las 12 anclas); con V01 reproduce exactamente 0.766 / 0.9233. Con V08:
+**Bajo < 0.7574 ≤ Medio < 0.9233 ≤ Alto**. La clasificación de los 32 no cambia (6 Bajo / 19
+Medio / 7 Alto) y ninguna ancla se rompe. Constancia: accuracy 0.344 → 0.344; Spearman −0.1653
+→ −0.1173. El corte bajo se mueve porque San Andrés baja de 0.7376 a 0.7045. MAX de grupos
+armados que cambian: Quindío 0.996→0.553, Caldas 0.978→0.725, San Andrés 0.861→0, Guainía
+0.640→0.011 (los artículos que los fijaban no nombran un grupo armado en el texto visible).
+
+### Fase 8 — promoción a producción
+
+- `src/Transformer_optimo.py`: en `procesar()`, `presencia_grupos_armados = score corregido ×
+  compuerta`. La compuerta es 1 si la regex de grupos armados (copiada literal del experimento,
+  `REGEX_COMPUERTA_GRUPOS_ARMADOS`) aparece en la premisa que ve el NLI con la hipótesis de
+  grupos armados, en minúsculas y sin tildes. Se guarda como columna auxiliar
+  `compuerta_grupos_armados` (como `sesgo`); no está entre los 26 indicadores del radar ni de
+  los exportadores. El NLI y los otros 25 indicadores no cambian. `src/` no importa nada de
+  `experimentos/`.
+- `src/config_pipeline.py`: `CORTE_BAJO_MEDIO_RADAR` 0.766 → 0.7574 (`CORTE_MEDIO_ALTO_RADAR`
+  0.9233 igual).
+- Verificación: `src/test_integracion.py` 14/14 (4 tests nuevos: la compuerta abre con ELN o
+  disidencias y no con combo, banda o Tren de Aragua; solo mira la premisa visible; `procesar()`
+  la aplica solo a grupos armados; la columna auxiliar no entra al radar).
+  Equivalencia offline (`exp_5ind_max_f8_equivalencia.py`, sin GPU): la compuerta de `src/` es
+  idéntica a la de F7 con truncación de producción en los 11.439 artículos; MAX de grupos
+  armados y radar por departamento con max|dif| 0; `CalculadorRadar` de `src/` da 6/19/7 con la
+  misma clase que F7 en los 32; el procedimiento de cortes sobre ese radar devuelve 0.7574/0.9233.
+- **Excel de lugares** (`experimentos/resultados/excel_lugares_f8/`, script
+  `exp_5ind_max_f8_excel_lugares.py`, sin GPU), con el formato de los de la profesora (hoja
+  `Resumen`: Dimensión, Indicador, Score 0–100, URL del artículo top) y una hoja `Radar` añadida
+  con el valor del radar, la clase y los cortes:
+
+  | Lugar | Artículos | Radar antes (V01) | Clase (0.766) | Radar después (V08) | Clase (0.7574) | Grupos armados |
+  |---|---|---|---|---|---|---|
+  | Maicao | 1.101 | 0.9625 | Alto | 0.9624 | Alto | 98 → 98, otro artículo: de "Maicao fortalece su seguridad… contra el crimen" a "…esclarecer masacre en Maicao" |
+  | Oicatá | 32 | 0.6688 | Bajo | 0.6437 | Bajo | 65 → 0 (el máximo era un hurto) |
+  | Paraguachón | 77 | 0.8188 | Medio | 0.8188 | Medio | 99 → 99 (mismo artículo) |
+
+  Solo cambia `presencia_grupos_armados`; ningún lugar cambia de clase.
+  **Diferencia con los Excel de la profesora:** el "antes" regenerado no coincide con los
+  suyos en 26 de 78 celdas (Maicao 9, Oicatá 3, Paraguachón 14), y en todas el nuestro es
+  mayor. Todas sus URL top están en nuestro corpus y nuestro score para esos artículos coincide
+  con el suyo (±0.5 por redondeo): sus Excel se generaron sobre **un subconjunto** de los
+  artículos que tenemos hoy. Además, sus archivos dejan la URL vacía en algunos scores bajos
+  (≤ 7); los regenerados la ponen siempre que el score sea > 0. Comparación celda a celda:
+  `comparacion_antes_despues.csv`.
 
 ## 8. Hallazgos
 
@@ -235,31 +308,33 @@ diseño permite en producción.
 trabajo va en orden, como muñecas rusas: primero se corrigen los indicadores problemáticos y
 solo después, si hiciera falta, se discute cuáles sobran.
 
-Para exclusión la evidencia sigue siendo la misma: 0 positivos en 565 artículos juzgados, y un
-MAX nacional de ~0.99 en los 32 departamentos (std 0.012) que no distingue lugares. Queda como
-**indicador problemático pendiente**, con un problema distinto al de los otros: no hay casos
-reales con los que medir, así que antes hay que conseguir positivos (holdout nacional).
+Para exclusión la evidencia sigue siendo la misma: 0 positivos en 565 artículos juzgados (y 0
+en los 94 del holdout, donde ningún juez dijo SÍ), y un MAX nacional de ~0.99 en los 32
+departamentos (std 0.012) que no distingue lugares. Queda como **indicador problemático
+pendiente**, con un problema distinto al de los otros: no hay casos reales con los que medir.
+El muestreo por los artículos mejor puntuados por la propia vigente no encuentra ninguno, así
+que la segunda ronda necesita otra forma de buscarlos.
 
 Retirarlo, incluso de forma temporal, **no ayuda a corregir los otros**: cada indicador se
 puntúa por separado. Quitarlo solo cambiaría la media del radar y sus cortes. Por eso no se retira.
 
 Protección del estado de 26 indicadores (etiquetas git locales): `base-26ind-radar-max`
-(= `radar-max_Septiembre`, 71072a1, lo desplegado) y `base-26ind-f5` (esta rama tras F5).
-`src/` no se ha modificado en ningún commit del experimento.
+(= `radar-max_Septiembre`, 71072a1, lo desplegado), `base-26ind-f5` (esta rama tras F5) y
+`base-26ind-f7` (705a557, tras F7, último commit con `src/` intacto). `src/` solo se modificó
+en F8 (compuerta de grupos armados y cortes); el radar sigue con 26 indicadores.
 
 ## 11. Próximos pasos (en orden)
 
-1. **Fase 7 (aprobada), solo para grupos armados:** puntuar su gemela absurda sobre los 11.439
-   artículos (~8 min de GPU); holdout de V01 frente a V08 en Cauca, Chocó y Cundinamarca con
-   los mismos jueces (y, en la misma pasada, buscar positivos de exclusión); recalibrar los
-   cortes Bajo/Medio/Alto **con los 26 indicadores** (solo cambia grupos armados) y verificar las 12 anclas.
-2. **Segunda ronda para los problemáticos que faltan** (nuevo pre-registro, sin reabrir lo
-   cerrado): conflicto territorial (compuertas con M2 0.57–0.59), desplazamiento (0.40), rechazo
-   a proyecto (4 positivos: faltan casos) y exclusión (0 positivos: faltan casos). El hallazgo 1
-   orienta el diseño: compuertas léxicas y controles específicos antes que reescribir frases, y
-   ampliar el corpus juzgado con departamentos donde esos fenómenos sí aparecen.
-3. **Fase 8:** promover a `src/` lo que pase, regenerar los Excel de lugares (antes/después) y
-   hacer la revisión final con `orquesta-lead`. Sin push ni merge sin aprobación.
+1. **Revisión del usuario** de la rama `hipotesis-5ind-max` (commits locales). Sin push ni
+   merge a `radar-max_Septiembre` hasta su aprobación.
+2. **Segunda ronda para los problemáticos que faltan** (experimento nuevo, con su propio
+   pre-registro, sin reabrir lo cerrado): conflicto territorial (compuertas con M2 0.57–0.59),
+   desplazamiento (0.40), rechazo a proyecto (4 positivos en el pool + 3 en el holdout) y
+   exclusión (0 positivos en 565 + 94). El hallazgo 1 orienta el diseño: compuertas léxicas y
+   controles específicos antes que reescribir frases. El holdout ya aporta casos (desplazamiento
+   18, conflicto 16, rechazo 3); para exclusión hace falta otro muestreo.
+3. Re-puntuar los 32 departamentos con el código de `src/` (pendiente desde antes de este
+   experimento, ~4 h GPU); la compuerta no cambia nada del NLI, así que no lo exige.
 
 ## Anexo — Trazabilidad
 
@@ -272,6 +347,11 @@ Protección del estado de 26 indicadores (etiquetas git locales): `base-26ind-ra
 | `fabddb7` | Scripts `exp_5ind_max_{atomicas,variantes,juicio,metricas}.py` y agentes `juez-a`/`juez-b` |
 | `00497f8` | Fases 2–5: pool, lotes, etiquetas de ambos jueces, referencia, métricas |
 | `cb336fa` | Este informe (etiqueta `base-26ind-f5`) |
+| `5631fbd` | Corrección: exclusión no se retira, el radar sigue con 26 |
+| `705a557` | Fase 7: holdout nacional y recalibración de cortes (etiqueta `base-26ind-f7`) |
+| F8 (ver `git log`) | Promoción de V08 a `src/`, cortes 0.7574/0.9233, tests, equivalencia, Excel de lugares, este informe |
 
 Archivos clave: `experimentos/resultados/juicio_5ind/` (`lotes/`, `etiquetas_a/`,
-`etiquetas_b/`, `referencia.csv`, `pool.csv`, `max_por_lugar.csv`, `metricas_5ind.xlsx`).
+`etiquetas_b/`, `referencia.csv`, `pool.csv`, `max_por_lugar.csv`, `metricas_5ind.xlsx`),
+`experimentos/resultados/juicio_5ind_holdout/` (holdout, `cortes_radar.xlsx`,
+`f8_equivalencia.csv`) y `experimentos/resultados/excel_lugares_f8/`.

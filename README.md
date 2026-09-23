@@ -97,16 +97,20 @@ tras cualquier cambio en el núcleo.
 1. Cada artículo se evalúa contra las **26 hipótesis V2** con el modelo NLI, dando una
    probabilidad de entailment (`ent_`) y de neutralidad (`neu_`) por hipótesis.
 2. Se descuenta el sesgo "sí-decidor" por artículo y se calcula el score corregido:
-   `clip(clip(ent − sesgo, 0) * (1 − neu), 0, 1)`.
+   `clip(clip(ent − sesgo, 0) * (1 − neu), 0, 1)`. En `presencia_grupos_armados` ese score se
+   multiplica por una **compuerta léxica** (1 si el texto que ve el NLI nombra un grupo armado
+   organizado —ELN, disidencias, Clan del Golfo, autodefensas…—, 0 si no; adoptada el
+   2026-09-22, ver `contexto/08_log_decisiones.md`).
 3. Por departamento y por indicador, se toma el **MAX** entre todos los artículos de ese
    departamento (`exportar_indicadores_transformers_por_departamento` en
    `src/Transformer_optimo.py`; agregación de esta rama, requisito de negocio — la decisión
    técnica del historial del proyecto era P75, ver `contexto/08_log_decisiones.md`).
 4. El radar final es el **promedio simple de los 26 indicadores** (sin pesos, sin z-score,
    sin terciles).
-5. Se clasifica con **cortes fijos** `Bajo < 0.766 <= Medio < 0.9233 <= Alto`
+5. Se clasifica con **cortes fijos** `Bajo < 0.7574 <= Medio < 0.9233 <= Alto`
    (`CORTE_BAJO_MEDIO_RADAR`/`CORTE_MEDIO_ALTO_RADAR` en `src/config_pipeline.py`,
-   recalibrados para la escala MAX — ver `explicacion_alexa.md`).
+   recalibrados para la escala MAX y de nuevo al adoptar la compuerta — ver
+   `explicacion_alexa.md`).
 
 ## Notas de rendimiento
 
