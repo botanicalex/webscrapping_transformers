@@ -3,7 +3,6 @@ import glob
 import argparse
 from typing import Dict, List, Tuple
 import re
-import unicodedata
 import pandas as pd
 import numpy as np
 import torch
@@ -32,53 +31,6 @@ def _ruta_modelo_local(nombre_modelo: str) -> str:
         if os.path.isdir(ruta):
             return ruta
     return nombre_modelo
-
-
-# ------------------------------------------------------------------
-# Compuerta lexica de presencia_grupos_armados (V08, adoptada el
-# 2026-09-22 tras pasar los 6 criterios del pre-registro, ver
-# contexto/08_log_decisiones.md [2026-09-22] F7 y F8). El score corregido
-# se multiplica por 1 si la premisa que VE el NLI nombra un grupo armado
-# organizado (ELN, disidencias, Clan del Golfo, autodefensas...) y por 0 si
-# no. Corta los falsos positivos de "vecino semantico" que con MAX fijaban
-# el indicador (homicidios, porte ilegal de armas, combos, hurtos). Sin
-# "combo", "banda", "Los Costeños" ni "Tren de Aragua" a proposito: son
-# delincuencia comun segun el codebook. Regex y normalizar() copiadas
-# literalmente de experimentos/hipotesis_5ind_max.py (src/ no importa de
-# experimentos/); se escriben en minusculas y sin tildes.
-# ------------------------------------------------------------------
-REGEX_COMPUERTA_GRUPOS_ARMADOS = (
-    r"\beln\b|farc|disidencia|clan del golfo|\bagc\b|\begc\b|autodefensas|\bacsn\b|pachenca"
-    r"|paramilitar|guerrill|segunda marquetalia|estado mayor central|\bemc\b"
-    r"|\bfrente \d+|\bfrentes? (guerriller|disidente|de las farc|del eln)"
-)
-_RE_COMPUERTA_GRUPOS_ARMADOS = re.compile(REGEX_COMPUERTA_GRUPOS_ARMADOS)
-
-
-def normalizar(txt: str) -> str:
-    """Minusculas y sin tildes (NFKD), el formato en que esta escrita la regex."""
-    return unicodedata.normalize("NFKD", str(txt).lower()).encode("ascii", "ignore").decode("ascii")
-
-
-def premisa_visible(textos: List[str], tokenizer, hipotesis: str, max_length: int = 512) -> List[str]:
-    """
-    La parte de cada texto que el NLI ve junto a `hipotesis`. _nli_batch
-    trunca el par a max_length con 'longest_first', que recorta solo la
-    premisa: quedan max_length - 3 (tokens especiales) - tokens(hipotesis).
-    """
-    if not textos:
-        return []
-    n = max_length - 3 - len(tokenizer(hipotesis, add_special_tokens=False)["input_ids"])
-    ids = tokenizer([str(t) for t in textos], add_special_tokens=False)["input_ids"]
-    return [tokenizer.decode(x[:n], skip_special_tokens=True) for x in ids]
-
-
-def compuerta_grupos_armados(premisas: List[str]) -> np.ndarray:
-    """1.0 si la premisa nombra un grupo armado organizado, 0.0 si no."""
-    return np.array(
-        [1.0 if _RE_COMPUERTA_GRUPOS_ARMADOS.search(normalizar(p)) else 0.0 for p in premisas],
-        dtype=float,
-    )
 
 
 class CargadorCorpus:
@@ -193,7 +145,6 @@ class PipelineTransformers:
             "irregularidad_contractual": "Hubo irregularidades o corrupción en contratos públicos.",
             "zonas_proteccion_alimentaria": "Hay cultivos, tierras de siembra o producción de alimentos.",
             "dano_territorios": "Hubo destrucción, ocupación ilegal o despojo de territorios.",
-            # Score multiplicado por compuerta_grupos_armados en procesar() (V08).
             "presencia_grupos_armados": "En este territorio hay presencia de grupos armados ilegales.",
             "amenaza_lideres": "Hubo amenazas o agresiones contra líderes sociales.",
         }
@@ -404,16 +355,6 @@ class PipelineTransformers:
         sesgo = np.mean(sesgo_nulas, axis=0)
         df["sesgo"] = np.round(sesgo, 6)
 
-        # Compuerta lexica de presencia_grupos_armados (V08, ver arriba), sobre
-        # la premisa que el NLI ve con la hipotesis de grupos armados. Se
-        # guarda como columna auxiliar (como `sesgo`): no es un indicador y no
-        # esta en CalculadorRadar.COLUMNAS_BINARIAS, asi que no entra al radar.
-        premisas_grupos = premisa_visible(
-            textos, self.tokenizer_nli, self.indicadores["presencia_grupos_armados"]
-        )
-        compuerta = compuerta_grupos_armados(premisas_grupos)
-        df["compuerta_grupos_armados"] = compuerta
-
         # 2. NLI en batch sobre TODOS los articulos (sin pre-filtro, ver
         #    __init__), aplicando la formula corregida V2:
         #    clip(clip(ent - sesgo, 0) * (1 - neu), 0, 1)
@@ -424,8 +365,6 @@ class PipelineTransformers:
             ent = np.asarray(ent, dtype=float)
             neu = np.asarray(neu, dtype=float)
             corregido = np.clip(np.clip(ent - sesgo, 0, None) * (1 - neu), 0, 1)
-            if clave == "presencia_grupos_armados":
-                corregido = corregido * compuerta
             df[clave] = np.round(corregido, 6)
             if i_hip % 5 == 0 or i_hip == n_hip:
                 print(f"[batch] NLI hipotesis {i_hip}/{n_hip} completada ({N} articulos)")

@@ -26,7 +26,7 @@ grupos armados, ausencia de Estado). Medio y Bajo son, en ese orden, menos difí
 | `config_pipeline.py` | Configuración central: rutas, grupos de scraping, los cortes Bajo/Medio/Alto. |
 | `orquestador_pipeline.py` | Corre el pipeline completo (scraping opcional → indicadores → radar → comparación con el DANE). Uso típico: `--skip-scraping`, reusando el corpus ya scrapeado. |
 | `metricas_y_calculo_de_error.py` | Compara el radar propio contra el oficial del DANE y calcula accuracy y métricas de error. |
-| `test_integracion.py` | Suite de 15 tests con un corpus sintético (sin cargar el modelo NLI), incluida la compuerta de grupos armados. Es la única red de seguridad del repo. |
+| `test_integracion.py` | Suite de 10 tests con un corpus sintético (sin cargar el modelo NLI). Es la única red de seguridad del repo. |
 
 ### `contexto/` — documentación bajo demanda
 
@@ -106,32 +106,20 @@ python src/test_integracion.py                      # verificar que todo sigue f
    respalde cada una (`ent_`) y una probabilidad de neutralidad (`neu_`).
 2. Se descuenta un sesgo "sí-decidor" estimado con 4 hipótesis nulas de calibración, y se
    calcula el score corregido: `clip(clip(ent − sesgo, 0) * (1 − neu), 0, 1)`.
-   **Excepción, `presencia_grupos_armados` (2026-09-22):** ese score se multiplica por una
-   compuerta de palabras clave — vale 1 si el texto que ve el modelo nombra un grupo armado
-   organizado (ELN, FARC/disidencias, Clan del Golfo/AGC, autodefensas, paramilitares,
-   guerrilla, "frente 36"…) y 0 si no. Con MAX, un solo artículo fija el indicador, y los
-   que lo fijaban eran a menudo homicidios, porte ilegal de armas o "combos": delincuencia
-   común, no grupos armados. Con la compuerta, la precisión en los 10 artículos más altos
-   de cada lugar pasó de 0.17 a 0.93 (4 lugares) y de 0.47 a 0.77 en un holdout de Cauca,
-   Chocó y Cundinamarca, según dos jueces LLM ciegos (solo evaluación; en producción no hay
-   LLM). Detalle: `informes/01_informe_5ind_MAX_fases_0-7.md` y `informes/02_informe_fase_8_promocion_grupos_armados.md`.
 3. Por departamento y por cada uno de los 26 indicadores, se toma el valor **MÁXIMO** entre
    todos los artículos de ese departamento (`grupo[c].max()`).
 4. El radar final es el **promedio simple de los 26 indicadores** — sin pesos, sin
    z-score, sin terciles.
-5. Se clasifica con **cortes fijos**: `Bajo < 0.7574 <= Medio < 0.9233 <= Alto`. Estos
+5. Se clasifica con **cortes fijos**: `Bajo < 0.766 <= Medio < 0.9233 <= Alto`. Estos
    cortes se recalibraron específicamente para la escala MAX (los que traía la rama
    `pruebas`, 0.2969/0.3527, estaban calibrados para P75 y no significan nada aquí — un
    umbral solo tiene sentido para la distribución con la que se calibró). Se leyeron de
    huecos naturales en la distribución de los 32 departamentos, sin mirar la clasificación
    oficial del DANE, y se verificaron después contra un conjunto de departamentos que "no
-   deberían" salir Alto o Bajo por juicio externo (ninguno se rompió). La primera
-   calibración dio 0.766/0.9233; al adoptar la compuerta de grupos armados se repitió el
-   mismo procedimiento y el corte bajo pasó a **0.7574** (el alto no cambió). Con esos
-   cortes: 6 departamentos Bajo, 19 Medio, 7 Alto (la misma clasificación que antes de la
-   compuerta); accuracy contra el DANE 34.4%; Spearman contra el valor oficial continuo
-   −0.1173 (antes −0.1653; calculado offline desde `datos/scores/scores_v2_32deptos.pkl`,
-   sin usar GPU).
+   deberían" salir Alto o Bajo por juicio externo (ninguno se rompió). Con esos cortes: 6
+   departamentos Bajo, 19 Medio, 7 Alto; accuracy contra el DANE 34.4%; Spearman contra el
+   valor oficial continuo −0.1653 (calculado offline desde
+   `datos/scores/scores_v2_32deptos.pkl`, sin usar GPU).
 
 ## La decisión de MAX
 

@@ -6,10 +6,10 @@ En orden de valor. Cada entrada dice qué desbloquea y qué cuesta.
 
 ## 00. Plan 5 indicadores bajo MAX — segunda ronda y fusión (2026-09-23)
 
-Rama `hipotesis-5ind-max`. Grupos armados ya corregido y en `src/` (V08, cortes
-0.7574/0.9233). Pendiente, en orden: (a) aprobación del usuario de la segunda ronda para
-conflicto territorial, desplazamiento forzado, rechazo a proyecto y exclusión de beneficios
-(nuevo pre-registro; ~30 min GPU + ~300–400 artículos juzgados); (b) decisión de fusión a
+Rama `hipotesis-5ind-max`. La compuerta de grupos armados (F8) se revirtió: solo se permite
+cambiar hipótesis (regla 15 de `CLAUDE.md`); `src/` = `radar-max_Septiembre`, cortes
+0.766/0.9233. Pendiente, en orden: (a) segunda ronda aprobada, solo reescritura de hipótesis de
+los 5 indicadores (pre-registro `experimentos/PREREG_5ind_MAX_r2.md`); (b) decisión de fusión a
 `radar-max_Septiembre` (¿entra `experimentos/`?). Detalle y siguiente paso exacto:
 `contexto/11_relevo_5ind_MAX.md`.
 

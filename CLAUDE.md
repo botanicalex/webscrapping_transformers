@@ -42,7 +42,7 @@ optimizar indicadores — hay un techo estructural y una decisión de diseño pe
    viven únicamente en `src/Transformer_optimo.py`; no hay copia V0 aquí.
 6. **En esta rama no existe `nli_core`** (se eliminó con `experimentos/`), así que la
    verificación `verificar_contra_produccion_v2()` no aplica aquí. Para validar cambios,
-   correr `python src/test_integracion.py` (15 tests, sin GPU).
+   correr `python src/test_integracion.py` (10 tests, sin GPU).
 7. **Un experimento aísla UNA variable.** Dos cambios a la vez no se pueden atribuir.
 8. **No repetir GPU.** Puntuar los 32 departamentos son ~4 h. Se guardan `ent_` y `neu_`
    **sin enmascarar** en un pkl y todo el análisis posterior se hace sobre el pkl.
@@ -59,6 +59,11 @@ optimizar indicadores — hay un techo estructural y una decisión de diseño pe
     intentado.
 14. **Los rechazos se registran en `contexto/08_log_decisiones.md` en `pruebas`, sobre la
     marcha** — no esperan a la fusión. Registrarlos evita reintentarlos.
+15. **De cada indicador solo se cambia la hipótesis** (la frase que evalúa el NLI). No se
+    cambia el cálculo interno del indicador (nada de compuertas de palabras clave, `min` de
+    varias frases ni restas de confusores) ni se agregan columnas a la salida. Regla del
+    usuario del 2026-09-23; por ella se revirtió la compuerta de grupos armados de la F8 del
+    plan 5ind MAX (`contexto/08_log_decisiones.md` [2026-09-23]).
 
 ## Estado técnico
 
@@ -81,15 +86,12 @@ decisión técnica del historial, que fue P75 por rango más cercano; ver
 **Los tres están corregidos EN PRODUCCIÓN desde el 2026-08-31.** `src/` en `pruebas`/`master`
 corre P75; **en esta rama corre MAX**: hipótesis V2, **sin pre-filtro social** (rechazado:
 cuesta AUC), sesgo descontado, MAX por departamento, cortes fijos recalibrados sobre esa
-escala `Bajo < 0.7574 <= Medio < 0.9233 <= Alto`, y la clasificación oficial del DANE leída de
+escala `Bajo < 0.766 <= Medio < 0.9233 <= Alto`, y la clasificación oficial del DANE leída de
 su columna (antes se recalculaba con terciles propios — era un bug).
 
-**Desde el 2026-09-22 (rama `hipotesis-5ind-max`, F8):** `presencia_grupos_armados` = score
-corregido × compuerta léxica (1 si la premisa que ve el NLI nombra un grupo armado
-organizado; regex `REGEX_COMPUERTA_GRUPOS_ARMADOS` en `src/Transformer_optimo.py`, columna
-auxiliar `compuerta_grupos_armados`, fuera de los 26). Por eso el corte bajo pasó de 0.766 a
-0.7574 (misma clasificación 6/19/7, ninguna ancla rota). Los otros 25 no cambian; el radar
-sigue con 26. Ver `08_log_decisiones.md` [2026-09-22] F7 y F8.
+**Rama `hipotesis-5ind-max`:** `src/` es idéntico al de `radar-max_Septiembre`. La compuerta
+léxica de `presencia_grupos_armados` promovida en la F8 (2026-09-22, cortes 0.7574/0.9233) se
+**revirtió el 2026-09-23** por la regla 15; cortes de nuevo 0.766/0.9233 (clasificación 6/19/7).
 
 **Abierto:** ampliar el estándar de plata (cubre 2 de 26 — es la mayor debilidad, todas las
 conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos_ambientales`
@@ -115,8 +117,8 @@ Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`).
 ## Contexto bajo demanda — leer solo el que haga falta
 
 - **`contexto/11_relevo_5ind_MAX.md` — leer primero al retomar el plan de 5 indicadores bajo
-  MAX** (rama `hipotesis-5ind-max`): estado, decisiones cerradas y pendientes, propuesta de
-  segunda ronda, detalles operativos y siguiente paso exacto.
+  MAX** (rama `hipotesis-5ind-max`): estado, decisiones cerradas y pendientes, segunda ronda,
+  detalles operativos y siguiente paso exacto.
 - `contexto/00_estado_actual.md` — qué corre hoy, qué no, en qué se estaba trabajando.
 - `contexto/01_objetivo_y_radar.md` — el radar oficial DANE y cómo se calcula la accuracy.
 - `contexto/02_pipeline.md` — flujo end-to-end y contrato de cada etapa.

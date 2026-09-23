@@ -1,0 +1,33 @@
+departamento,radar_propio,categoria_riesgo,n_articulos
+Magdalena,0.9765,Alto,1538
+Cauca,0.9589,Alto,598
+Córdoba,0.9447,Alto,913
+Cesar,0.9443,Alto,1075
+Antioquia,0.9355,Alto,494
+Atlántico,0.9347,Alto,1114
+Arauca,0.9296,Alto,281
+Meta,0.9171,Medio,613
+Guaviare,0.9064,Medio,311
+Cundinamarca,0.9052,Medio,371
+Nariño,0.9024,Medio,659
+Boyacá,0.8998,Medio,380
+Chocó,0.8982,Medio,148
+Quindío,0.8941,Medio,275
+Caquetá,0.8886,Medio,234
+Amazonas,0.8872,Medio,243
+Santander,0.8852,Medio,190
+Putumayo,0.8835,Medio,154
+Casanare,0.8785,Medio,161
+Risaralda,0.8734,Medio,367
+Tolima,0.8652,Medio,283
+Valle del Cauca,0.859,Medio,117
+Caldas,0.8557,Medio,300
+Bolívar,0.8507,Medio,267
+Huila,0.8494,Medio,86
+Norte de Santander,0.7944,Medio,36
+San Andrés y Providencia,0.7376,Bajo,79
+Vaupés,0.7221,Bajo,32
+Vichada,0.7042,Bajo,62
+Sucre,0.6984,Bajo,41
+La Guajira,0.6274,Bajo,11
+Guainía,0.4578,Bajo,6

@@ -1190,3 +1190,39 @@ depende de cómo quiera el usuario fusionar.
 - Con los informes fuera de `experimentos/`, la corrección 5 de la revisión de F8 se reduce a las
   reglas 5–6 de `CLAUDE.md`, `README.md` y "Qué se eliminó" de `explicacion_alexa.md`; sigue
   pendiente de la decisión de fusión del usuario.
+
+## [2026-09-23] Regla del usuario: de cada indicador solo se cambia la hipótesis — F8 REVERTIDA
+
+**Regla (usuario, 2026-09-23):** de cada indicador solo se puede cambiar la hipótesis (la frase
+que evalúa el NLI). No se cambia el cálculo interno (nada de compuertas de palabras clave, `min`
+de varias frases, restas de confusores) ni se agregan columnas a la salida. Sustituye al «NLI +
+reglas de palabras clave» de `experimentos/PLAN_5ind_MAX.md` §1 y del relevo. Queda como regla 15
+de `CLAUDE.md`.
+
+**Revertido:** la promoción de la F8 (commits 062ab20 y 50a553a) aplicaba a
+`presencia_grupos_armados` el score × compuerta léxica (V08) y guardaba la columna auxiliar
+`compuerta_grupos_armados`: viola la regla. `src/` vuelve al estado de `base-26ind-f7` (idéntico
+a `base-26ind-radar-max` = `radar-max_Septiembre`, `git diff` vacío): sin compuerta, cortes
+`CORTE_BAJO_MEDIO_RADAR` 0.7574 → **0.766**, `CORTE_MEDIO_ALTO_RADAR` 0.9233. `README.md`,
+`explicacion_alexa.md` y `ESTADO_DEL_PROYECTO.md` vuelven a su versión de F7 (describen
+`radar-max_Septiembre`); `CLAUDE.md`, `00_estado_actual.md` y `07_backlog.md` se corrigen.
+
+**Verificación (sin GPU):** `python src/test_integracion.py` 10/10.
+`experimentos/exp_5ind_max_f8_reversion.py` (corpus nacional + `scores_v2_32deptos.pkl`): `src/`
+sin compuerta; `radar_propio` de `CalculadorRadar` = radar V01 de F7 (max|dif| 0); cortes
+0.766/0.9233; clasificación 6 Bajo / 19 Medio / 7 Alto; el procedimiento de `b060b3b` devuelve
+0.766/0.9233 sin romper anclas. Salida `experimentos/resultados/juicio_5ind_holdout/f8_reversion.csv`.
+
+**Lo que queda como registro (no se borra):** el resultado de F5/F7 (V08 pasó los 6 criterios
+del pre-registro congelado) sigue siendo un hallazgo medido, pero **no es promovible** bajo la
+regla. `exp_5ind_max_f8_equivalencia.py` y los Excel «después» de
+`experimentos/resultados/excel_lugares_f8/` describen la versión revertida (históricos); los
+«antes» (V01, corte 0.766) coinciden con producción. Informe: `informes/03_informe_reversion_f8.md`.
+
+**Segunda ronda — redefinida.** La propuesta del relevo §5 (compuertas léxicas) y las cuatro
+recomendaciones que el usuario aprobó antes de fijar la regla (pool en 29 departamentos con
+top-5, excepción de c4, dos variantes con compuerta en desplazamiento, umbral 0.7574) quedan
+**sin efecto**: todas suponían compuertas. El usuario aprobó (2026-09-23) la versión solo-F1:
+reescritura de hipótesis de los **5** indicadores (grupos armados vuelve a la lista), filtro en
+los 4 lugares reutilizando las etiquetas de F5, finalistas a escala nacional, holdout Cauca /
+Chocó / Cundinamarca y recalibración de cortes. Pre-registro: `experimentos/PREREG_5ind_MAX_r2.md`.

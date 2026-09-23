@@ -44,13 +44,6 @@ def categoria(valor: float) -> str:
 
 def main():
     df = pd.read_pickle(ENTRADA)
-    # Un pkl anterior a la compuerta de presencia_grupos_armados (2026-09-22) trae ese
-    # indicador sin compuerta; clasificarlo con los cortes actuales (0.7574/0.9233,
-    # calibrados CON compuerta) mezclaria dos escalas. Hay que regenerarlo.
-    if "compuerta_grupos_armados" not in df.columns:
-        sys.exit(f"ERROR: {ENTRADA} es anterior a la compuerta de grupos armados "
-                 f"(falta la columna 'compuerta_grupos_armados'). Regeneralo con "
-                 f"python src/generar_tablas_por_departamento.py")
     df["departamento"] = df["departamento"].astype(str).str.strip()
     indicadores = [c for c in CalculadorRadar.COLUMNAS_BINARIAS if c in df.columns]
     deptos = sorted(df["departamento"].unique())
