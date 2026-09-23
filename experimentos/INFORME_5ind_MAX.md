@@ -229,31 +229,37 @@ diseño permite en producción.
 - La AUC de V08 contra la plata es en parte circular (ambas usan palabras clave); por eso no se
   usó para desempatar.
 
-## 10. Recomendación sobre exclusión de beneficios económicos
+## 10. Exclusión de beneficios económicos: se conserva
 
-**Recomendación: retirarlo del cálculo del radar, no fusionarlo**, siempre que el holdout de la
-fase 7 confirme que tampoco hay positivos.
+**Decisión del usuario (2026-09-22): no se retira ningún indicador.** El radar sigue con 26. El
+trabajo va en orden, como muñecas rusas: primero se corrigen los indicadores problemáticos y
+solo después, si hiciera falta, se discute cuáles sobran.
 
-- En 565 artículos juzgados no hay ningún caso que ambos jueces acepten.
-- A escala nacional vale ~0.99 en todos los departamentos: no aporta diferencia, solo sube el
-  nivel general del radar con falsos positivos.
-- **Fusionarlo con `incentivos_economicos_inequitativos` sería peor.** Ese indicador sí varía
-  entre departamentos (desviación 0.113). Mezclarle una señal constante en ~0.99 la aplanaría.
-  Por MAX, además, la sobrescribiría.
-- Retirarlo cambia lo que mide el radar (25 indicadores en lugar de 26), así que exige
-  recalibrar los cortes (regla 2). Esa recalibración ya está prevista en la fase 7.
+Para exclusión la evidencia sigue siendo la misma: 0 positivos en 565 artículos juzgados, y un
+MAX nacional de ~0.99 en los 32 departamentos (std 0.012) que no distingue lugares. Queda como
+**indicador problemático pendiente**, con un problema distinto al de los otros: no hay casos
+reales con los que medir, así que antes hay que conseguir positivos (holdout nacional).
 
-## 11. Próximos pasos
+Retirarlo, incluso de forma temporal, **no ayuda a corregir los otros**: cada indicador se
+puntúa por separado. Quitarlo solo cambiaría la media del radar y sus cortes. Por eso no se retira.
 
-- **Fase 7 (aprobada):** puntuar la gemela absurda de grupos armados sobre los 11.439 artículos
-  (~8 min de GPU; el resto ya existe en el pkl nacional); holdout de V01 frente a V08 y de
-  exclusión en Cauca, Chocó y Cundinamarca con los mismos dos jueces; recalibración de los
-  cortes Bajo/Medio/Alto verificando las 12 anclas.
-- **Fase 8:** promover V08 a `src/` si pasa el holdout, retirar exclusión si se confirma,
-  regenerar los Excel de lugares (antes/después) y hacer la revisión final con `orquesta-lead`.
-- **Línea nueva (requiere su propio pre-registro):** para conflicto territorial y
-  desplazamiento, las compuertas léxicas estuvieron cerca del criterio (M2 0.57–0.59 y 0.40). El
-  hallazgo 1 sugiere diseñar compuertas y controles específicos antes que reescribir frases.
+Protección del estado de 26 indicadores (etiquetas git locales): `base-26ind-radar-max`
+(= `radar-max_Septiembre`, 71072a1, lo desplegado) y `base-26ind-f5` (esta rama tras F5).
+`src/` no se ha modificado en ningún commit del experimento.
+
+## 11. Próximos pasos (en orden)
+
+1. **Fase 7 (aprobada), solo para grupos armados:** puntuar su gemela absurda sobre los 11.439
+   artículos (~8 min de GPU); holdout de V01 frente a V08 en Cauca, Chocó y Cundinamarca con
+   los mismos jueces (y, en la misma pasada, buscar positivos de exclusión); recalibrar los
+   cortes Bajo/Medio/Alto **con los 26 indicadores** (solo cambia grupos armados) y verificar las 12 anclas.
+2. **Segunda ronda para los problemáticos que faltan** (nuevo pre-registro, sin reabrir lo
+   cerrado): conflicto territorial (compuertas con M2 0.57–0.59), desplazamiento (0.40), rechazo
+   a proyecto (4 positivos: faltan casos) y exclusión (0 positivos: faltan casos). El hallazgo 1
+   orienta el diseño: compuertas léxicas y controles específicos antes que reescribir frases, y
+   ampliar el corpus juzgado con departamentos donde esos fenómenos sí aparecen.
+3. **Fase 8:** promover a `src/` lo que pase, regenerar los Excel de lugares (antes/después) y
+   hacer la revisión final con `orquesta-lead`. Sin push ni merge sin aprobación.
 
 ## Anexo — Trazabilidad
 
@@ -265,6 +271,7 @@ fase 7 confirme que tampoco hay positivos.
 | `293a80e`, `6dc6ef5` | Fase 1: pre-registro y congelamiento tras la revisión de `orquesta-lead` |
 | `fabddb7` | Scripts `exp_5ind_max_{atomicas,variantes,juicio,metricas}.py` y agentes `juez-a`/`juez-b` |
 | `00497f8` | Fases 2–5: pool, lotes, etiquetas de ambos jueces, referencia, métricas |
+| `cb336fa` | Este informe (etiqueta `base-26ind-f5`) |
 
 Archivos clave: `experimentos/resultados/juicio_5ind/` (`lotes/`, `etiquetas_a/`,
 `etiquetas_b/`, `referencia.csv`, `pool.csv`, `max_por_lugar.csv`, `metricas_5ind.xlsx`).

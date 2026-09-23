@@ -1033,3 +1033,14 @@ V2) su MAX por departamento va de 0.950 a 0.999 (mediana 0.994, std 0.012, la se
 0.113) con esa constante. Si el holdout (Cauca, Chocó, Cundinamarca) trae algún SÍ/SÍ, no se
 retira y se informa. Retirarlo exige recalibrar cortes (regla 2), ya previsto en F7.
 Informe del experimento: `experimentos/INFORME_5ind_MAX.md`.
+
+## [2026-09-22] Corrección: `exclusion_beneficios_economicos` NO se retira
+
+El usuario revoca la recomendación de retirar exclusión: **no se quita ningún indicador**; el
+radar sigue con 26. El orden es primero corregir los problemáticos (conflicto territorial,
+desplazamiento, rechazo a proyecto, exclusión) y solo después discutir retiros. Retirar un
+indicador ni siquiera de forma temporal ayuda a corregir los otros (cada uno se puntúa por
+separado; solo cambiaría la media y los cortes), así que no se retira. La F7 recalibra cortes
+con 26 indicadores (solo cambia grupos armados si V08 pasa el holdout).
+Protección: etiquetas locales `base-26ind-radar-max` (71072a1 = `radar-max_Septiembre`) y
+`base-26ind-f5` (cb336fa). `src/` no se ha tocado en el experimento.
