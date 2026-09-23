@@ -1044,3 +1044,61 @@ separado; solo cambiaría la media y los cortes), así que no se retira. La F7 r
 con 26 indicadores (solo cambia grupos armados si V08 pasa el holdout).
 Protección: etiquetas locales `base-26ind-radar-max` (71072a1 = `radar-max_Septiembre`) y
 `base-26ind-f5` (cb336fa). `src/` no se ha tocado en el experimento.
+
+## [2026-09-22] F7 del plan 5ind MAX — holdout nacional y recalibración de cortes: V08 de `presencia_grupos_armados` ADOPTADA (pendiente de promover en F8)
+
+Scripts: `experimentos/exp_5ind_max_{nacional,holdout,cortes}.py`. Resultados:
+`experimentos/resultados/juicio_5ind_holdout/`. Solo se puntuó en GPU lo que faltaba.
+
+**Paso 1 (GPU, 7.3 min).** `presencia_grupos_armados__vig_abs` («En este territorio hay
+presencia de osos polares.») sobre los 11.439 artículos → `datos/scores/scores_5ind_atomicas_nacional.pkl`
+(`ent_`/`neu_`/`con_` sin enmascarar). Coincide con el pkl de lugares en las 494 URL comunes
+(max|dif| 6.4e-06). Vigente, sesgo y absurdo total (= `NULA_TEST`) reutilizados de
+`scores_v2_32deptos.pkl` (unión por posición). Premisas visibles nacionales (CPU, 0.5 min):
+idénticas a las de F3 en las 494 URL comunes. M4 nacional (solo reporte,
+`m4_nacional.csv`): departamentos con MAX de la gemela de objeto absurdo > 0.766: V01 3/32
+(Boyacá 0.893, Cesar 0.853, San Andrés 0.790) → V08 1/32 (Cesar 0.853, su artículo pasa la
+compuerta); V08 nunca sube el MAX de la gemela en ningún departamento (máx. Δ = 0). Absurdo
+total > 0.766 en 1/32 con ambas.
+
+**Paso 2 (holdout Cauca 598, Chocó 148, Cundinamarca 371).** Pool TREC: top-15 (score > 0,
+desempate por URL) de V01 y V08 de grupos armados y de V01 de exclusión → 94 artículos, 3
+lotes ciegos (semilla 20260922, ids `h0000…`). `juez-a` (sonnet) y `juez-b` (opus), ciegos.
+
+| Indicador | SÍ A | SÍ B | SÍ/SÍ | kappa |
+|---|---|---|---|---|
+| `presencia_grupos_armados` | 49 | 40 | 40 | 0.81 |
+| `desplazamiento_forzado` | 20 | 18 | 18 | 0.93 |
+| `conflicto_territorial` | 21 | 19 | 16 | 0.75 |
+| `rechazo_proyecto` | 3 | 3 | 3 | 1.00 |
+| `exclusion_beneficios_economicos` | 0 | 0 | 0 | indefinida (ningún SÍ) |
+
+Criterio 6 (grupos armados, `metricas_holdout.csv`): M2 Cauca/Chocó/Cundinamarca V01
+0.70/0.50/0.20 (media **0.467**) → V08 1.00/0.80/0.50 (media **0.767**). **Cumple** (≥ 0.50 y
+≥ V01). M1 verdadero en los 3 con ambas; 0 violaciones M3; gemela de objeto absurdo por
+departamento V08 ≤ V01 (0.61/0.42/0.71 vs 0.67/0.52/0.71), todas < 0.766. Con los criterios
+1–5 de F5, **V08 pasa los 6 criterios del pre-registro → se adopta** para
+`presencia_grupos_armados` (score = s(vigente) · compuerta léxica).
+
+Cláusula de exclusión: **0 SÍ/SÍ** también en el holdout (ningún juez dijo SÍ en 94 artículos,
+15 por departamento elegidos por el propio V01 de exclusión). Por decisión del usuario no se
+retira (radar con 26); queda para la segunda ronda, que debe buscar positivos con otra
+estrategia de muestreo. Positivos SÍ/SÍ del holdout en los otros indicadores (insumo de la
+2a ronda): desplazamiento Cauca 5 / Chocó 13 / Cund. 0; conflicto 7/8/1; rechazo 1/0/2.
+
+**Paso 3 (cortes, regla 2).** Procedimiento de `b060b3b` (huecos > 0.008, sin extremos, par
+que no rompe anclas y más balanceado; oficial no mirado), 26 indicadores, MAX. Sanidad: con
+V01 devuelve exactamente 0.766 / 0.9233. Con V08 en grupos armados: **`CORTE_BAJO_MEDIO_RADAR`
+0.766 → 0.7574**, `CORTE_MEDIO_ALTO_RADAR` 0.9233 (igual). La clasificación de los 32 no cambia
+(Bajo 6 / Medio 19 / Alto 7, tanto con los cortes nuevos como con los viejos); el corte bajo
+se mueve porque San Andrés cae de 0.7376 a 0.7045 y el hueco pasa a estar entre Norte de
+Santander (0.7927) y el siguiente. **Ninguna de las 12 anclas se rompe** (se comprueba además
+que las 12 existen en los datos; el script original las ignoraba en silencio si el nombre no
+coincidía). Constancia: accuracy 0.344 → 0.344; Spearman −0.1653 → −0.1173. MAX de grupos
+armados que cambia: Quindío 0.996→0.553, Caldas 0.978→0.725, San Andrés 0.861→0.000, Guainía
+0.640→0.011 (los artículos que fijaban esos MAX no nombran un grupo armado en la premisa
+visible; no se juzgaron: están fuera del holdout).
+Compuerta con la truncación de producción (premisa con la hipótesis vigente de grupos, no la
+más larga del experimento): difiere en 16 de 11.439 artículos y no cambia ningún MAX
+departamental (max|dif| radar 0) → en F8 se puede implementar con la truncación propia de
+la hipótesis.

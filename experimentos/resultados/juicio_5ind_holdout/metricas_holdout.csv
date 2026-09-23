@@ -1,0 +1,7 @@
+lugar,variante,n,n_score>0,npos,M1,M2,max,M3viol,max_abs,max_tot,top1
+Cauca,V01,598,427,18,True,0.7,0.996,False,0.6741,0.5532,"Lideresa Edilsan Andrade, fue asesinada en Rosas Cauca"
+Cauca,V08,598,81,18,True,1.0,0.996,False,0.6098,0.5532,"Lideresa Edilsan Andrade, fue asesinada en Rosas Cauca"
+Choco,V01,148,100,16,True,0.5,0.9905,False,0.524,0.4253,Chocó: 79% de los confinamientos y el segundo con más desplazamientos
+Choco,V08,148,24,16,True,0.8,0.9806,False,0.4241,0.2012,"Chocó: reclutamiento forzado, deserción escolar y desabastecimiento"
+Cundinamarca,V01,371,164,6,True,0.2,0.9931,False,0.7092,0.6154,¿Qué tan cerca están las disidencias de las Farc de Bogotá y Cundinama
+Cundinamarca,V08,371,23,6,True,0.5,0.9931,False,0.7092,0.23,¿Qué tan cerca están las disidencias de las Farc de Bogotá y Cundinama

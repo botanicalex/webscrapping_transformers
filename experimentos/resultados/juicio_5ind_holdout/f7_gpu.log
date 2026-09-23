@@ -1,0 +1,18 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790136503.858912   26048 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790136509.740668   26048 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+11439 articulos x 1 hipotesis: ['En este territorio hay presencia de osos polares.']
+[1024/11439] 0.7 min, faltan ~6.7 min
+[2048/11439] 1.3 min, faltan ~6.0 min
+[3072/11439] 2.0 min, faltan ~5.3 min
+[4096/11439] 2.6 min, faltan ~4.7 min
+[5120/11439] 3.3 min, faltan ~4.0 min
+[6144/11439] 3.9 min, faltan ~3.4 min
+[7168/11439] 4.6 min, faltan ~2.7 min
+[8192/11439] 5.2 min, faltan ~2.1 min
+[9216/11439] 5.9 min, faltan ~1.4 min
+[10240/11439] 6.5 min, faltan ~0.8 min
+[11264/11439] 7.2 min, faltan ~0.1 min
+[11439/11439] 7.3 min, faltan ~0.0 min
+OK -> datos/scores/scores_5ind_atomicas_nacional.pkl (11439, 5)
