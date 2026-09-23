@@ -68,12 +68,11 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
 3. Qué hacer con `exclusion_beneficios_economicos`, que resultó «no medible» (§5 del
    pre-registro r2). Sigue en el radar con su frase vigente; no se retira salvo que lo diga el
    usuario.
-4. Siguiente paso del proyecto: **probar otro modelo NLI** (`vicgalle/xlm-roberta-large-xnli-anli`,
-   3 clases, reemplazo directo), en 3 etapas: filtro sin jueces, juicio y escala nacional.
-   Propuesta en `informes/05_informe_consolidado_5ind_MAX.md` §7 y en el log
-   [2026-09-23] «REAPERTURA». Si se aprueba, primero va un pre-registro y la revisión de
-   `orquesta-lead`. El usuario **rechazó** consultar a la profesora (tarea 0 del backlog): no
-   proponerlo de nuevo.
+4. **Prueba de otro modelo NLI: APROBADA, solo pruebas, en otra rama.** Rama
+   `prueba-modelo-nli`, worktree `…/Web_scrapping_2026/prueba_modelo_nli`. Su relevo es
+   `contexto/12_relevo_modelo_nli.md` y su pre-registro, en borrador, está en esa rama. Aquí no
+   se hace nada de esa prueba. El usuario **rechazó** consultar a la profesora (tarea 0 del
+   backlog): no proponerlo de nuevo.
 
 ## 5. Ronda 2 — resumen del pre-registro congelado
 

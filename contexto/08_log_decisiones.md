@@ -1375,3 +1375,12 @@ hipótesis. Descarta repetir frases sobre estos 5 (0 de 35 pasan en dos rondas) 
      recalibrados una vez. Se adopta todo el cambio o nada.
 - Documentado en `informes/05_informe_consolidado_5ind_MAX.md` (consolidado de las rondas 1–2,
   pedido del usuario). **Decisión del usuario pendiente.**
+
+## [2026-09-23] Prueba del modelo NLI — aprobada, SOLO PRUEBAS, en rama aparte
+
+El usuario aprueba el pre-registro de la prueba del modelo, con una condición: el modelo es
+**solo para pruebas** y no se vuelve permanente. La prueba vive en la rama **`prueba-modelo-nli`**
+(desde 9b14489), worktree `…/Web_scrapping_2026/prueba_modelo_nli`. Ahí están el pre-registro en
+borrador (`experimentos/PREREG_modelo_nli.md`, commit 5909a37), su log y su relevo
+(`contexto/12_relevo_modelo_nli.md`). Esta rama (`hipotesis-5ind-max`) no cambia: `src/` sigue
+siendo `radar-max_Septiembre`. Continúa en una conversación nueva.
