@@ -79,8 +79,24 @@ def texto(ind: str, clave: str) -> str:
 
 
 def hipotesis_gpu() -> dict:
-    """{columna: texto} que hay que puntuar en GPU en la fase A (solo las N y sus gemelas)."""
-    return {f"{ind}__{k}": h for ind, d in NUEVAS.items() for k, h in d.items()}
+    """{columna: texto} que se puntua en GPU en la fase A: las N, sus gemelas y, como control
+    de sanidad contra la ronda 1, las 5 vigentes."""
+    out = {f"{ind}__{k}": h for ind, d in NUEVAS.items() for k, h in d.items()}
+    out.update({f"{ind}__vig": H.HIPOTESIS[ind]["vig"] for ind in INDICADORES_5})
+    return out
+
+
+# La premisa visible del juez (ronda 1) se trunco con la hipotesis mas larga de la ronda 1
+# (25 tokens). Ninguna hipotesis de esta ronda puede superarla.
+TOKENS_HIP_MAX = 25
+
+
+def comprobar_tokens(tokenizer) -> int:
+    """Aborta si alguna hipotesis de la fase A supera TOKENS_HIP_MAX; devuelve el maximo."""
+    n = {k: len(tokenizer(h, add_special_tokens=False)["input_ids"]) for k, h in hipotesis_gpu().items()}
+    largas = {k: v for k, v in n.items() if v > TOKENS_HIP_MAX}
+    assert not largas, f"hipotesis con mas de {TOKENS_HIP_MAX} tokens: {largas}"
+    return max(n.values())
 
 
 # Muestreo de EVALUACION para exclusion_beneficios_economicos (no es produccion ni variante):

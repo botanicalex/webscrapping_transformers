@@ -4,8 +4,11 @@ Fecha: 2026-09-23 · Rama: `hipotesis-5ind-max` · Antecedentes: `experimentos/P
 (ronda 1, congelado), `informes/01_…`, `02_…`, `03_informe_reversion_f8.md`,
 `contexto/08_log_decisiones.md` [2026-09-22] y [2026-09-23].
 
+**Estado: CONGELADO** el 2026-09-23, tras la revisión única de `orquesta-lead` (1 bloqueante
+y 11 menores, las 12 adoptadas; ver el log).
+
 **A partir del commit que congela este archivo (y `experimentos/hipotesis_5ind_max_r2.py`),
-nada de §1–§6 cambia.** Toda desviación posterior se registra en el log como desviación, con su
+nada de §1–§7 cambia.** Toda desviación posterior se registra en el log como desviación, con su
 motivo.
 
 ## Restricciones (del usuario, no negociables)
@@ -22,9 +25,10 @@ motivo.
 - No se retira ningún indicador: el radar sigue con 26.
 - Sin push ni merge sin aprobación. Adopciones y rechazos al log.
 
-**Qué es nuevo respecto a la ronda 1.** (a) Solo F1: las 11 variantes de la ronda 1 siguen
-rechazadas (no se reprueban; V02 y V03 no se repiten). (b) `presencia_grupos_armados` vuelve a
-la lista: su V08 pasó los criterios, pero es una compuerta y no es promovible. (c) Candidatas
+**Qué es nuevo respecto a la ronda 1.** (a) Solo F1. Las variantes de la ronda 1 que no
+pasaron siguen rechazadas y no se vuelven a probar (V02 y V03 no se repiten). La V08 de grupos
+armados sí pasó los 6 criterios, pero es una compuerta y la regla 15 impide promoverla.
+(b) `presencia_grupos_armados` vuelve a la lista. (c) Candidatas
 nuevas N1–N3 por indicador, más P1/P2 = las paráfrasis `p1`/`p2` de la ronda 1, que solo se
 midieron dentro de `min()` (V04) y nunca como frase única. Sus métricas como frase única no se
 calcularon antes de este pre-registro. (d) Muestreo por palabras clave para buscar casos reales
@@ -55,8 +59,10 @@ de la ronda 1 (565 artículos de los lugares y 94 del holdout) valen como refere
 - **Premisa visible (juez):** la de la ronda 1, reutilizada
   (`…/juicio_5ind/premisas_visibles.pkl` y `…/juicio_5ind_holdout/premisas_visibles_nacional.pkl`).
   Es solo el `texto`, truncado a `512 − 3 − 25` tokens, donde 25 son los tokens de la hipótesis
-  más larga de la ronda 1. Ninguna hipótesis de esta ronda pasa de 25 tokens (comprobado con el
-  tokenizador del NLI), así que el NLI ve con cada candidata al menos la premisa que ve el juez.
+  más larga de la ronda 1. Ninguna hipótesis de esta ronda pasa de 25 tokens
+  (`TOKENS_HIP_MAX` y `comprobar_tokens()` en `hipotesis_5ind_max_r2.py`; el script de GPU
+  aborta si alguna la supera), así que el NLI ve con cada candidata al menos la premisa que ve
+  el juez.
 
 ## 3. Candidatas
 
@@ -107,16 +113,20 @@ sobre los 4 lugares:
   con positivos, ≥ 0.766.
 - **M4:** MAX por lugar de la gemela de objeto absurdo y del absurdo total, proporción de
   artículos > 0.766 y razón MAX(gemela)/MAX(candidata).
-- **M5:** solo reporte; nº de los 26 indicadores cuyo MAX lo fija el mismo artículo.
+- **M5:** solo reporte; nº de los 26 indicadores cuyo MAX lo fija el mismo artículo. Se
+  reporta aparte cuántas veces conflicto y grupos armados comparten el artículo del MAX.
 - **M6:** solo `presencia_grupos_armados`; AUC contra `silver.py`.
+- **M2+:** solo reporte; M2 medio solo en los lugares con ≥ 1 positivo. No entra en el
+  criterio 1 ni en la selección (ver §8).
 
 **Kappa** de Cohen por indicador (SÍ frente a {NO, DUDOSO}) sobre todos los artículos juzgados
-de los 4 lugares (ronda 1 + ronda 2). Con kappa < 0.4, ese indicador no se adopta y se informa.
+de los 4 lugares (ronda 1 + ronda 2). Con kappa < 0.4, o indefinida (ningún SÍ), ese indicador
+no se adopta y se informa.
 
 **Una candidata reemplaza a la vigente si cumple TODO:**
 1. M2 medio ≥ max(0.60, M2(vig) + 0.20).
 2. M1 verdadero en ≥ 3 de los 4 lugares, o en todos los lugares con algún positivo.
-3. M3 sin violaciones nuevas respecto a la vigente.
+3. M3: no viola la coherencia en ningún lugar donde la vigente no la viola (como en la ronda 1).
 4. M4, por lugar: la gemela de objeto absurdo tiene MAX < 0.766 y ≤ la de la vigente + 0.05.
    El absurdo total, MAX ≤ el de la vigente + 0.05 (en F1 es idéntico, así que no discrimina).
 5. M6 (solo grupos armados): AUC ≥ AUC(vig) − 0.02.
@@ -126,48 +136,62 @@ El umbral 0.766 es el corte Bajo/Medio vigente del radar (otra vez el de producc
 reversión) y el mismo de la ronda 1. Es de nivel radar, no de indicador (límite declarado).
 
 **Selección.** Hasta 2 finalistas por indicador pasan a la fase B: las que cumplen 1–5,
-ordenadas por mayor M2, luego más lugares con M1 verdadero y luego menor MAX medio de la
-gemela. Si ninguna cumple 1–5, el indicador queda igual y se registra por qué. Si pasan el
-holdout las dos finalistas, se adopta la de mayor M2 en el holdout.
+ordenadas por mayor M2, luego más lugares con M1 verdadero, luego menor MAX medio de la
+gemela y, si sigue el empate, en el orden fijo N1 < N2 < N3 < P1 < P2. Si ninguna cumple 1–5,
+el indicador queda igual y se registra por qué. Si pasan el holdout las dos finalistas, se
+adopta la de mayor M2 en el holdout; si empatan, se aplica el mismo orden de desempate.
 
 ## 5. Exclusión de beneficios económicos: búsqueda de casos reales
 
 En la ronda 1 no hubo ningún SÍ/SÍ (565 + 94 juzgados); el top de su propia vigente no los
 encuentra. Por eso se juzgan **todos** los artículos cuya premisa visible contiene
 `REGEX_MUESTREO_EXCLUSION` (regalía, compensación sin «caja de», consulta previa, «no han
-recibido», indemnización), en el corpus nacional y en el de los 4 lugares. Son 237 URL, de las
-que 206 no se han juzgado. Van mezcladas y barajadas con el pool de la fase A en los mismos
-lotes ciegos. La regex **solo sirve para evaluar**: no entra en ningún score ni en producción.
+recibido», indemnización), en el corpus nacional y en el de los 4 lugares. En el recuento
+hecho al redactar este documento (premisas visibles de la ronda 1) son 237 URL, de las que 206
+no se han juzgado. El script de la fase A lo recalcula e imprime. Van mezcladas y barajadas con
+el pool de la fase A en los mismos lotes ciegos. La regex **solo sirve para evaluar**: no entra
+en ningún score ni en producción.
 
+- «En total» = todos los artículos juzgados en las dos rondas (565 + 94 + el pool nuevo + esta
+  muestra).
 - Si hay **< 5 SÍ/SÍ** de exclusión en total, se declara «no medible con este corpus», se
   informa al usuario y decide él (el indicador no se retira salvo que el usuario lo diga).
-- Si hay **≥ 5 SÍ/SÍ**, las candidatas de exclusión se evalúan igual en los 4 lugares. Si los
-  positivos caen sobre todo fuera de ellos, la evaluación nacional de exclusión necesita un
-  anexo de este pre-registro, que se congela antes de puntuar.
+- Si hay **≥ 5 SÍ/SÍ**, exclusión se evalúa como los demás: en los 4 lugares, con los
+  criterios 1–6. Los positivos fuera de esos lugares solo se reportan. No hay anexo posterior.
+- Las etiquetas de esta muestra en Cauca, Chocó y Cundinamarca cuentan para la referencia del
+  holdout (fase B), porque la regex no depende de las candidatas. No entran en la fase A.
 
 ## 6. Fase B: nacional, holdout y cortes (solo finalistas)
 
 - GPU: cada finalista y su gemela sobre los 11.439 artículos (~7.3 min por hipótesis). La
   vigente, el sesgo y el absurdo total se reutilizan de `scores_v2_32deptos.pkl`.
 - Holdout: pool con los top-15 (score > 0, desempate por URL) de la vigente y las finalistas en
-  Cauca, Chocó y Cundinamarca. Se reutilizan las etiquetas de F7 (94) y se juzgan los nuevos
-  (ids ciegos). Se aplica el criterio 6. M4 nacional en los 32 departamentos, solo como reporte.
-- Si se adopta alguna, se recalibran los cortes (regla 2) con el procedimiento de `b060b3b`
-  (`exp_5ind_max_cortes.py`, radar sin redondear), se comprueba que ninguna de las 12 anclas se
-  rompa y se reportan accuracy y Spearman solo como constancia.
+  Cauca, Chocó y Cundinamarca. Se reutilizan las etiquetas de F7 (94) y las de §5 en esos
+  departamentos, y se juzgan los nuevos (ids ciegos). Se aplica el criterio 6. M4 nacional en
+  los 32 departamentos, solo como reporte.
+- Si se adopta alguna, se recalibran los cortes (regla 2) **una sola vez**, con todas las
+  adoptadas juntas, con el procedimiento de `b060b3b` (`exp_5ind_max_cortes.py`, radar sin
+  redondear). Se comprueba que ninguna de las 12 anclas se rompa y se reportan accuracy y
+  Spearman solo como constancia. Si el procedimiento no encuentra un par de cortes que respete
+  las 12 anclas, se para y se informa, sin promover.
 - La promoción a `src/` (cambiar solo el texto de la hipótesis en `Transformer_optimo.py`, más
   los cortes en `config_pipeline.py`) se hace **solo con visto bueno del usuario**.
 
 ## 7. Ejecución, costos y paradas
 
-1. Fase A, GPU: las 30 hipótesis de `hipotesis_gpu()` (15 candidatas N + 15 gemelas) sobre los
-   1.647 artículos, ~32 min, en segundo plano, con checkpoint. Salida:
-   `datos/scores/scores_5ind_r2_lugares.pkl`, con `ent_`/`neu_`/`con_` sin enmascarar. Todo lo
-   demás se reutiliza de `scores_5ind_atomicas_lugares.pkl` (vigente, P1/P2 y sus gemelas,
-   sesgo y absurdo total). Sanidad: la vigente reproduce la ronda 1 (max|dif| < 1e-4).
+1. Fase A, GPU: las 35 hipótesis de `hipotesis_gpu()` (15 candidatas N, 15 gemelas y, como
+   control de sanidad, las 5 vigentes) sobre los 1.647 artículos, ~37 min, en segundo plano y
+   con checkpoint. Salida: `datos/scores/scores_5ind_r2_lugares.pkl`, con `ent_`/`neu_`/`con_`
+   sin enmascarar. **Sanidad:** las 5 vigentes puntuadas ahora deben reproducir las de
+   `scores_5ind_atomicas_lugares.pkl` con max|dif| < 1e-4; si no, se para antes de juzgar. Lo
+   demás se reutiliza de ese pkl: vigente, P1/P2 y sus gemelas, sesgo y absurdo total.
 2. Pool y lotes JSONL de ~40, barajados con semilla 20260923, ids `b0000…`, en
-   `experimentos/resultados/juicio_5ind_r2/`. El pool nuevo no se conoce hasta tener los scores:
-   estimado 200–400 artículos más los 206 de §5, unos 10–15 lotes por juez.
+   `experimentos/resultados/juicio_5ind_r2/`. **Se juzga el pool entero, sin tope.** El pool
+   nuevo no se conoce hasta tener los scores: estimado 200–400 artículos más los 206 de §5, unos
+   10–15 lotes por juez. **Control entre rondas:** se mezclan 40 artículos ya juzgados en la
+   ronda 1 (elegidos al azar con la misma semilla, con ids nuevos). Se reporta el acuerdo con
+   sus etiquetas anteriores, por indicador, solo como reporte. La referencia sigue siendo la
+   etiqueta de la ronda 1.
 3. Métricas y selección. Tabla en `experimentos/RESULTADOS_5ind_MAX_r2.md`.
 4. **Parada: informe intermedio al usuario y visto bueno antes de la fase B.**
 5. Fase B (GPU ~15 min por finalista), holdout, cortes. **Parada:** informe en `informes/` y
@@ -182,8 +206,18 @@ lotes ciegos. La regex **solo sirve para evaluar**: no entra en ningún score ni
   resultado válido.
 - Solo 4 lugares, dos pequeños (Oicatá 32, Paraguachón 77); pocos positivos de rechazo (4) y
   ninguno de exclusión en la ronda 1.
+- En un lugar sin positivos, M2 vale 0 salvo que el MAX sea 0. Con las etiquetas de la ronda 1,
+  Oicatá no tiene positivos en ningún indicador: el criterio 1 le exige a la frase puntuar 0 en
+  todos sus artículos. Lo mismo exige el criterio 6 en Cundinamarca para desplazamiento. Por
+  eso se reporta M2+ (solo lugares con positivos), sin cambiar el criterio: «ninguna pasa» no
+  significa necesariamente que las frases no sirvan.
 - El pool TREC no ve positivos fuera del top-15 de alguna candidata o de la ronda 1.
-- Las candidatas se redactaron mirando los falsos positivos juzgados en la ronda 1 (datos de
-  diseño). La protección contra el sobreajuste es el holdout, que no se usó para redactarlas.
+- Las candidatas se redactaron mirando los falsos positivos juzgados en la ronda 1 en los 4
+  lugares (datos de diseño). Del holdout se conocían los recuentos de positivos (log F7), no
+  sus artículos. Este es su segundo uso: ya se usó para validar la V08 en la ronda 1.
+- Las candidatas N1 y N2 de conflicto son más estrechas que el codebook: nombran grupos
+  armados o criminales, mientras el codebook admite «cualesquiera actores», por ejemplo
+  comunidades frente a propietarios. N3 cubre las tierras. N1 se acerca al constructo de grupos
+  armados; M5 reporta cuánto comparten el artículo del MAX.
 - M6 de grupos armados usa una plata por palabras clave. Se reporta y exige el criterio 5, pero
   no desempata.

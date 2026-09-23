@@ -1,4 +1,4 @@
-# 11 — Relevo: plan 5 indicadores bajo MAX (estado al 2026-09-23)
+# 11 — Relevo: plan 5 indicadores bajo MAX (estado al 2026-09-23, tras la reversión de F8)
 
 Documento de traspaso entre conversaciones. **Leerlo entero antes de actuar.** Resume lo que
 una conversación nueva necesita para seguir sin redescubrir nada; el detalle y la evidencia
@@ -10,96 +10,74 @@ están en los archivos que cita.
   `hipotesis-5ind-max` (desde `radar-max_Septiembre` = 71072a1, lo desplegado). Todo commiteado
   en local; **sin push ni merge**. `Presentacion/` (sin trackear) es del usuario: no tocarlo ni
   añadirlo.
-- Fases 0–8 del plan `experimentos/PLAN_5ind_MAX.md` **cerradas**. Resultado:
-  `presencia_grupos_armados` = V08 (score vigente × compuerta léxica), **ya en `src/`**; cortes
-  del radar `Bajo < 0.7574 <= Medio < 0.9233 <= Alto`. Los otros 25 indicadores, intactos. Radar
-  con 26.
-- Etiquetas locales de protección: `base-26ind-radar-max` (71072a1), `base-26ind-f5` (cb336fa),
-  `base-26ind-f7` (705a557, último commit con `src/` intacto).
-- Commits de F8: `062ab20` (promoción, tests, equivalencia, Excel) y `50a553a` (correcciones de
-  la revisión final de `orquesta-lead`, veredicto APROBADO, 0 bloqueantes). Después: carpeta
-  `informes/` y este relevo.
-- Informes para el jefe/profesora: **`informes/`** (índice y convención en `informes/README.md`).
-  Todo informe nuevo va ahí, numerado (`03_…`, `04_…`).
+- Ronda 1 (fases 0–8 de `experimentos/PLAN_5ind_MAX.md`) cerrada. **La F8 se revirtió el
+  2026-09-23** (commit e1546fb) por la regla 15: `src/` es idéntico a `radar-max_Septiembre`,
+  cortes `Bajo < 0.766 <= Medio < 0.9233 <= Alto`, `test_integracion` 10/10, clases 6/19/7.
+  Radar con 26. Informe `informes/03_informe_reversion_f8.md`.
+- **Ronda 2: pre-registro `experimentos/PREREG_5ind_MAX_r2.md` CONGELADO** (revisado por
+  `orquesta-lead`, 12 correcciones adoptadas). Aún no se ha puntuado nada (ni GPU ni jueces).
+- Etiquetas locales: `base-26ind-radar-max` (71072a1), `base-26ind-f5` (cb336fa),
+  `base-26ind-f7` (705a557), `base-26ind-f8-compuerta` (85db4e1, versión con la compuerta,
+  revertida).
+- Informes para el jefe/profesora: **`informes/`** (01, 02, 03; índice en `informes/README.md`).
+  El siguiente es el 04.
 
 ## 2. Innegociables (del usuario)
 
-- Agregación del radar = **MAX**. No se cambia ni se cuestiona; solo cambia el score por artículo.
-- Producción = solo NLI (`MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7`) + reglas
-  de palabras clave. El LLM solo juzga, en local.
+- Agregación del radar = **MAX**. No se cambia ni se cuestiona.
+- **Regla 15 (2026-09-23): de cada indicador solo se cambia la hipótesis.** Nada de compuertas
+  de palabras clave, `min`, restas de confusores ni columnas nuevas. Sustituye al «NLI + reglas
+  de palabras clave» del plan. Producción = solo el NLI; el LLM solo juzga, en local.
 - Sin humano en el lazo: referencia = SÍ de `juez-a` (sonnet) **y** `juez-b` (opus), ciegos.
 - **No se retira ningún indicador**: el radar sigue con 26.
 - Sin push ni merge sin aprobación explícita. Toda decisión (adopciones y rechazos) a
   `contexto/08_log_decisiones.md`.
-- Economía de tokens: el orquestador (conversación principal) escribe los scripts; subagentes
-  solo `orquesta-lead` (una vez por pre-registro y una al final) y los jueces. Nada de Explore
-  ni general-purpose. Resúmenes ≤ 40 líneas; no volcar dataframes. GPU una sola vez por corpus.
+- Economía de tokens: el orquestador escribe los scripts; subagentes solo `orquesta-lead` (una
+  vez por pre-registro y una al final) y los jueces. Nada de Explore ni general-purpose.
+  Resúmenes ≤ 40 líneas; no volcar dataframes. GPU una sola vez por corpus.
 - Si el contexto se llena: parar en un punto limpio (todo commiteado) y entregar un prompt de
-  relevo con estado, decisiones, detalles operativos y siguiente paso exacto (actualizar este
-  documento).
+  relevo (actualizar este documento).
 
-## 3. Decisiones cerradas en este experimento (no relitigar)
+## 3. Decisiones cerradas (no relitigar)
 
-Todas en `contexto/08_log_decisiones.md`, entradas [2026-09-22]:
-- Pre-registro `experimentos/PREREG_5ind_MAX.md` **congelado** (codebook, 12 variantes, gemelas
-  absurdas con osos polares, métricas M1–M6, 6 criterios). No se edita; la 2a ronda lleva uno nuevo.
-- Premisa = solo `texto` (sin título), truncado como el NLI. El juez ve exactamente eso.
-- F5: grupos armados V08 pasa 1–5. **Rechazadas** las 11 alternativas de conflicto territorial
-  (mejores V08/V09/V10, M2 0.57–0.59 < 0.60, gemela de objeto absurdo > 0.766 en Antioquia),
-  desplazamiento (mejor V10, M2 0.40), rechazo a proyecto (M2 ≤ 0.03, 4 positivos) y exclusión
-  (0 positivos, kappa ≈ 0: referencia débil).
-- F7: V08 pasa el holdout (M2 0.467 → 0.767) → adoptada. Cortes 0.766 → 0.7574 (misma clase 6/19/7).
-- F8: promovida a `src/` (ver `informes/02_…`). Exclusión **no se retira** (decisión del usuario).
-- Hallazgo de método clave: **la vigente de rechazo, desplazamiento y conflicto suspende su
-  propio control de objeto absurdo** (MAX 0.96–0.99 con "osos polares" en el hueco del objeto):
-  el NLI confirma la forma de la frase, no el contenido. Reescribir frases no lo arregla; las
-  compuertas léxicas sí movieron la cola.
+En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
+- Ronda 1: pre-registro congelado; premisa = solo `texto`, truncada como el NLI. Rechazadas las
+  variantes de conflicto, desplazamiento, rechazo y exclusión. La V08 de grupos armados pasó los
+  6 criterios, pero **no es promovible** por la regla 15.
+- Hallazgo de método: el NLI confirma la forma de la frase, no su objeto. La vigente de
+  rechazo, desplazamiento y conflicto suspende su propio control de objeto absurdo.
+- F8 revertida (regla 15). La propuesta de compuertas del relevo anterior y las 4
+  recomendaciones asociadas quedan sin efecto.
+- Ronda 2 = solo hipótesis (F1), 5 indicadores, criterios de la ronda 1. Pre-registro congelado.
 
 ## 4. Pendiente de decisión del usuario
 
-1. **Aprobar (o ajustar) la segunda ronda** (§5). Estado: **propuesta, no aprobada**.
-2. **Fusión a `radar-max_Septiembre`:** ¿entra `experimentos/`? `CLAUDE.md` (reglas 5–6,
-   Convenciones), `README.md` y `explicacion_alexa.md` ("Qué se eliminó") dicen que la rama no
-   tiene `experimentos/` ni `nli_core`, pero esta rama sí. Si entra, corregir esas reglas; si no,
-   quitar de los entregables las referencias a `experimentos/` (los informes ya están fuera, en
-   `informes/`). Registrado como corrección 5 no aplicada en el log.
-3. Push/merge de `hipotesis-5ind-max`.
+1. **Fusión a `radar-max_Septiembre`:** ¿entra `experimentos/`? Tras la reversión, `src/` y los
+   entregables ya coinciden con esa rama. Las reglas 5–6 de `CLAUDE.md` siguen diciendo que no
+   hay `experimentos/`.
+2. Push/merge de `hipotesis-5ind-max`.
+3. Visto bueno para empezar la fase A de la ronda 2 (se le mostró el pre-registro congelado).
 
-## 5. Segunda ronda — propuesta (para redactar su pre-registro)
+## 5. Ronda 2 — resumen del pre-registro congelado
 
-Experimento **nuevo** (no reabre lo cerrado): `experimentos/PREREG_5ind_MAX_r2.md`, revisado una
-vez por `orquesta-lead` antes de ejecutar nada. Indicadores: `conflicto_territorial`,
-`desplazamiento_forzado`, `rechazo_proyecto`, `exclusion_beneficios_economicos`. Un cambio por
-indicador (regla 7).
-
-**Evidencia de partida** (log F5 y F7; tablas en `experimentos/RESULTADOS_5ind_MAX.md`):
-
-| Indicador | Positivos SÍ/SÍ F5 (Ant/Mai/Oic/Par) | Positivos holdout (Cau/Cho/Cun) | kappa F5 / holdout | Mejor intento F5 |
-|---|---|---|---|---|
-| conflicto_territorial | 9/8/0/3 | 7/8/1 | 0.87 / 0.75 | V08/V09/V10, M2 0.57–0.59; gemela absurda > 0.766 en Antioquia |
-| desplazamiento_forzado | 10/1/0/0 | 5/13/0 | 0.88 / 0.93 | V10 (F5+F2), M2 0.40 |
-| rechazo_proyecto | 1/3/0/0 | 1/0/2 | 0.46 / 1.00 | M2 ≤ 0.03 |
-| exclusion_beneficios_economicos | 0/0/0/0 | 0/0/0 (ningún SÍ) | ≈0 / indef. | — |
-
-**Diseño propuesto:**
-1. Variantes: compuertas léxicas sobre la **vigente** (como V08) con regex refinadas a partir de
-   los falsos positivos ya juzgados; para conflicto y rechazo, compuerta doble actor + acción
-   (p. ej. grupo armado/comunidad **y** disputa/enfrentamiento; comunidad **y** obra/proyecto
-   identificable). Controles absurdos específicos por indicador (gemela de objeto absurdo con
-   osos polares, regla 3) antes que reescribir frases. Regex actuales de las 5 en
-   `experimentos/hipotesis_5ind_max.py` (`REGEX_F5`), con sus hipótesis y gemelas.
-2. Muestra: diseñar sobre el **corpus nacional sin Cauca, Chocó ni Cundinamarca**; holdout =
-   esos tres (sus etiquetas de F7 se reutilizan; lo nuevo del pool se juzga). Unidad = departamento.
-3. Exclusión: el top-k de su propia vigente no encuentra casos. Muestreo por **palabras clave de
-   regalías / compensación / consulta previa / "no han recibido" + proyecto** sobre el corpus
-   nacional (sin GPU: la vigente ya está en `scores_v2_32deptos.pkl`). Si salen < 5 SÍ/SÍ, se
-   declara no medible con este corpus y decide el usuario.
-4. Criterio: el M2 medio actual obliga a MAX = 0 en lugares sin positivos (con pocos positivos es
-   casi inalcanzable). Proponer M2 solo sobre lugares con ≥ 1 positivo, y que M3 cubra los demás.
-   Es un criterio **nuevo**; declararlo como tal en el pre-registro.
-5. Costo: GPU ~30 min (gemelas de objeto absurdo de las 4 vigentes a escala nacional, ~7–8 min
-   cada una; `experimentos/exp_5ind_max_nacional.py` sirve de plantilla); jueces ~300–400
-   artículos en lotes de 40.
+Detalle completo en `experimentos/PREREG_5ind_MAX_r2.md`; textos en
+`experimentos/hipotesis_5ind_max_r2.py`.
+- Por indicador: la vigente (línea base) y 5 candidatas F1, N1–N3 (nuevas) y P1/P2 (`p1`/`p2`
+  de la ronda 1). Cada una con su gemela de osos polares (mismo hueco que en la ronda 1).
+  Absurdo total = `NULA_TEST`.
+- **Fase A** (4 lugares): GPU de 35 hipótesis × 1.647 (~37 min; incluye las 5 vigentes como
+  sanidad, max|dif| < 1e-4 frente a `scores_5ind_atomicas_lugares.pkl`), a
+  `datos/scores/scores_5ind_r2_lugares.pkl`. Pool: top-15 de la vigente y las candidatas por
+  indicador × lugar, más el pool de la ronda 1. Se juzgan solo los artículos nuevos, más la
+  muestra de exclusión (`REGEX_MUESTREO_EXCLUSION`, 206 sin juzgar) y 40 ya juzgados como
+  control entre rondas. Lotes de 40, semilla 20260923, ids `b0000…`, carpeta
+  `experimentos/resultados/juicio_5ind_r2/`. Criterios 1–5 de la ronda 1. **Parada: informe
+  intermedio y visto bueno antes de la fase B.**
+- **Fase B** (finalistas, hasta 2 por indicador): GPU nacional de la frase y su gemela (~15 min
+  cada una), holdout Cauca/Chocó/Cundinamarca (criterio 6) y cortes recalibrados una sola vez.
+  **Parada: informe 04 y visto bueno antes de promover** (cambiar solo el texto de la hipótesis
+  en `src/Transformer_optimo.py` y los cortes).
+- Exclusión: con < 5 SÍ/SÍ en total se declara no medible y decide el usuario.
 
 ## 6. Detalles operativos resueltos (no redescubrir)
 
@@ -133,10 +111,11 @@ de cortes de `b060b3b`, verifica las 12 anclas); `exp_5ind_max_f8_equivalencia.p
 (`NLIScorer().score(textos, hip, batch_size=32, max_length=512, devolver_todo=True)`).
 `hipotesis_v2.TODAS` es un **dict** (usar `list(V2.TODAS)` para columnas).
 
-**Producción** (`src/`): compuerta en `src/Transformer_optimo.py`
-(`REGEX_COMPUERTA_GRUPOS_ARMADOS`, `normalizar`, `premisa_visible`, `compuerta_grupos_armados`;
-columna auxiliar `compuerta_grupos_armados`); cortes en `src/config_pipeline.py`. Validar con
-`python src/test_integracion.py` (15 tests, sin GPU). `src/` no importa de `experimentos/`.
+**Producción** (`src/`): = `radar-max_Septiembre` (sin compuerta desde la reversión); hipótesis
+en `src/Transformer_optimo.py`, cortes en `src/config_pipeline.py`. Validar con
+`python src/test_integracion.py` (10 tests, sin GPU) y `experimentos/exp_5ind_max_f8_reversion.py`.
+`src/` no importa de `experimentos/`. `exp_5ind_max_f8_equivalencia.py` es histórico (depende de
+la compuerta revertida).
 
 **Cortes:** el procedimiento se aplica sobre el radar **sin redondear** (sobre `radar_propio`,
 redondeado a 4 decimales, el punto medio del hueco alto da 0.9234 en vez de 0.9233).
@@ -151,10 +130,11 @@ pre-registro congelado; si la 2a ronda lo cambia, hay que crear agentes nuevos (
 
 ## 7. Siguiente paso exacto
 
-1. Leer `CLAUDE.md`, este documento, `experimentos/PLAN_5ind_MAX.md` §7–§9,
-   `experimentos/PREREG_5ind_MAX.md`, las entradas [2026-09-22] del log y
-   `informes/01_…`/`02_…`.
-2. Preguntar/confirmar con el usuario la aprobación de la 2a ronda (§5) si su prompt no la trae.
-3. Con la aprobación: redactar `experimentos/PREREG_5ind_MAX_r2.md` (sin ejecutar GPU ni jueces),
-   commitearlo, revisión única de `orquesta-lead`, aplicar o registrar cada corrección, congelar,
-   y **mostrar el pre-registro al usuario antes de puntuar**.
+1. Leer `CLAUDE.md` (regla 15), este documento, `experimentos/PREREG_5ind_MAX_r2.md` y las
+   entradas [2026-09-23] del log.
+2. Con el visto bueno del usuario para la fase A: escribir
+   `experimentos/exp_5ind_max_r2_atomicas.py` (plantilla `exp_5ind_max_atomicas.py`; llamar a
+   `comprobar_tokens`), correrlo en segundo plano y verificar la sanidad de las 5 vigentes.
+3. Construir el pool y los lotes (`exp_5ind_max_r2_pool.py`), lanzar los jueces, consolidar,
+   calcular las métricas (`exp_5ind_max_r2_metricas.py`), escribir
+   `RESULTADOS_5ind_MAX_r2.md` y parar con el informe intermedio.

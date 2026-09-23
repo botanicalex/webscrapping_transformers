@@ -1226,3 +1226,33 @@ top-5, excepción de c4, dos variantes con compuerta en desplazamiento, umbral 0
 reescritura de hipótesis de los **5** indicadores (grupos armados vuelve a la lista), filtro en
 los 4 lugares reutilizando las etiquetas de F5, finalistas a escala nacional, holdout Cauca /
 Chocó / Cundinamarca y recalibración de cortes. Pre-registro: `experimentos/PREREG_5ind_MAX_r2.md`.
+
+## [2026-09-23] 2a ronda — pre-registro `experimentos/PREREG_5ind_MAX_r2.md` congelado tras revisión de `orquesta-lead`
+
+Diseño aprobado por el usuario (solo hipótesis, regla 15): 5 indicadores; por indicador, la
+vigente y 5 candidatas F1: N1–N3 nuevas y P1/P2 (= `p1`/`p2` de la ronda 1, que nunca se
+evaluaron como frase única). Cada una lleva su gemela de osos polares en el hueco de la ronda 1.
+Criterios de la ronda 1 sin cambios. Filtro en los 4 lugares, con reutilización de etiquetas;
+finalistas a nacional/holdout; muestreo de evaluación para exclusión. Textos:
+`experimentos/hipotesis_5ind_max_r2.py`. Borrador b19f4b9.
+
+`orquesta-lead` (una vez, sobre b19f4b9): 1 bloqueante y 11 menores, **adoptadas las 12**,
+ninguna rechazada:
+- (bloqueante) Se quitó el «anexo posterior» de exclusión: con ≥ 5 SÍ/SÍ se evalúa como los
+  demás en los 4 lugares. Se definió «en total» (las dos rondas) y que una kappa indefinida
+  cuenta como < 0.4.
+- Sanidad no vacía: se puntúan también las 5 vigentes (35 hipótesis, ~37 min) y se exige
+  max|dif| < 1e-4 frente a la ronda 1; se congelan §1–§7.
+- c3 redactado como en la ronda 1 (sin violación donde la vigente no la tiene).
+- Las etiquetas de la muestra de exclusión en Cauca, Chocó y Cundinamarca valen para el holdout.
+- Desempate final en orden fijo N1 < N2 < N3 < P1 < P2.
+- Límite declarado: M2 en lugares sin positivos (Oicatá). Se añade M2+ solo como reporte.
+- Se corrige la frase sobre el holdout (se conocían los recuentos; es su segundo uso).
+- `TOKENS_HIP_MAX = 25` con aserción en el .py.
+- Declarado que conflicto N1/N2 es más estrecho que el codebook, con M5 del solapamiento con
+  grupos armados.
+- Cortes recalibrados una sola vez con todas las adoptadas; si no hay par que respete las
+  anclas, se para.
+- El estado de la V08 queda bien descrito (pasó los criterios, no es promovible).
+- Control entre rondas: 40 artículos ya juzgados, con ids nuevos, solo como reporte; se juzga
+  el pool entero, sin tope.
