@@ -67,10 +67,10 @@ HIPOTESIS = {
         "c3": "Una comunidad expulsó a militares o policías.",
         "vig_abs": "Hay oposición de comunidades o autoridades a un criadero de osos polares.",
         "gpt_abs": "Una comunidad se opuso a la ejecución de un criadero de osos polares.",
-        "nue_abs": "Una comunidad se opone a una obra de cría de osos polares.",
+        "nue_abs": "Una comunidad se opone a un criadero de osos polares.",
         "p1_abs": "Habitantes rechazan la construcción de un criadero de osos polares.",
         "p2_abs": "Una comunidad protesta contra un criadero de osos polares.",
-        "A2_abs": "Se discute un proyecto de cría de osos polares.",
+        "A2_abs": "Se discute un criadero de osos polares.",
     },
     "desplazamiento_forzado": {
         "vig": "Hubo un desplazamiento forzado o éxodo de comunidades.",
@@ -83,12 +83,12 @@ HIPOTESIS = {
         "c1": "Hay riesgo o amenaza de desplazamiento.",
         "c2": "Llegaron migrantes venezolanos.",
         "c3": "Hubo amenazas contra personas.",
-        "vig_abs": "Hubo un desplazamiento forzado o éxodo de osos polares.",
-        "gpt_abs": "Personas o comunidades fueron obligadas a abandonar su territorio por una invasión de osos polares.",
+        "vig_abs": "Hubo un desplazamiento forzado o éxodo de comunidades por los osos polares.",
+        "gpt_abs": "Personas o comunidades fueron obligadas a abandonar su territorio por los osos polares.",
         "nue_abs": "Familias huyeron de su territorio por los osos polares.",
         "p1_abs": "Hubo familias desplazadas por los osos polares.",
-        "p2_abs": "Personas abandonaron sus hogares por amenazas de osos polares.",
-        "A2_abs": "Hubo ataques o amenazas de osos polares.",
+        "p2_abs": "Personas abandonaron sus hogares por los osos polares.",
+        "A2_abs": "Hubo violencia o amenazas de osos polares.",
     },
     "conflicto_territorial": {
         "vig": "Hay una disputa por el control, el uso o la propiedad de un territorio.",
@@ -105,7 +105,7 @@ HIPOTESIS = {
         "gpt_abs": "Dos o más actores disputan el control, uso o propiedad de una colonia de osos polares.",
         "nue_abs": "Hay enfrentamientos violentos por el control de una colonia de osos polares.",
         "p1_abs": "Grupos armados se disputan el control de una colonia de osos polares.",
-        "p2_abs": "Dos grupos se enfrentan con armas por unos osos polares.",
+        "p2_abs": "Dos grupos se enfrentan con armas por una colonia de osos polares.",
         "A2_abs": "Dos grupos se disputan una colonia de osos polares.",
     },
     "presencia_grupos_armados": {
@@ -119,12 +119,12 @@ HIPOTESIS = {
         "c1": "Hubo un homicidio o un robo.",
         "c2": "La policía capturó a una persona por porte ilegal de armas.",
         "c3": "Una banda delincuencial cometió hurtos.",
-        "vig_abs": "En este territorio hay presencia de manadas de osos polares salvajes.",
-        "gpt_abs": "Una manada de osos polares identificada opera en este territorio.",
-        "nue_abs": "En este territorio operan manadas de osos polares.",
-        "p1_abs": "Los osos polares, las focas o las morsas tienen presencia en esta zona.",
-        "p2_abs": "Hay presencia de osos polares o morsas en este territorio.",
-        "A1_abs": "En este territorio hay presencia de manadas de osos polares salvajes.",  # = vig_abs
+        "vig_abs": "En este territorio hay presencia de osos polares.",
+        "gpt_abs": "Un grupo de osos polares identificado opera en este territorio.",
+        "nue_abs": "En este territorio operan osos polares.",
+        "p1_abs": "Los osos polares tienen presencia en esta zona.",
+        "p2_abs": "Hay presencia de osos polares en este territorio.",
+        "A1_abs": "En este territorio hay presencia de osos polares.",  # = vig_abs
     },
 }
 
@@ -137,24 +137,42 @@ PIEZA_F2_ABS = {
     "presencia_grupos_armados": "A1",
 }
 
-# Compuerta lexica F5: se evalua sobre la MISMA premisa del NLI (solo `texto`),
-# en minusculas y sin tildes.
+# Compuerta lexica F5: se evalua sobre la PREMISA VISIBLE (solo `texto`, truncado a
+# TOKENS_PREMISA tokens, ver premisa_visible), en minusculas y sin tildes.
 REGEX_F5 = {
     "exclusion_beneficios_economicos":
-        r"regalia|compensaci|indemniz|contraprestaci|beneficios? econ|inversion social|empleo local",
+        r"regalia|(?<!caja de )compensaci|indemniz|contraprestaci|beneficios? econ|inversion social|empleo local",
     "rechazo_proyecto":
         r"proyecto|\bobras?\b|mineria|\bmina\b|eolic|hidroelectric|represa|relleno sanitario|peaje"
         r"|concesion|licencia ambiental|exploracion|fracking|puerto",
     "desplazamiento_forzado":
-        r"desplaz|huy(eron|endo)|huir|exodo|abandonar(on)? sus (casas|hogares|tierras|veredas)",
+        r"desplaz|\bhuy(o|e|en|eron|endo)\b|\bhuir\b|exodo|abandonar(on)? sus (casas|hogares|tierras|veredas)",
     "conflicto_territorial":
-        r"disput|enfrentamient|combate|control territorial|invasion de (tierras|predios)|lindero"
+        r"disput\w* (por|de|el|la) (el |la )?(control|territorio|dominio|zona|tierras?|predios?)|disputa territorial"
+        r"|enfrentamient|\bcombates?\b(?! (a|al|contra)\b)|control territorial|invasion de (tierras|predios)|lindero"
         r"|guerra entre|confrontaci",
     "presencia_grupos_armados":
         r"\beln\b|farc|disidencia|clan del golfo|\bagc\b|\begc\b|autodefensas|\bacsn\b|pachenca"
         r"|paramilitar|guerrill|segunda marquetalia|estado mayor central|\bemc\b"
         r"|\bfrente \d+|\bfrentes? (guerriller|disidente|de las farc|del eln)",
 }
+
+
+# Tokens de premisa que el NLI ve con la hipotesis mas larga del experimento
+# (512 - 3 especiales - tokens de esa hipotesis). Lo fija premisa_visible().
+MAX_LENGTH = 512
+
+
+def premisa_visible(textos, tokenizer, hipotesis) -> list:
+    """Cuerpo truncado a lo que el NLI ve junto a la hipotesis mas larga. Es la
+    premisa del juez y la de la compuerta F5."""
+    n_hip = max(len(tokenizer(h, add_special_tokens=False)["input_ids"]) for h in hipotesis)
+    n = MAX_LENGTH - 3 - n_hip
+    out = []
+    for t in textos:
+        ids = tokenizer(str(t), add_special_tokens=False)["input_ids"][:n]
+        out.append(tokenizer.decode(ids, skip_special_tokens=True))
+    return out
 
 
 def normalizar(txt: str) -> str:

@@ -979,3 +979,21 @@ Rama `hipotesis-5ind-max` desde `radar-max_Septiembre` (71072a1). Cherry-pick de
   **Consecuencia para F7:** los 21 indicadores no tocados y el sesgo se reutilizan; solo se
   puntúan las hipótesis atómicas nuevas de los finalistas (+ piezas/confusores y gemelas).
 - Decisión del usuario (2026-09-22): el juez ve **solo el cuerpo** (`texto`), como el NLI.
+
+## [2026-09-22] Fase 1 — pre-registro `experimentos/PREREG_5ind_MAX.md` congelado tras revisión de `orquesta-lead`
+
+`orquesta-lead` (invocado con su definición de `.claude/agents/orquesta-lead.md`; no está
+registrado como subagente en la sesión) devolvió 10 correcciones. **Adoptadas 9 + media:**
+etiqueta de REAPERTURA de [2026-09-08] con sus defectos de método (y la nota de que aquel
+registro dice «NULA_TEST» cuando las gemelas nuevas usaron pingüinos); gemelas de objeto
+absurdo con **una sola operación por indicador** (mismo hueco, solo «osos polares»; se
+quitaron «focas/morsas», «invasión», «obra de cría»); absurdo total exigido solo como
+≤ V01 + 0.05 (en F1 es idéntico entre variantes); artículos con score 0 fuera del pool; M1/M2
+definidos en los 4 lugares con denominador min(10, n>0) y regla para lugares sin artículos;
+criterio 4 por lugar; kappa sobre SÍ vs {NO, DUDOSO} y kappa < 0.4 ⇒ no se adopta; positivo
+de X en L = cualquier artículo del pool de L con SÍ/SÍ en X; regex de desplazamiento con
+«huyó/huye/huyen», compuerta sobre la premisa visible truncada; regex de exclusión sin «Caja
+de Compensación», de conflicto con `disput` y `combate` acotados.
+**No adoptada:** sustituir 0.766 por un umbral por indicador. 0.766 lo fija el plan aprobado
+(§5/§7); se declara como límite y se añade como reporte la razón MAX(control)/MAX(variante),
+independiente de escala. M3 ya penaliza a las variantes que solo encogen la escala.
