@@ -247,8 +247,9 @@ armados que cambian: Quindío 0.996→0.553, Caldas 0.978→0.725, San Andrés 0
   `experimentos/`.
 - `src/config_pipeline.py`: `CORTE_BAJO_MEDIO_RADAR` 0.766 → 0.7574 (`CORTE_MEDIO_ALTO_RADAR`
   0.9233 igual).
-- Verificación: `src/test_integracion.py` 14/14 (4 tests nuevos: la compuerta abre con ELN o
-  disidencias y no con combo, banda o Tren de Aragua; solo mira la premisa visible; `procesar()`
+- Verificación: `src/test_integracion.py` 15/15 (5 tests nuevos: la compuerta abre con ELN o
+  disidencias y no con combo, banda o Tren de Aragua; solo mira la premisa visible; con el
+  tokenizador real, esa premisa es la misma que queda en el par que arma el NLI; `procesar()`
   la aplica solo a grupos armados; la columna auxiliar no entra al radar).
   Equivalencia offline (`exp_5ind_max_f8_equivalencia.py`, sin GPU): la compuerta de `src/` es
   idéntica a la de F7 con truncación de producción en los 11.439 artículos; MAX de grupos

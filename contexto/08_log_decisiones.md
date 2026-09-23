@@ -1149,3 +1149,28 @@ el crimen"); Paraguachón 99 igual. Coincide con el MAX de V08 de F5 en los 3.
 nuestro corpus con el mismo score (±0.5): sus Excel se hicieron sobre un subconjunto de los
 artículos actuales. Sus archivos dejan vacía la URL en scores bajos (≤ 7); los nuestros la
 ponen siempre que el score sea > 0.
+
+## [2026-09-22] F8 — revisión final de `orquesta-lead` (una vez, sobre 062ab20): APROBADO, 0 bloqueantes, 5 menores
+
+**Adoptadas (4):**
+1. Test que contrasta `premisa_visible` con la premisa que de verdad queda en el par tokenizado
+   del NLI (`tokenizer_nli(texto, hip, truncation=True, max_length=512)`) con el tokenizador
+   real, para un texto largo, uno corto y uno vacío; se salta si el tokenizador no está
+   descargado (`test_12b`). `test_integracion.py`: **15/15**, sin saltos. (El revisor lo
+   comprobó además a mano: 0 diferencias en 402 textos.)
+2. Trazabilidad del hallazgo sobre los Excel de la profesora: `comparacion_antes_despues.csv`
+   trae `score_nuestro_url_profesora` y el script imprime el conteo: sus URL top están en
+   nuestro corpus del lugar **69/69**, con |score nuestro ×100 − suyo| ≤ 0.5 en **69/69**.
+3. `src/generar_max_articulos_por_departamento.py` aborta si el `df_procesado_32deptos.pkl`
+   no trae `compuerta_grupos_armados` (sería anterior a F8 y mezclaría V01 con el corte
+   0.7574, calibrado con compuerta).
+4. `ESTADO_DEL_PROYECTO.md`: "reemplaza únicamente la agregación por MAX" contradecía la
+   sección nueva; ahora menciona la compuerta.
+
+**No aplicada — decisión del usuario al fusionar (5):** `CLAUDE.md` (reglas 5–6, Convenciones),
+`README.md` y `explicacion_alexa.md` ("Qué se eliminó") dicen que en la rama no existen
+`experimentos/` ni `nli_core`, pero en `hipotesis-5ind-max` sí existen y los documentos nuevos
+remiten a `experimentos/INFORME_5ind_MAX.md`. Al fusionar a `radar-max_Septiembre` una de las
+dos versiones quedará falsa: si `experimentos/` entra, hay que corregir esas reglas; si no, hay
+que sacar el informe de `experimentos/` y cambiar las referencias. No se decide aquí porque
+depende de cómo quiera el usuario fusionar.

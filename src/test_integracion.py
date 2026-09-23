@@ -17,6 +17,7 @@ Checklist de aceptación:
   [10] evaluar_criterio_parada ejecuta y retorna bool sin excepción
   [11] compuerta de presencia_grupos_armados: abre con ELN/disidencias, no con combo/banda
   [12] la compuerta solo mira la premisa que ve el NLI (truncada con la hipótesis)
+  [12b] con el tokenizador real (si está descargado), esa premisa es la del par que arma _nli_batch
   [13] procesar() multiplica solo presencia_grupos_armados por la compuerta (NLI simulado)
   [14] la columna auxiliar compuerta_grupos_armados no entra al radar ni a los exportadores
 
@@ -449,6 +450,27 @@ class TestCompuertaGruposArmados(unittest.TestCase):
         self.assertEqual(premisas, ["uno dos tres cuatro", "ELN dos tres cuatro"])
         self.assertEqual(tf.compuerta_grupos_armados(premisas).tolist(), [0.0, 1.0])
 
+    @unittest.skipUnless(
+        os.path.isdir(tf._ruta_modelo_local("MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7")),
+        "tokenizador NLI no descargado",
+    )
+    def test_12b_premisa_visible_igual_a_la_del_par_tokenizado(self) -> None:
+        """Con el tokenizador real, premisa_visible debe ser la premisa que queda en el
+        par que arma _nli_batch (truncation=True, max_length=512). Solo el tokenizador,
+        sin el modelo."""
+        from transformers import AutoTokenizer
+        tok = AutoTokenizer.from_pretrained(
+            tf._ruta_modelo_local("MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7"))
+        hip = "En este territorio hay presencia de grupos armados ilegales."
+        textos = [" ".join(["Hubo una reunión del concejo municipal."] * 150) + " El ELN hostigó.",
+                  "Hostigamiento del ELN en la vereda.", ""]
+        for texto, esperado in zip(textos, tf.premisa_visible(textos, tok, hip)):
+            ids = tok(texto, hip, truncation=True, max_length=512)["input_ids"]
+            premisa = tok.decode(ids[1:ids.index(tok.sep_token_id)], skip_special_tokens=True)
+            self.assertEqual(premisa, esperado)
+        self.assertEqual(tf.compuerta_grupos_armados(tf.premisa_visible(textos, tok, hip)).tolist(),
+                         [0.0, 1.0, 0.0])
+
     def test_13_procesar_aplica_compuerta_solo_a_grupos_armados(self) -> None:
         pipe = object.__new__(tf.PipelineTransformers)
         pipe.tokenizer_nli = _TokenizadorPalabras()
@@ -500,7 +522,8 @@ _CHECKLIST = [
     ("ValidadorPrecondiciones salidas NLP y radar OK",          "test_09"),
     ("evaluar_criterio_parada retorna bool sin excepción",      "test_10"),
     ("Compuerta grupos armados: ELN/disidencias sí, combo/banda no", "test_11"),
-    ("Compuerta solo sobre la premisa visible del NLI",         "test_12"),
+    ("Compuerta solo sobre la premisa visible del NLI",         "test_12_"),
+    ("Premisa visible = la del par tokenizado real (o skip)",   "test_12b"),
     ("procesar() aplica la compuerta solo a grupos armados",    "test_13"),
     ("Columna compuerta_grupos_armados fuera del radar",        "test_14"),
 ]

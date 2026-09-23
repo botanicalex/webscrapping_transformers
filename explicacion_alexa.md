@@ -26,7 +26,7 @@ grupos armados, ausencia de Estado). Medio y Bajo son, en ese orden, menos difí
 | `config_pipeline.py` | Configuración central: rutas, grupos de scraping, los cortes Bajo/Medio/Alto. |
 | `orquestador_pipeline.py` | Corre el pipeline completo (scraping opcional → indicadores → radar → comparación con el DANE). Uso típico: `--skip-scraping`, reusando el corpus ya scrapeado. |
 | `metricas_y_calculo_de_error.py` | Compara el radar propio contra el oficial del DANE y calcula accuracy y métricas de error. |
-| `test_integracion.py` | Suite de 14 tests con un corpus sintético (sin cargar el modelo NLI), incluida la compuerta de grupos armados. Es la única red de seguridad del repo. |
+| `test_integracion.py` | Suite de 15 tests con un corpus sintético (sin cargar el modelo NLI), incluida la compuerta de grupos armados. Es la única red de seguridad del repo. |
 
 ### `contexto/` — documentación bajo demanda
 

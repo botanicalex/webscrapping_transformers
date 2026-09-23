@@ -108,8 +108,9 @@ corregido:
 Las tres correcciones **están en producción desde el 2026-08-31 en `pruebas`/`master`** y
 fueron validadas a escala nacional sobre los 32 departamentos con el motor de experimentos
 (Spearman +0.42, con P75). Producción aún no se ha re-corrido sobre los 32 con su propio
-código (~4 h GPU, pendiente). Esta rama reemplaza únicamente la agregación por MAX; las
-otras dos correcciones (hipótesis V2, sesgo descontado) se mantienen.
+código (~4 h GPU, pendiente). Esta rama reemplaza la agregación por MAX y, desde el
+2026-09-22, añade la compuerta léxica de `presencia_grupos_armados` (ver abajo); las otras
+dos correcciones (hipótesis V2, sesgo descontado) se mantienen.
 
 ## Cambio del 2026-09-22: presencia de grupos armados
 

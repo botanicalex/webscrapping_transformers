@@ -160,6 +160,12 @@ def main():
             assert list(x["Indicador"]) == [n for _, _, n in FILAS]
             c["score_profesora"] = x["Score (0-100)"].values
             c["url_profesora"] = x["URL artículo top"].values
+            # Score V01 nuestro (x100, sin redondear) del articulo que ella tiene como top,
+            # si ese articulo esta en nuestro corpus del lugar.
+            en_lugar = set(urls)
+            c["score_nuestro_url_profesora"] = [
+                round(float(antes.loc[u, k]) * 100, 2) if isinstance(u, str) and u in en_lugar else np.nan
+                for u, k in zip(c["url_profesora"], c["clave"])]
         comp.append(c)
     comp = pd.concat(comp, ignore_index=True)
     comp.to_csv(os.path.join(DIR, "comparacion_antes_despues.csv"), index=False)
@@ -171,6 +177,11 @@ def main():
         print(f"'Antes' vs Excel de la profesora: score distinto en {len(dif)} de {len(comp)} celdas "
               f"({dif.groupby('lugar').size().to_dict()}); en todas, el nuestro es mayor: "
               f"{bool((dif.score_antes > dif.score_profesora).all())}")
+        con_url = comp[comp.url_profesora.notna()]
+        presentes = con_url[con_url.score_nuestro_url_profesora.notna()]
+        cerca = (presentes.score_nuestro_url_profesora - presentes.score_profesora).abs() <= 0.5
+        print(f"URL top de la profesora en nuestro corpus del lugar: {len(presentes)}/{len(con_url)}; "
+              f"con |score nuestro x100 - suyo| <= 0.5: {int(cerca.sum())}/{len(presentes)}")
     print(f"-> {DIR}/")
 
 

@@ -42,7 +42,7 @@ optimizar indicadores — hay un techo estructural y una decisión de diseño pe
    viven únicamente en `src/Transformer_optimo.py`; no hay copia V0 aquí.
 6. **En esta rama no existe `nli_core`** (se eliminó con `experimentos/`), así que la
    verificación `verificar_contra_produccion_v2()` no aplica aquí. Para validar cambios,
-   correr `python src/test_integracion.py` (14 tests, sin GPU).
+   correr `python src/test_integracion.py` (15 tests, sin GPU).
 7. **Un experimento aísla UNA variable.** Dos cambios a la vez no se pueden atribuir.
 8. **No repetir GPU.** Puntuar los 32 departamentos son ~4 h. Se guardan `ent_` y `neu_`
    **sin enmascarar** en un pkl y todo el análisis posterior se hace sobre el pkl.
