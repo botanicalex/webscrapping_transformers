@@ -1174,3 +1174,19 @@ remiten a `experimentos/INFORME_5ind_MAX.md`. Al fusionar a `radar-max_Septiembr
 dos versiones quedará falsa: si `experimentos/` entra, hay que corregir esas reglas; si no, hay
 que sacar el informe de `experimentos/` y cambiar las referencias. No se decide aquí porque
 depende de cómo quiera el usuario fusionar.
+
+## [2026-09-23] Informes en `informes/` y relevo de conversación — ADOPTADO (pedido del usuario)
+
+- Nueva carpeta `informes/` para todo informe dirigido al jefe o la profesora, numerado
+  (`NN_informe_<tema>.md`), con índice y convención en `informes/README.md`. Un informe entregado
+  no se reescribe; los cambios van en el siguiente.
+- `experimentos/INFORME_5ind_MAX.md` → `informes/01_informe_5ind_MAX_fases_0-7.md` (git mv),
+  recortado a F0–F7; la F8 pasa al informe nuevo `informes/02_informe_fase_8_promocion_grupos_armados.md`.
+  Las entradas anteriores de este log citan la ruta vieja; la vigente es la de `informes/`.
+  Referencias actualizadas en `ESTADO_DEL_PROYECTO.md` y `explicacion_alexa.md`.
+- Relevo para una conversación nueva: `contexto/11_relevo_5ind_MAX.md` (estado, innegociables,
+  decisiones cerradas y pendientes, propuesta de 2a ronda, detalles operativos, siguiente paso).
+  Punteros en `CLAUDE.md`, `contexto/00_estado_actual.md` y `contexto/07_backlog.md` (item 00).
+- Con los informes fuera de `experimentos/`, la corrección 5 de la revisión de F8 se reduce a las
+  reglas 5–6 de `CLAUDE.md`, `README.md` y "Qué se eliminó" de `explicacion_alexa.md`; sigue
+  pendiente de la decisión de fusión del usuario.

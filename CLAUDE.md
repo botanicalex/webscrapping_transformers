@@ -107,12 +107,16 @@ nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos.
 | `datos/referencia/` | Radar oficial DANE |
 | `datos/scores/` | Matrices de scores ya calculadas — reutilizar antes de tocar la GPU |
 | `../pruebas/` | Worktree hermano en la rama `pruebas`, mismo historial. Ahí se experimenta; `datos/corpus/` y `datos/scores/` están enlazados por junction a los de `desarrollo/` (no duplicar los 107 MB), `resultados/` es independiente en cada worktree |
+| `informes/` | Informes para lector externo (jefe, profesora), numerados; índice y convención en `informes/README.md`. Todo informe nuevo va aquí |
 | `ESTADO_DEL_PROYECTO.md` | Entregable para lector externo (jefe, profesora). Existe también en `pruebas` (copia, sincronizada por DSH el 2026-09-01); se actualiza al fusionar algo de `pruebas` a `master`, no durante los experimentos |
 
 Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`).
 
 ## Contexto bajo demanda — leer solo el que haga falta
 
+- **`contexto/11_relevo_5ind_MAX.md` — leer primero al retomar el plan de 5 indicadores bajo
+  MAX** (rama `hipotesis-5ind-max`): estado, decisiones cerradas y pendientes, propuesta de
+  segunda ronda, detalles operativos y siguiente paso exacto.
 - `contexto/00_estado_actual.md` — qué corre hoy, qué no, en qué se estaba trabajando.
 - `contexto/01_objetivo_y_radar.md` — el radar oficial DANE y cómo se calcula la accuracy.
 - `contexto/02_pipeline.md` — flujo end-to-end y contrato de cada etapa.
@@ -134,6 +138,8 @@ Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`).
 ## Convenciones
 
 - Español, sin emojis. Los scripts imprimen tablas de texto y guardan un `.xlsx`.
+- Los informes para el jefe o la profesora van a `informes/` (`NN_informe_<tema>.md`), no a
+  `experimentos/` ni a la raíz.
 - En esta rama no hay carpeta `experimentos/`: los cambios se prueban directamente sobre
   `src/` y se documentan en `explicacion_alexa.md`.
 - Todo número citado lleva su archivo de origen. Si no está medido, se dice "no medido".

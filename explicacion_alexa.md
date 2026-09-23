@@ -114,7 +114,7 @@ python src/test_integracion.py                      # verificar que todo sigue f
    común, no grupos armados. Con la compuerta, la precisión en los 10 artículos más altos
    de cada lugar pasó de 0.17 a 0.93 (4 lugares) y de 0.47 a 0.77 en un holdout de Cauca,
    Chocó y Cundinamarca, según dos jueces LLM ciegos (solo evaluación; en producción no hay
-   LLM). Detalle: `experimentos/INFORME_5ind_MAX.md`.
+   LLM). Detalle: `informes/01_informe_5ind_MAX_fases_0-7.md` y `informes/02_informe_fase_8_promocion_grupos_armados.md`.
 3. Por departamento y por cada uno de los 26 indicadores, se toma el valor **MÁXIMO** entre
    todos los artículos de ese departamento (`grupo[c].max()`).
 4. El radar final es el **promedio simple de los 26 indicadores** — sin pesos, sin

@@ -4,6 +4,17 @@ En orden de valor. Cada entrada dice qué desbloquea y qué cuesta.
 
 ---
 
+## 00. Plan 5 indicadores bajo MAX — segunda ronda y fusión (2026-09-23)
+
+Rama `hipotesis-5ind-max`. Grupos armados ya corregido y en `src/` (V08, cortes
+0.7574/0.9233). Pendiente, en orden: (a) aprobación del usuario de la segunda ronda para
+conflicto territorial, desplazamiento forzado, rechazo a proyecto y exclusión de beneficios
+(nuevo pre-registro; ~30 min GPU + ~300–400 artículos juzgados); (b) decisión de fusión a
+`radar-max_Septiembre` (¿entra `experimentos/`?). Detalle y siguiente paso exacto:
+`contexto/11_relevo_5ind_MAX.md`.
+
+---
+
 ## 0. Confirmar qué mide exactamente el índice del DANE — minutos
 
 **Lo primero, antes que las 4 h de GPU.** Es lo más barato y de mayor impacto de todo el

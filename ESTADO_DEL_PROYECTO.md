@@ -138,7 +138,7 @@ armado.
   exclusión de beneficios económicos tienen el mismo problema, pero ninguna variante pasó
   el criterio fijado de antemano (en rechazo y exclusión casi no hay casos reales en el
   corpus juzgado). Quedan para una segunda ronda. Informe completo:
-  `experimentos/INFORME_5ind_MAX.md`.
+  `informes/` (índice en `informes/README.md`).
 
 ## Qué falta y qué lo bloquea
 

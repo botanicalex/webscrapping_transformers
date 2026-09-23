@@ -4,6 +4,14 @@
 
 Es el primer documento a leer al retomar. Responde: dónde estamos, qué corre, qué no.
 
+> **Actualización 2026-09-23 (rama `hipotesis-5ind-max`).** Esta rama parte de
+> `radar-max_Septiembre` (agregación **MAX**, no P75 como dice el resto de este documento, que
+> describe `pruebas`/`master` al 2026-09-01). Desde el 2026-09-22 `src/` aplica una compuerta
+> léxica a `presencia_grupos_armados` (V08) y los cortes son `Bajo < 0.7574 <= Medio < 0.9233
+> <= Alto`; el radar sigue con 26 indicadores. Quedan 4 indicadores problemáticos para una
+> segunda ronda (propuesta, sin aprobar). **Para retomar ese trabajo, leer
+> `contexto/11_relevo_5ind_MAX.md`**; informes en `informes/`.
+
 ## Dónde estamos
 
 **Producción (`src/`) corre V2 desde el 2026-08-31** (antes V0). `python

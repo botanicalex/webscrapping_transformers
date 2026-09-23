@@ -1,8 +1,10 @@
 # Informe — Reformulación de 5 indicadores del radar bajo agregación MAX
 
-Fecha: 2026-09-22 · Rama: `hipotesis-5ind-max` (desde `radar-max_Septiembre`) · Estado: fases 0–8
-cerradas. V08 de `presencia_grupos_armados` adoptada y promovida a `src/` (commits locales, sin
-push ni merge). Los otros 4 indicadores, pendientes de una segunda ronda.
+Fecha: 2026-09-22 · Rama: `hipotesis-5ind-max` (desde `radar-max_Septiembre`) · Alcance: fases 0–7
+(diseño, juicio, selección, holdout nacional y recalibración de cortes). Resultado: V08 de
+`presencia_grupos_armados` adoptada; los otros 4 indicadores, pendientes de una segunda ronda.
+La fase 8 (promoción a producción y Excel de lugares) está en
+`informes/02_informe_fase_8_promocion_grupos_armados.md`.
 
 Documentos fuente: plan `experimentos/PLAN_5ind_MAX.md`, pre-registro
 `experimentos/PREREG_5ind_MAX.md`, tablas `experimentos/RESULTADOS_5ind_MAX.md`, registro de
@@ -184,7 +186,7 @@ artículos del pool.
 
 | Indicador | Vigente (V01): M2 / top-1 | Mejor alternativa | Decisión |
 |---|---|---|---|
-| **Presencia de grupos armados** | 0.17 / 2 de 4 | **V08: 0.93 / 4 de 4**, AUC 0.788→0.879, control absurdo sin empeorar | **Adoptada**: pasó el holdout (fase 7) y está en `src/` (fase 8) |
+| **Presencia de grupos armados** | 0.17 / 2 de 4 | **V08: 0.93 / 4 de 4**, AUC 0.788→0.879, control absurdo sin empeorar | **Adoptada**: pasó el holdout (fase 7); promovida a `src/` en la fase 8 (informe 02) |
 | Conflicto territorial | 0.07 / 1 de 4 | V09: 0.59 / 2 de 4; V08: 0.57 / 3 de 4 | Rechazado: no llega a 0.60 y el control absurdo supera 0.766 en Antioquia |
 | Desplazamiento forzado | 0.05 / 0 de 4 | V10: 0.40 / 1 de 4 | Rechazado |
 | Rechazo a proyecto | 0.00 / 0 de 4 | ≤ 0.03 | Rechazado (solo 4 positivos en todo el pool) |
@@ -236,44 +238,10 @@ Medio / 7 Alto) y ninguna ancla se rompe. Constancia: accuracy 0.344 → 0.344; 
 armados que cambian: Quindío 0.996→0.553, Caldas 0.978→0.725, San Andrés 0.861→0, Guainía
 0.640→0.011 (los artículos que los fijaban no nombran un grupo armado en el texto visible).
 
-### Fase 8 — promoción a producción
+### Fase 8
 
-- `src/Transformer_optimo.py`: en `procesar()`, `presencia_grupos_armados = score corregido ×
-  compuerta`. La compuerta es 1 si la regex de grupos armados (copiada literal del experimento,
-  `REGEX_COMPUERTA_GRUPOS_ARMADOS`) aparece en la premisa que ve el NLI con la hipótesis de
-  grupos armados, en minúsculas y sin tildes. Se guarda como columna auxiliar
-  `compuerta_grupos_armados` (como `sesgo`); no está entre los 26 indicadores del radar ni de
-  los exportadores. El NLI y los otros 25 indicadores no cambian. `src/` no importa nada de
-  `experimentos/`.
-- `src/config_pipeline.py`: `CORTE_BAJO_MEDIO_RADAR` 0.766 → 0.7574 (`CORTE_MEDIO_ALTO_RADAR`
-  0.9233 igual).
-- Verificación: `src/test_integracion.py` 15/15 (5 tests nuevos: la compuerta abre con ELN o
-  disidencias y no con combo, banda o Tren de Aragua; solo mira la premisa visible; con el
-  tokenizador real, esa premisa es la misma que queda en el par que arma el NLI; `procesar()`
-  la aplica solo a grupos armados; la columna auxiliar no entra al radar).
-  Equivalencia offline (`exp_5ind_max_f8_equivalencia.py`, sin GPU): la compuerta de `src/` es
-  idéntica a la de F7 con truncación de producción en los 11.439 artículos; MAX de grupos
-  armados y radar por departamento con max|dif| 0; `CalculadorRadar` de `src/` da 6/19/7 con la
-  misma clase que F7 en los 32; el procedimiento de cortes sobre ese radar devuelve 0.7574/0.9233.
-- **Excel de lugares** (`experimentos/resultados/excel_lugares_f8/`, script
-  `exp_5ind_max_f8_excel_lugares.py`, sin GPU), con el formato de los de la profesora (hoja
-  `Resumen`: Dimensión, Indicador, Score 0–100, URL del artículo top) y una hoja `Radar` añadida
-  con el valor del radar, la clase y los cortes:
-
-  | Lugar | Artículos | Radar antes (V01) | Clase (0.766) | Radar después (V08) | Clase (0.7574) | Grupos armados |
-  |---|---|---|---|---|---|---|
-  | Maicao | 1.101 | 0.9625 | Alto | 0.9624 | Alto | 98 → 98, otro artículo: de "Maicao fortalece su seguridad… contra el crimen" a "…esclarecer masacre en Maicao" |
-  | Oicatá | 32 | 0.6688 | Bajo | 0.6437 | Bajo | 65 → 0 (el máximo era un hurto) |
-  | Paraguachón | 77 | 0.8188 | Medio | 0.8188 | Medio | 99 → 99 (mismo artículo) |
-
-  Solo cambia `presencia_grupos_armados`; ningún lugar cambia de clase.
-  **Diferencia con los Excel de la profesora:** el "antes" regenerado no coincide con los
-  suyos en 26 de 78 celdas (Maicao 9, Oicatá 3, Paraguachón 14), y en todas el nuestro es
-  mayor. Todas sus URL top están en nuestro corpus y nuestro score para esos artículos coincide
-  con el suyo (±0.5 por redondeo): sus Excel se generaron sobre **un subconjunto** de los
-  artículos que tenemos hoy. Además, sus archivos dejan la URL vacía en algunos scores bajos
-  (≤ 7); los regenerados la ponen siempre que el score sea > 0. Comparación celda a celda:
-  `comparacion_antes_despues.csv`.
+La promoción a `src/`, su verificación y los Excel de lugares antes/después están en el
+informe siguiente: `informes/02_informe_fase_8_promocion_grupos_armados.md`.
 
 ## 8. Hallazgos
 
@@ -326,8 +294,8 @@ en F8 (compuerta de grupos armados y cortes); el radar sigue con 26 indicadores.
 
 ## 11. Próximos pasos (en orden)
 
-1. **Revisión del usuario** de la rama `hipotesis-5ind-max` (commits locales). Sin push ni
-   merge a `radar-max_Septiembre` hasta su aprobación.
+1. **Fase 8 (hecha, informe 02):** promover V08 a `src/` con los cortes 0.7574/0.9233,
+   regenerar los Excel de lugares antes/después y revisión final con `orquesta-lead`.
 2. **Segunda ronda para los problemáticos que faltan** (experimento nuevo, con su propio
    pre-registro, sin reabrir lo cerrado): conflicto territorial (compuertas con M2 0.57–0.59),
    desplazamiento (0.40), rechazo a proyecto (4 positivos en el pool + 3 en el holdout) y
@@ -335,7 +303,7 @@ en F8 (compuerta de grupos armados y cortes); el radar sigue con 26 indicadores.
    controles específicos antes que reescribir frases. El holdout ya aporta casos (desplazamiento
    18, conflicto 16, rechazo 3); para exclusión hace falta otro muestreo.
 3. Re-puntuar los 32 departamentos con el código de `src/` (pendiente desde antes de este
-   experimento, ~4 h GPU); la compuerta no cambia nada del NLI, así que no lo exige.
+   experimento, ~4 h GPU).
 
 ## Anexo — Trazabilidad
 
@@ -350,9 +318,9 @@ en F8 (compuerta de grupos armados y cortes); el radar sigue con 26 indicadores.
 | `cb336fa` | Este informe (etiqueta `base-26ind-f5`) |
 | `5631fbd` | Corrección: exclusión no se retira, el radar sigue con 26 |
 | `705a557` | Fase 7: holdout nacional y recalibración de cortes (etiqueta `base-26ind-f7`) |
-| F8 (ver `git log`) | Promoción de V08 a `src/`, cortes 0.7574/0.9233, tests, equivalencia, Excel de lugares, este informe |
+| `062ab20`, `50a553a` | Fase 8 (ver informe 02) |
 
 Archivos clave: `experimentos/resultados/juicio_5ind/` (`lotes/`, `etiquetas_a/`,
 `etiquetas_b/`, `referencia.csv`, `pool.csv`, `max_por_lugar.csv`, `metricas_5ind.xlsx`),
-`experimentos/resultados/juicio_5ind_holdout/` (holdout, `cortes_radar.xlsx`,
-`f8_equivalencia.csv`) y `experimentos/resultados/excel_lugares_f8/`.
+`experimentos/resultados/juicio_5ind_holdout/` (holdout: `pool.csv`, `referencia.csv`,
+`metricas_holdout.csv`, `m4_nacional.csv`, `cortes_radar.xlsx`).
