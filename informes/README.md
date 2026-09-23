@@ -8,7 +8,7 @@ profesora). Cada uno se puede leer solo; el orden numérico es el cronológico.
 | 01 | [`01_informe_5ind_MAX_fases_0-7.md`](01_informe_5ind_MAX_fases_0-7.md) | 2026-09-22 | Reformulación de 5 indicadores bajo MAX: diseño, jueces LLM ciegos, 12 variantes, resultados, holdout nacional y recalibración de cortes. Se adopta la compuerta de grupos armados (V08); los otros 4 quedan pendientes. |
 | 02 | [`02_informe_fase_8_promocion_grupos_armados.md`](02_informe_fase_8_promocion_grupos_armados.md) | 2026-09-22 | La compuerta de grupos armados pasa a producción, cortes 0.7574/0.9233, verificación y Excel de lugares antes/después. |
 | 03 | [`03_informe_reversion_f8.md`](03_informe_reversion_f8.md) | 2026-09-23 | Regla nueva (solo se cambian hipótesis): se revierte la compuerta de grupos armados; producción vuelve a `radar-max_Septiembre`, cortes 0.766/0.9233; la segunda ronda será solo de hipótesis. |
-| 04 | [`04_informe_ronda2_solo_hipotesis.md`](04_informe_ronda2_solo_hipotesis.md) | 2026-09-23 | Segunda ronda: 25 frases nuevas para 5 indicadores, ninguna pasa el criterio (la mejor precisión es 0.38 frente al 0.60 exigido); producción no cambia; exclusión de beneficios no es medible con este corpus. |
+| 04 | [`04_informe_ronda2_solo_hipotesis.md`](04_informe_ronda2_solo_hipotesis.md) | 2026-09-23 | Segunda ronda: 25 frases candidatas para 5 indicadores, ninguna pasa el criterio (la mejor precisión es 0.38 frente al 0.60 exigido); producción no cambia; exclusión de beneficios no es medible con este corpus. |
 
 Documentos relacionados (no son informes, no se mueven aquí):
 

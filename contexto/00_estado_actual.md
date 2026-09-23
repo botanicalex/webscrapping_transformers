@@ -9,8 +9,10 @@ Es el primer documento a leer al retomar. Responde: dónde estamos, qué corre, 
 > describe `pruebas`/`master` al 2026-09-01). `src/` es idéntico al de `radar-max_Septiembre`
 > (cortes `Bajo < 0.766 <= Medio < 0.9233 <= Alto`, 26 indicadores): la compuerta léxica de
 > grupos armados de la F8 se revirtió el 2026-09-23 porque solo se permite cambiar hipótesis
-> (regla 15 de `CLAUDE.md`). Segunda ronda aprobada: solo reescritura de hipótesis de los 5
-> indicadores. **Para retomar, leer `contexto/11_relevo_5ind_MAX.md`**; informes en `informes/`.
+> (regla 15 de `CLAUDE.md`). Segunda ronda (solo reescritura de hipótesis de los 5 indicadores)
+> **cerrada el 2026-09-23 con 0 finalistas**: ninguna frase pasa, `src/` no cambia; exclusión de
+> beneficios «no medible», pendiente del usuario (informe 04). **Para retomar, leer
+> `contexto/11_relevo_5ind_MAX.md`**; informes en `informes/`.
 
 ## Dónde estamos
 

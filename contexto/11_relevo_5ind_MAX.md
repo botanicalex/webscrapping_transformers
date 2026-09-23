@@ -1,4 +1,4 @@
-# 11 — Relevo: plan 5 indicadores bajo MAX (estado al 2026-09-23, tras la reversión de F8)
+# 11 — Relevo: plan 5 indicadores bajo MAX (estado al 2026-09-23, ronda 2 cerrada)
 
 Documento de traspaso entre conversaciones. **Leerlo entero antes de actuar.** Resume lo que
 una conversación nueva necesita para seguir sin redescubrir nada; el detalle y la evidencia
@@ -18,13 +18,15 @@ están en los archivos que cita.
   `orquesta-lead`, 12 correcciones adoptadas). **Fase A HECHA (2026-09-23):** ninguna de las 25
   candidatas pasa los criterios 1–5 (ninguna llega a M2 0.60; la mejor es P2 de grupos armados,
   0.38). 0 finalistas. Exclusión: 0 SÍ/SÍ en 940 juzgados, «no medible». Tabla en
-  `experimentos/RESULTADOS_5ind_MAX_r2.md`; log [2026-09-23] «2a ronda, fase A». Parado a la
-  espera del visto bueno del usuario: la fase B no tiene candidatas.
+  `experimentos/RESULTADOS_5ind_MAX_r2.md`; log [2026-09-23] «2a ronda, fase A» (tres entradas).
+  **Fase A aprobada por el usuario; ronda 2 CERRADA:** los 5 conservan su hipótesis vigente, la
+  fase B no se ejecuta y `src/` no cambia. Revisión final de `orquesta-lead`: APROBADO, 0
+  bloqueantes, 7 menores adoptados. Informe `informes/04_informe_ronda2_solo_hipotesis.md`.
 - Etiquetas locales: `base-26ind-radar-max` (71072a1), `base-26ind-f5` (cb336fa),
   `base-26ind-f7` (705a557), `base-26ind-f8-compuerta` (85db4e1, versión con la compuerta,
   revertida).
-- Informes para el jefe/profesora: **`informes/`** (01, 02, 03; índice en `informes/README.md`).
-  El siguiente es el 04.
+- Informes para el jefe/profesora: **`informes/`** (01 a 04; índice en `informes/README.md`).
+  El siguiente es el 05.
 
 ## 2. Innegociables (del usuario)
 
@@ -53,6 +55,9 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
 - F8 revertida (regla 15). La propuesta de compuertas del relevo anterior y las 4
   recomendaciones asociadas quedan sin efecto.
 - Ronda 2 = solo hipótesis (F1), 5 indicadores, criterios de la ronda 1. Pre-registro congelado.
+- **Ronda 2 cerrada con 0 finalistas:** se rechazan las 25 candidatas (N1–N3, P1, P2 × 5)
+  por el criterio 1 (mejor M2 0.38; M2+ 0.50). No se repite otra ronda de frases sobre estos 5
+  indicadores sin evidencia nueva medida. Exclusión: «no medible con este corpus».
 
 ## 4. Pendiente de decisión del usuario
 
@@ -60,11 +65,13 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
    entregables ya coinciden con esa rama. Las reglas 5–6 de `CLAUDE.md` siguen diciendo que no
    hay `experimentos/`.
 2. Push/merge de `hipotesis-5ind-max`.
-3. ~~Visto bueno para la fase A~~ (dado y ejecutada). Ahora: visto bueno del resultado de la
-   fase A (0 finalistas: los 4 indicadores medibles conservan su hipótesis vigente) y decisión
-   sobre `exclusion_beneficios_economicos`, que resultó «no medible» (§5 del pre-registro r2).
-   Pendiente también: ¿informe 04 para el jefe o la profesora? ¿Revisión final de
-   `orquesta-lead` para cerrar la ronda?
+3. Qué hacer con `exclusion_beneficios_economicos`, que resultó «no medible» (§5 del
+   pre-registro r2). Sigue en el radar con su frase vigente; no se retira salvo que lo diga el
+   usuario.
+4. Siguiente paso del proyecto. `orquesta-lead` propone la tarea 0 del backlog: preguntar a la
+   profesora qué índice del DANE es `radar_oficial_promedio` y cuáles son sus ejes. Costo: solo
+   minutos, sin GPU. Sirve para saber a qué concepto apuntar en una eventual ronda 3 de solo
+   hipótesis sobre otros indicadores. Sin decidir.
 
 ## 5. Ronda 2 — resumen del pre-registro congelado
 
@@ -73,7 +80,7 @@ Detalle completo en `experimentos/PREREG_5ind_MAX_r2.md`; textos en
 - Por indicador: la vigente (línea base) y 5 candidatas F1, N1–N3 (nuevas) y P1/P2 (`p1`/`p2`
   de la ronda 1). Cada una con su gemela de osos polares (mismo hueco que en la ronda 1).
   Absurdo total = `NULA_TEST`.
-- **Fase A** (4 lugares): GPU de 35 hipótesis × 1.647 (~37 min; incluye las 5 vigentes como
+- **Fase A** (4 lugares): GPU de 35 hipótesis × 1.647 (46 min reales; incluye las 5 vigentes como
   sanidad, max|dif| < 1e-4 frente a `scores_5ind_atomicas_lugares.pkl`), a
   `datos/scores/scores_5ind_r2_lugares.pkl`. Pool: top-15 de la vigente y las candidatas por
   indicador × lugar, más el pool de la ronda 1. Se juzgan solo los artículos nuevos, más la
@@ -83,8 +90,8 @@ Detalle completo en `experimentos/PREREG_5ind_MAX_r2.md`; textos en
   intermedio y visto bueno antes de la fase B.**
 - **Fase B** (finalistas, hasta 2 por indicador): GPU nacional de la frase y su gemela (~15 min
   cada una), holdout Cauca/Chocó/Cundinamarca (criterio 6) y cortes recalibrados una sola vez.
-  **Parada: informe 04 y visto bueno antes de promover** (cambiar solo el texto de la hipótesis
-  en `src/Transformer_optimo.py` y los cortes).
+  Parada prevista: informe y visto bueno antes de promover (cambiar solo el texto de la
+  hipótesis en `src/Transformer_optimo.py` y los cortes). **No se ejecuta: 0 finalistas.**
 - Exclusión: con < 5 SÍ/SÍ en total se declara no medible y decide el usuario.
 
 ## 6. Detalles operativos resueltos (no redescubrir)
@@ -143,5 +150,8 @@ pre-registro congelado; si la 2a ronda lo cambia, hay que crear agentes nuevos (
 2. Fase A hecha: scripts `exp_5ind_max_r2_atomicas.py` (GPU), `exp_5ind_max_r2_pool.py
    lotes|consolidar` y `exp_5ind_max_r2_metricas.py`; datos en
    `experimentos/resultados/juicio_5ind_r2/` y `datos/scores/scores_5ind_r2_lugares.pkl`.
-3. Esperar las decisiones del usuario de §4 (resultado de la fase A, exclusión, informe 04,
-   revisión de `orquesta-lead`, fusión). No hay fase B que correr (0 finalistas).
+3. Ronda 2 cerrada: informe 04 escrito y revisión final de `orquesta-lead` hecha. No queda
+   nada que ejecutar del plan 5ind MAX. Esperar las decisiones del usuario de §4 (fusión,
+   push/merge, exclusión y siguiente paso del proyecto).
+4. Si un juez se corta a mitad (p. ej., por el límite de uso), retomarlo con `SendMessage` a su
+   id: conserva los lotes ya leídos. No relanzarlo de cero.

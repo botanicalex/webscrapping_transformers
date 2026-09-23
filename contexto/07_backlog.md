@@ -8,10 +8,12 @@ En orden de valor. Cada entrada dice qué desbloquea y qué cuesta.
 
 Rama `hipotesis-5ind-max`. La compuerta de grupos armados (F8) se revirtió: solo se permite
 cambiar hipótesis (regla 15 de `CLAUDE.md`); `src/` = `radar-max_Septiembre`, cortes
-0.766/0.9233. Pendiente, en orden: (a) segunda ronda aprobada, solo reescritura de hipótesis de
-los 5 indicadores (pre-registro `experimentos/PREREG_5ind_MAX_r2.md`); (b) decisión de fusión a
-`radar-max_Septiembre` (¿entra `experimentos/`?). Detalle y siguiente paso exacto:
-`contexto/11_relevo_5ind_MAX.md`.
+0.766/0.9233. **Segunda ronda cerrada (2026-09-23):** solo reescritura de hipótesis de los 5
+indicadores, 0 finalistas (mejor M2 0.38 frente a 0.60); los 5 conservan su hipótesis vigente
+(`experimentos/RESULTADOS_5ind_MAX_r2.md`, informe 04). Pendiente del usuario: (a) qué hacer con
+`exclusion_beneficios_economicos`, «no medible» (0 SÍ/SÍ en 940 juzgados; sigue en el radar);
+(b) decisión de fusión a `radar-max_Septiembre` (¿entra `experimentos/`?); (c) push/merge.
+Detalle: `contexto/11_relevo_5ind_MAX.md`.
 
 ---
 

@@ -1276,16 +1276,17 @@ detalle `experimentos/resultados/juicio_5ind_r2/metricas_r2.xlsx`; logs `r2_*.lo
   uso de la sesión antes de escribir nada. Se retomaron con los mismos lotes y el mismo agente;
   es una incidencia operativa, no una desviación. Resultado de los nuevos (SI_a / SI_b / SÍ-SÍ /
   kappa): exclusión 4/1/0/−0.01, rechazo 8/7/6/0.79, desplazamiento 8/10/8/0.89, conflicto
-  5/5/5/0.91, grupos armados 17/17/16/0.94. Casi todos los SÍ/SÍ nuevos vienen de la muestra de
+  6/5/5/0.91, grupos armados 17/17/16/0.94. Casi todos los SÍ/SÍ nuevos vienen de la muestra de
   exclusión, fuera de los 4 lugares. Dentro de ellos solo hay 1 nuevo de conflicto y 6 de grupos
   armados. Control entre rondas: acuerdo SÍ/SÍ 0.97–1.00 por indicador (solo reporte).
 - **Métricas** (`exp_5ind_max_r2_metricas.py`; referencia de 940 juzgados). Kappa en los 4
   lugares: exclusión −0.00, rechazo 0.44, desplazamiento 0.88, conflicto 0.87, grupos 0.94.
   M2 de la vigente y de la mejor candidata: rechazo 0.00 y N1 0.25; desplazamiento 0.05 y N1 0.07;
   conflicto 0.07 y N1 0.26; grupos armados 0.17 y P2 0.38; exclusión 0.00 en las 6 frases.
-  **Ninguna de las 25 candidatas cumple el criterio 1** (M2 ≥ 0.60). Además, casi todas fallan
-  el 4, porque la gemela de osos polares pasa de 0.766. Solo pasan el 4 rechazo N1, N2, N3 y P1
-  y conflicto N3. M2+ (solo reporte): la mejor es P2 de grupos armados, con 0.50.
+  **Ninguna de las 25 candidatas cumple el criterio 1** (M2 ≥ 0.60). Además, 20 de las 25
+  fallan el 4: en 18, la gemela de osos polares pasa de 0.766, y en N3 y P2 de grupos armados
+  supera en más de 0.05 a la gemela de la vigente. Solo pasan el 4 rechazo N1, N2, N3 y P1 y
+  conflicto N3. M2+ (solo reporte): la mejor es P2 de grupos armados, con 0.50.
 - **Exclusión (§5):** 0 SÍ/SÍ en total en las dos rondas (940 juzgados). En la ronda 2 hubo 8
   casos con al menos un SÍ o DUDOSO, siempre sin acuerdo, todos de la muestra nacional. Queda
   **«no medible con este corpus»**: decide el usuario. El indicador no se retira.
@@ -1314,3 +1315,30 @@ donde N1 da MAX 0. Su M2+ es 0.00.
   «no medible» (sigue en el radar con su frase vigente), la fusión a `radar-max_Septiembre`
   (¿entra `experimentos/`?) y el push/merge.
 - Revisión final de la ronda por `orquesta-lead`: a continuación, en entrada propia.
+
+## [2026-09-23] 2a ronda — revisión final de `orquesta-lead` (una vez, sobre d5ddc05): APROBADO, 0 bloqueantes, 7 menores
+
+`orquesta-lead` comprobó que el pre-registro y el `.py` de hipótesis no cambiaron desde
+219ac1b. También comprobó que M1–M6, los criterios 1–5 y la kappa replican las plantillas de la
+ronda 1, que pool, muestra, control y semilla siguen §4, §5 y §7, y que la vigente reproduce la
+V01 de la ronda 1. Los recuentos 237/206, 393/317/76 y 940 cuadran. El veredicto no puede
+cambiar: las 25 fallan el criterio 1 por ≥ 0.22. **Los 7 menores, verificados, se adoptan todos:**
+1. Informe 04: «25 frases candidatas (15 nuevas y 10 paráfrasis)» en lugar de «25 frases
+   nuevas»; la GPU puntuó 35 hipótesis (15 candidatas, 15 gemelas y 5 vigentes).
+2. Informe 04 y entrada de la fase A: fallan el criterio 4 20 de 25 (verificado). En 18, la
+   gemela pasa de 0.766; en N3 y P2 de grupos armados, supera la tolerancia de +0.05.
+3. Entrada de la fase A: conflicto nuevos 6/5/5/0.91 (el SI_a era 6, no 5; `r2_consolidar.log`).
+4. Informe 04: se completan las cláusulas del criterio 2 («o en todos los lugares con algún
+   positivo») y del 4 (tolerancia +0.05).
+5. Relevo: ronda cerrada, informe 04 hecho (el siguiente es el 05), 46 min reales, fase B no
+   ejecutada, pendientes reducidos a fusión, push/merge, exclusión y siguiente paso.
+6. `07_backlog.md` (item 00) y `00_estado_actual.md`: la ronda 2 figura como cerrada con 0
+   finalistas.
+7. `exp_5ind_max_r2_metricas.py`: `assert` de que el top-10 esté juzgado. Verificado aparte:
+   0 artículos del top-10 sin juzgar, así que las salidas no cambian y no se re-ejecutó.
+
+**Siguiente paso que propone** (sin decidir, es del usuario): la tarea 0 del backlog, preguntar
+a la profesora qué índice del DANE es `radar_oficial_promedio` y cuáles son sus ejes (minutos,
+sin GPU). Serviría para elegir a qué otros indicadores apuntar en una eventual ronda 3 de solo
+hipótesis. Descarta repetir frases sobre estos 5 (0 de 35 pasan en dos rondas) y repuntuar los
+32 departamentos.

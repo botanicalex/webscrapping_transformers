@@ -7,8 +7,8 @@ Pre-registro congelado: 219ac1b · Fase A: 63364db · Antecedentes:
 ## 1. Resumen
 
 - Con la regla vigente (de cada indicador solo se puede cambiar la hipótesis, es decir, la
-  frase que evalúa el modelo NLI), se probaron **25 frases nuevas** para 5 indicadores: 5 por
-  indicador.
+  frase que evalúa el modelo NLI), se probaron **25 frases candidatas** para 5 indicadores, 5
+  por indicador: 15 nuevas y 10 paráfrasis de la primera ronda.
 - **Ninguna pasa el criterio de adopción** fijado antes de medir. La mejor precisión fue 0.38
   (grupos armados), frente al 0.60 exigido.
 - Los 5 indicadores **conservan su hipótesis vigente**. Producción no cambia: sigue siendo
@@ -35,8 +35,9 @@ Por ejemplo, «Familias fueron desplazadas de sus veredas **por los osos polares
 ## 3. Cómo se midió
 
 - **Datos:** los 4 lugares de trabajo de la primera ronda. Son 1.647 artículos: Antioquia 494,
-  Maicao 1.101, Oicatá 32 y Paraguachón 77. El modelo NLI puntuó las 35 frases nuevas en 46
-  minutos de GPU.
+  Maicao 1.101, Oicatá 32 y Paraguachón 77. El modelo NLI puntuó en 46 minutos de GPU 35
+  frases: las 15 nuevas, sus 15 versiones absurdas y las 5 vigentes, que sirvieron para
+  comprobar que se reproducía la primera ronda. Las paráfrasis ya estaban puntuadas.
 - **Referencia:** dos jueces LLM (Claude Sonnet y Claude Opus) que leen cada artículo sin saber
   de dónde viene ni qué frase lo eligió. Un artículo cuenta como positivo solo si **los dos**
   dicen SÍ. Se reutilizaron las 659 etiquetas de la primera ronda y se juzgaron 281 artículos
@@ -46,9 +47,11 @@ Por ejemplo, «Familias fueron desplazadas de sus veredas **por los osos polares
   reemplaza a la vigente solo si cumple todo esto:
   - al menos 6 de los 10 artículos que más puntúa en cada lugar son positivos de verdad (en
     promedio), y eso supera en 0.20 a la vigente;
-  - el artículo que fija el máximo del lugar es correcto en al menos 3 de los 4 lugares;
+  - el artículo que fija el máximo del lugar es correcto en al menos 3 de los 4 lugares, o en
+    todos los lugares que tienen algún positivo;
   - no empeora la coherencia con el corte del radar;
-  - su control absurdo queda por debajo de 0.766 y no es peor que el de la vigente;
+  - en cada lugar, su control absurdo queda por debajo de 0.766 y no supera en más de 0.05 al de
+    la vigente;
   - en grupos armados, no pierde capacidad de separar artículos (AUC).
 
 ## 4. Resultados
@@ -72,8 +75,10 @@ que sí tienen positivos, su precisión es 0.00. Las mejores alternativas fueron
 - **Conflicto:** «Grupos armados ilegales se enfrentan entre sí por el control de esta zona.»
 - **Grupos armados:** «Hay presencia de guerrilla o paramilitares en este territorio.»
 
-Ninguna de las 25 alcanza la precisión mínima de 0.60. Además, casi todas fallan el control
-absurdo: su versión con «osos polares» sigue superando 0.766, el corte Bajo/Medio del radar.
+Ninguna de las 25 alcanza la precisión mínima de 0.60. Además, 20 de las 25 fallan el control
+absurdo. En 18 de ellas, la versión con «osos polares» sigue superando 0.766, el corte
+Bajo/Medio del radar; en las otras 2 (grupos armados), supera en más de 0.05 al control de la
+vigente.
 
 ## 5. Exclusión de beneficios económicos
 

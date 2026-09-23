@@ -100,6 +100,7 @@ def main():
                 if kk == 0:
                     p, ok1 = (1.0 if not pos_l else 0.0), not pos_l
                 else:
+                    assert orden["url"].head(kk).isin(ref["url"]).all(), ("top-10 sin juzgar", c, l)
                     p = float(np.mean([u in pos_l for u in orden["url"].head(kk)]))
                     ok1 = am in pos_l
                 viol = (not pos_l and mx >= CORTE) or (bool(pos_l) and mx < CORTE)
