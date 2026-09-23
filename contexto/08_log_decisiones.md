@@ -997,3 +997,27 @@ de Compensación», de conflicto con `disput` y `combate` acotados.
 **No adoptada:** sustituir 0.766 por un umbral por indicador. 0.766 lo fija el plan aprobado
 (§5/§7); se declara como límite y se añade como reporte la razón MAX(control)/MAX(variante),
 independiente de escala. M3 ya penaliza a las variantes que solo encogen la escala.
+
+## [2026-09-22] Fases 2–5 del plan 5ind MAX — resultado sobre los 4 lugares (criterios 1–5)
+
+F2: 83 hipótesis × 1.647 artículos (87 min GPU) → `datos/scores/scores_5ind_atomicas_lugares.pkl`
+(`ent_`/`neu_`/`con_` sin enmascarar). V01 reproduce producción (max|dif| 5.4e-07). Pool TREC:
+565 artículos, 15 lotes; juez-a (sonnet) y juez-b (opus), ciegos. Detalle:
+`experimentos/RESULTADOS_5ind_MAX.md`, `experimentos/resultados/juicio_5ind/metricas_5ind.xlsx`.
+
+| Indicador | kappa | Positivos SÍ/SÍ (A/M/O/P) | Resultado |
+|---|---|---|---|
+| `presencia_grupos_armados` | 0.94 | 38/43/0/5 | **V08 (F5: vigente × compuerta léxica) pasa 1–5**: M2 0.17→0.93, M1 2→4 de 4, 0 violaciones M3, AUC plata 0.788→0.879, objeto absurdo ≤ V01 en los 4 lugares. Finalista único; pasa a F7 (holdout). V09/V10 fallan c3, V11 c3 y c5 |
+| `conflicto_territorial` | 0.87 | 9/8/0/3 | **RECHAZADAS las 11.** Las mejores (V08/V09/V10, M2 0.57–0.59) no llegan a 0.60 y su gemela de objeto absurdo supera 0.766 en Antioquia |
+| `desplazamiento_forzado` | 0.88 | 10/1/0/0 | **RECHAZADAS las 11.** Mejor M2 0.40 (V10). Con 2 lugares sin positivos, M2 medio ≥ 0.60 exige MAX = 0 en Oicatá y Paraguachón |
+| `rechazo_proyecto` | 0.46 | 1/3/0/0 | **RECHAZADAS las 11.** M2 ≤ 0.03; solo 4 positivos en todo el pool |
+| `exclusion_beneficios_economicos` | −0.00 | 0/0/0/0 | **No adoptable (referencia débil).** Ningún SÍ/SÍ en el pool (A: 1 SÍ, B: 2 SÍ). Aplica la cláusula del §4: se informa al usuario la opción de fusionar con `incentivos_economicos_inequitativos` o retirar, pendiente del holdout |
+
+Hallazgos de método (no cambian el criterio congelado, se registran para no repetir):
+- El control de objeto absurdo en F1 es altísimo: «oposición … a un criadero de osos polares»
+  da MAX 0.96–0.99 en los 4 lugares con la hipótesis vigente de rechazo; lo mismo en
+  desplazamiento y conflicto. **La vigente misma falla el criterio 4** en esos tres. El NLI
+  confirma el marco («alguien se opone a algo») con independencia del objeto (regla 1, cuarta vez).
+- El 77% de los artículos supera los 512 tokens: el NLI (y por diseño el juez) ve solo el comienzo.
+- M2 en lugares sin positivos vale 0 si la variante puntúa algo > 0: con pocos positivos el
+  criterio 1 es casi inalcanzable salvo con variantes que anulan el lugar entero (compuerta).
