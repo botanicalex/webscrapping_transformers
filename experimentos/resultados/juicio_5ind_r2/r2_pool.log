@@ -1,0 +1,8 @@
+Pool r2: 393 URL unicas (1605 entradas); ya juzgadas 317 (en pool r1 317); nuevas 76
+Muestra de exclusion: 237 URL con la regex; 31 ya juzgadas; 206 sin juzgar (pre-registro: 237 / 206). Sin juzgar: en los 4 lugares 6, en el holdout 19; tambien en el pool r2 1
+321 articulos (281 nuevos + 40 control) -> 9 lotes de <= 40 en experimentos/resultados/juicio_5ind_r2\lotes
+origen
+muestra         205
+pool             75
+control          40
+pool+muestra      1

@@ -15,7 +15,11 @@ están en los archivos que cita.
   cortes `Bajo < 0.766 <= Medio < 0.9233 <= Alto`, `test_integracion` 10/10, clases 6/19/7.
   Radar con 26. Informe `informes/03_informe_reversion_f8.md`.
 - **Ronda 2: pre-registro `experimentos/PREREG_5ind_MAX_r2.md` CONGELADO** (revisado por
-  `orquesta-lead`, 12 correcciones adoptadas). Aún no se ha puntuado nada (ni GPU ni jueces).
+  `orquesta-lead`, 12 correcciones adoptadas). **Fase A HECHA (2026-09-23):** ninguna de las 25
+  candidatas pasa los criterios 1–5 (ninguna llega a M2 0.60; la mejor es P2 de grupos armados,
+  0.38). 0 finalistas. Exclusión: 0 SÍ/SÍ en 940 juzgados, «no medible». Tabla en
+  `experimentos/RESULTADOS_5ind_MAX_r2.md`; log [2026-09-23] «2a ronda, fase A». Parado a la
+  espera del visto bueno del usuario: la fase B no tiene candidatas.
 - Etiquetas locales: `base-26ind-radar-max` (71072a1), `base-26ind-f5` (cb336fa),
   `base-26ind-f7` (705a557), `base-26ind-f8-compuerta` (85db4e1, versión con la compuerta,
   revertida).
@@ -56,7 +60,11 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
    entregables ya coinciden con esa rama. Las reglas 5–6 de `CLAUDE.md` siguen diciendo que no
    hay `experimentos/`.
 2. Push/merge de `hipotesis-5ind-max`.
-3. Visto bueno para empezar la fase A de la ronda 2 (se le mostró el pre-registro congelado).
+3. ~~Visto bueno para la fase A~~ (dado y ejecutada). Ahora: visto bueno del resultado de la
+   fase A (0 finalistas: los 4 indicadores medibles conservan su hipótesis vigente) y decisión
+   sobre `exclusion_beneficios_economicos`, que resultó «no medible» (§5 del pre-registro r2).
+   Pendiente también: ¿informe 04 para el jefe o la profesora? ¿Revisión final de
+   `orquesta-lead` para cerrar la ronda?
 
 ## 5. Ronda 2 — resumen del pre-registro congelado
 
@@ -130,11 +138,10 @@ pre-registro congelado; si la 2a ronda lo cambia, hay que crear agentes nuevos (
 
 ## 7. Siguiente paso exacto
 
-1. Leer `CLAUDE.md` (regla 15), este documento, `experimentos/PREREG_5ind_MAX_r2.md` y las
-   entradas [2026-09-23] del log.
-2. Con el visto bueno del usuario para la fase A: escribir
-   `experimentos/exp_5ind_max_r2_atomicas.py` (plantilla `exp_5ind_max_atomicas.py`; llamar a
-   `comprobar_tokens`), correrlo en segundo plano y verificar la sanidad de las 5 vigentes.
-3. Construir el pool y los lotes (`exp_5ind_max_r2_pool.py`), lanzar los jueces, consolidar,
-   calcular las métricas (`exp_5ind_max_r2_metricas.py`), escribir
-   `RESULTADOS_5ind_MAX_r2.md` y parar con el informe intermedio.
+1. Leer `CLAUDE.md` (regla 15), este documento, `experimentos/PREREG_5ind_MAX_r2.md`,
+   `experimentos/RESULTADOS_5ind_MAX_r2.md` y las entradas [2026-09-23] del log.
+2. Fase A hecha: scripts `exp_5ind_max_r2_atomicas.py` (GPU), `exp_5ind_max_r2_pool.py
+   lotes|consolidar` y `exp_5ind_max_r2_metricas.py`; datos en
+   `experimentos/resultados/juicio_5ind_r2/` y `datos/scores/scores_5ind_r2_lugares.pkl`.
+3. Esperar las decisiones del usuario de §4 (resultado de la fase A, exclusión, informe 04,
+   revisión de `orquesta-lead`, fusión). No hay fase B que correr (0 finalistas).

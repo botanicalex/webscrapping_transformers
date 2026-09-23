@@ -1,0 +1,7 @@
+exclusion_beneficios_econo kappa=-0.00 vig:0.00 N1:0.00 N2:0.00 N3:0.00 P1:0.00 P2:0.00  finalistas=ninguna
+rechazo_proyecto           kappa=0.44 vig:0.00 N1:0.25 N2:0.00 N3:0.00 P1:0.03 P2:0.00  finalistas=ninguna
+desplazamiento_forzado     kappa=0.88 vig:0.05 N1:0.07 N2:0.03 N3:0.03 P1:0.00 P2:0.05  finalistas=ninguna
+conflicto_territorial      kappa=0.87 vig:0.07 N1:0.26 N2:0.10 N3:0.12 P1:0.10 P2:0.10  finalistas=ninguna
+presencia_grupos_armados   kappa=0.94 vig:0.17 N1:0.33 N2:0.25 N3:0.33 P1:0.30 P2:0.38  finalistas=ninguna
+Exclusion SI/SI en total: 0 (NO MEDIBLE); por ronda {}
+Finalistas: 0; GPU fase B estimada 0 min (0 x 2 x 7.3 min)

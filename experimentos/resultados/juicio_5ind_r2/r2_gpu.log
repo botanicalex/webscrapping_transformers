@@ -1,0 +1,44 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790143507.653189   13704 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790143509.808647   13704 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+1647 articulos x 35 hipotesis
+tokens de la hipotesis mas larga: 25 (tope 25)
+[1/35] exclusion_beneficios_economicos__vig  1.2 min, faltan ~41 min
+[2/35] rechazo_proyecto__vig  3.1 min, faltan ~51 min
+[3/35] desplazamiento_forzado__vig  5.4 min, faltan ~58 min
+[4/35] conflicto_territorial__vig  7.3 min, faltan ~57 min
+[5/35] presencia_grupos_armados__vig  8.5 min, faltan ~51 min
+SANIDAD vigentes vs ronda 1: max|dif| = 0.0e+00 OK
+[6/35] exclusion_beneficios_economicos__N1  9.6 min, faltan ~46 min
+[7/35] exclusion_beneficios_economicos__N2  10.8 min, faltan ~43 min
+[8/35] exclusion_beneficios_economicos__N3  11.9 min, faltan ~40 min
+[9/35] exclusion_beneficios_economicos__N1_abs  13.4 min, faltan ~39 min
+[10/35] exclusion_beneficios_economicos__N2_abs  15.7 min, faltan ~39 min
+[11/35] exclusion_beneficios_economicos__N3_abs  18.0 min, faltan ~39 min
+[12/35] rechazo_proyecto__N1  19.8 min, faltan ~38 min
+[13/35] rechazo_proyecto__N2  21.0 min, faltan ~35 min
+[14/35] rechazo_proyecto__N3  22.1 min, faltan ~33 min
+[15/35] rechazo_proyecto__N1_abs  23.3 min, faltan ~31 min
+[16/35] rechazo_proyecto__N2_abs  24.4 min, faltan ~29 min
+[17/35] rechazo_proyecto__N3_abs  25.6 min, faltan ~27 min
+[18/35] desplazamiento_forzado__N1  26.8 min, faltan ~25 min
+[19/35] desplazamiento_forzado__N2  27.9 min, faltan ~24 min
+[20/35] desplazamiento_forzado__N3  29.1 min, faltan ~22 min
+[21/35] desplazamiento_forzado__N1_abs  30.2 min, faltan ~20 min
+[22/35] desplazamiento_forzado__N2_abs  31.4 min, faltan ~19 min
+[23/35] desplazamiento_forzado__N3_abs  32.5 min, faltan ~17 min
+[24/35] conflicto_territorial__N1  33.7 min, faltan ~15 min
+[25/35] conflicto_territorial__N2  34.8 min, faltan ~14 min
+[26/35] conflicto_territorial__N3  36.0 min, faltan ~12 min
+[27/35] conflicto_territorial__N1_abs  37.2 min, faltan ~11 min
+[28/35] conflicto_territorial__N2_abs  38.3 min, faltan ~10 min
+[29/35] conflicto_territorial__N3_abs  39.5 min, faltan ~8 min
+[30/35] presencia_grupos_armados__N1  40.6 min, faltan ~7 min
+[31/35] presencia_grupos_armados__N2  41.8 min, faltan ~5 min
+[32/35] presencia_grupos_armados__N3  42.9 min, faltan ~4 min
+[33/35] presencia_grupos_armados__N1_abs  44.1 min, faltan ~3 min
+[34/35] presencia_grupos_armados__N2_abs  45.2 min, faltan ~1 min
+[35/35] presencia_grupos_armados__N3_abs  46.4 min, faltan ~0 min
+SANIDAD final: max|dif| = 0.0e+00 OK
+OK -> datos/scores/scores_5ind_r2_lugares.pkl (1647, 106)

@@ -1256,3 +1256,47 @@ ninguna rechazada:
 - El estado de la V08 queda bien descrito (pasó los criterios, no es promovible).
 - Control entre rondas: 40 artículos ya juzgados, con ids nuevos, solo como reporte; se juzga
   el pool entero, sin tope.
+
+## [2026-09-23] 2a ronda, fase A — ninguna candidata pasa los criterios 1–5; exclusión NO MEDIBLE
+
+Visto bueno del usuario para la fase A (2026-09-23). Ejecutada según el pre-registro r2
+§4, §5 y §7, sin desviaciones de diseño. Tabla: `experimentos/RESULTADOS_5ind_MAX_r2.md`;
+detalle `experimentos/resultados/juicio_5ind_r2/metricas_r2.xlsx`; logs `r2_*.log` en esa carpeta.
+
+- **GPU** (`exp_5ind_max_r2_atomicas.py`): 35 hipótesis × 1.647, 46 min (se estimaron ~37).
+  Máximo 25 tokens por hipótesis (`comprobar_tokens`). **Sanidad:** las 5 vigentes reproducen
+  `scores_5ind_atomicas_lugares.pkl` con max|dif| = 0 en ent/neu/con. Salida
+  `datos/scores/scores_5ind_r2_lugares.pkl`.
+- **Pool** (`exp_5ind_max_r2_pool.py lotes`): 393 URL en el top-15 de la vigente y las 5
+  candidatas por indicador × lugar; 317 ya juzgadas en la ronda 1 y 76 nuevas. Muestra de
+  exclusión: 237 URL, 206 sin juzgar (reproduce el pre-registro); de ellas, 6 en los 4 lugares y
+  19 en el holdout. Control: 40 URL al azar de las 659 juzgadas en la ronda 1 (565 lugares + 94
+  holdout). Total: 321 artículos en 9 lotes, ids `b0000…`, semilla 20260923.
+- **Jueces**: 3 instancias por juez, en paralelo. Las 3 de `juez-a` se cortaron por el límite de
+  uso de la sesión antes de escribir nada. Se retomaron con los mismos lotes y el mismo agente;
+  es una incidencia operativa, no una desviación. Resultado de los nuevos (SI_a / SI_b / SÍ-SÍ /
+  kappa): exclusión 4/1/0/−0.01, rechazo 8/7/6/0.79, desplazamiento 8/10/8/0.89, conflicto
+  5/5/5/0.91, grupos armados 17/17/16/0.94. Casi todos los SÍ/SÍ nuevos vienen de la muestra de
+  exclusión, fuera de los 4 lugares. Dentro de ellos solo hay 1 nuevo de conflicto y 6 de grupos
+  armados. Control entre rondas: acuerdo SÍ/SÍ 0.97–1.00 por indicador (solo reporte).
+- **Métricas** (`exp_5ind_max_r2_metricas.py`; referencia de 940 juzgados). Kappa en los 4
+  lugares: exclusión −0.00, rechazo 0.44, desplazamiento 0.88, conflicto 0.87, grupos 0.94.
+  M2 de la vigente y de la mejor candidata: rechazo 0.00 y N1 0.25; desplazamiento 0.05 y N1 0.07;
+  conflicto 0.07 y N1 0.26; grupos armados 0.17 y P2 0.38; exclusión 0.00 en las 6 frases.
+  **Ninguna de las 25 candidatas cumple el criterio 1** (M2 ≥ 0.60). Además, casi todas fallan
+  el 4, porque la gemela de osos polares pasa de 0.766. Solo pasan el 4 rechazo N1, N2, N3 y P1
+  y conflicto N3. M2+ (solo reporte): la mejor es P2 de grupos armados, con 0.50.
+- **Exclusión (§5):** 0 SÍ/SÍ en total en las dos rondas (940 juzgados). En la ronda 2 hubo 8
+  casos con al menos un SÍ o DUDOSO, siempre sin acuerdo, todos de la muestra nacional. Queda
+  **«no medible con este corpus»**: decide el usuario. El indicador no se retira.
+
+**Decisión (§0 y §4 del pre-registro):** 0 finalistas. Rechazo, desplazamiento, conflicto y
+grupos armados **conservan su hipótesis vigente**; se rechazan sus 5 candidatas
+(N1–N3, P1, P2) por el criterio 1. Exclusión queda pendiente de la decisión del usuario. La
+fase B (GPU nacional, holdout y cortes) no tiene candidatas que evaluar. Se para aquí, a la
+espera del visto bueno del usuario, como dice §7.4.
+
+Notas de implementación (no cambian el diseño): las 5 vigentes se puntuaron primero para hacer
+la sanidad antes de gastar GPU en el resto. M5 «conflicto ↔ grupos armados» se mide como el
+número de lugares donde el artículo del MAX de la candidata coincide con el de la vigente del
+otro indicador.
