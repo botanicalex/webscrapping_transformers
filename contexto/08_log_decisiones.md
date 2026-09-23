@@ -948,3 +948,25 @@ control absurdo, y probarse con el mismo método (plata manual + control absurdo
 formato de la variante) antes de mirar el AUC. Ampliar el estándar de plata manual más
 allá de Antioquia (backlog punto 4) ayudaría a que `exclusion_beneficios_economicos`
 deje de depender de n=0.
+
+## [2026-09-22] Fase 0 del plan de 5 indicadores bajo MAX (`experimentos/PLAN_5ind_MAX.md`) — verificación de entorno
+
+Rama `hipotesis-5ind-max` desde `radar-max_Septiembre` (71072a1). Cherry-pick de a9c84a0 y
+2a0a01d sin conflictos (no tocan `src/`). Agregación MAX sin cambios.
+
+- `nli_core.verificar_contra_produccion_v2()` sobre `datos/scores/df_procesado_baseline_v2.pkl`:
+  OK en los 5 indicadores (max|dif| entre 9.2e-07 y 9.8e-07). `src/test_integracion.py`: 10/10.
+- `resultados/tablas_lugares_max/df_procesado_5lugares.pkl` es idéntico a
+  `df_procesado_baseline_v2.pkl` en los 5 indicadores (max|dif| = 0).
+- MAX actual reproducido; coincide con `resumen_indicadores_MAX_y_articulos_por_lugar.xlsx`
+  para Antioquia y Maicao. Los `radar_resumen_*.xlsx` de la profesora no están en el repo.
+- Paraguachón (pkl individual, 77): las 77 URL ya están en `df_corpus_5lugares.pkl`
+  (57 asignadas a Maicao, 20 a Paraguachón). Corpus de trabajo deduplicado = **1.647**
+  artículos (no ~1.704). Tabla `url → lugares` en `experimentos/resultados/juicio_5ind/url_lugares.csv`.
+  MAX Paraguachón-77 difiere del de 20 en `desplazamiento_forzado` (0.985 vs 0.723).
+- Premisa de producción = **solo `texto`** (`procesar()` usa `df["texto"]`), no título+texto
+  como dice §3 del plan. El juez verá exactamente eso (cuerpo truncado a 512 tokens con la hipótesis).
+- `datos/scores/df_procesado_32deptos.pkl`: sin columna `sesgo`, trae `score_social` y
+  medianas crudas ~0.83–0.99 → es **V0 sin corregir**. La Fase 7 no puede reutilizarlo para
+  los 21 indicadores no tocados: recalibrar cortes nacionales MAX exige re-puntuar las 26
+  (o al menos las 21 + las 4 nulas) sobre 11.439 artículos.
