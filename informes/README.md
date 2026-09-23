@@ -9,6 +9,7 @@ profesora). Cada uno se puede leer solo; el orden numérico es el cronológico.
 | 02 | [`02_informe_fase_8_promocion_grupos_armados.md`](02_informe_fase_8_promocion_grupos_armados.md) | 2026-09-22 | La compuerta de grupos armados pasa a producción, cortes 0.7574/0.9233, verificación y Excel de lugares antes/después. |
 | 03 | [`03_informe_reversion_f8.md`](03_informe_reversion_f8.md) | 2026-09-23 | Regla nueva (solo se cambian hipótesis): se revierte la compuerta de grupos armados; producción vuelve a `radar-max_Septiembre`, cortes 0.766/0.9233; la segunda ronda será solo de hipótesis. |
 | 04 | [`04_informe_ronda2_solo_hipotesis.md`](04_informe_ronda2_solo_hipotesis.md) | 2026-09-23 | Segunda ronda: 25 frases candidatas para 5 indicadores, ninguna pasa el criterio (la mejor precisión es 0.38 frente al 0.60 exigido); producción no cambia; exclusión de beneficios no es medible con este corpus. |
+| 05 | [`05_informe_consolidado_5ind_MAX.md`](05_informe_consolidado_5ind_MAX.md) | 2026-09-23 | Consolidado del plan de 5 indicadores (rondas 1 y 2, reversión): ningún indicador cambia, el NLI confirma la forma de la frase y no su objeto; propuesta de probar otro modelo NLI (`xlm-roberta-large-xnli-anli`) por etapas, pendiente de decisión. |
 
 Documentos relacionados (no son informes, no se mueven aquí):
 

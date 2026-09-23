@@ -1342,3 +1342,36 @@ a la profesora qué índice del DANE es `radar_oficial_promedio` y cuáles son s
 sin GPU). Serviría para elegir a qué otros indicadores apuntar en una eventual ronda 3 de solo
 hipótesis. Descarta repetir frases sobre estos 5 (0 de 35 pasan en dos rondas) y repuntuar los
 32 departamentos.
+
+## [2026-09-23] No se consultará a la profesora — RECHAZADO (usuario); propuesta de cambio de modelo NLI — REAPERTURA, pendiente
+
+- **Rechazado por el usuario:** la tarea 0 del backlog (preguntar a la profesora qué índice del
+  DANE es `radar_oficial_promedio`), que era el siguiente paso de `orquesta-lead`. No se propone
+  de nuevo.
+- **REAPERTURA propuesta (sin aprobar):** probar otro modelo NLI. Contradice la pauta de
+  `orquesta-lead` «cambiar de modelo NLI no es el siguiente paso; proponerlo exige antes una
+  medición que descarte la formulación» (`.claude/agents/orquesta-lead.md`; no hay entrada
+  previa en este log). La medición nueva que la justifica son las dos rondas de reformulación
+  (entradas de F5 y de la fase A de la ronda 2): ninguna frase pasó, y la gemela de osos
+  polares puntúa igual que la frase real. El defecto está en cómo lee el modelo, no en la
+  redacción.
+- **Candidato:** `vicgalle/xlm-roberta-large-xnli-anli`. Tiene 3 clases (contradiction /
+  neutral / entailment), así que es compatible sin cambios con la fórmula `(1 − neu)` y con el
+  sesgo; `_resolver_labels` resuelve el orden por nombre. Tiene 24 capas y 1024 de ancho (el
+  actual, 12 y 768), 512 tokens, MNLI + XNLI + ANLI y licencia MIT (config y ficha en Hugging
+  Face, consultadas el 2026-09-23).
+- **Descartados como reemplazo directo:**
+  - `MoritzLaurer/bge-m3-zeroshot-v2.0`: tiene 2 clases, sin «neutral», y obligaría a cambiar la
+    fórmula (regla 15); además lee 8.192 tokens, lo que sería una segunda variable (regla 7).
+  - `joeddav/xlm-roberta-large-xnli`: sin ANLI.
+  - Un LLM en producción: lo prohíbe el innegociable «producción = solo NLI».
+- **Diseño propuesto** (se pre-registraría antes de la GPU):
+  1. Filtro sin jueces: las 5 vigentes, sus gemelas, las 4 nulas y el absurdo total, con el
+     modelo nuevo, en los 4 lugares (~1–1.5 h estimadas, no medidas). Se para si la gemela no baja
+     de 0.766 en ninguno de los indicadores donde hoy la supera.
+  2. Juicio de los artículos nuevos del top-15 y criterios 1–5 (modelo nuevo frente al actual,
+     misma frase).
+  3. Los 26 a escala nacional (~13 h estimadas), holdout, control de los otros 21 y cortes
+     recalibrados una vez. Se adopta todo el cambio o nada.
+- Documentado en `informes/05_informe_consolidado_5ind_MAX.md` (consolidado de las rondas 1–2,
+  pedido del usuario). **Decisión del usuario pendiente.**

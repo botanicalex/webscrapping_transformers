@@ -19,6 +19,9 @@ Detalle: `contexto/11_relevo_5ind_MAX.md`.
 
 ## 0. Confirmar qué mide exactamente el índice del DANE — minutos
 
+> **2026-09-23: descartada por el usuario** (no se consultará a la profesora; log [2026-09-23]).
+> En su lugar, la propuesta pendiente es probar otro modelo NLI (`informes/05`, §7).
+
 **Lo primero, antes que las 4 h de GPU.** Es lo más barato y de mayor impacto de todo el
 backlog.
 

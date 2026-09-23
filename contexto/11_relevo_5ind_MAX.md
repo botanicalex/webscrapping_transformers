@@ -25,8 +25,8 @@ están en los archivos que cita.
 - Etiquetas locales: `base-26ind-radar-max` (71072a1), `base-26ind-f5` (cb336fa),
   `base-26ind-f7` (705a557), `base-26ind-f8-compuerta` (85db4e1, versión con la compuerta,
   revertida).
-- Informes para el jefe/profesora: **`informes/`** (01 a 04; índice en `informes/README.md`).
-  El siguiente es el 05.
+- Informes para el jefe/profesora: **`informes/`** (01 a 05; índice en `informes/README.md`;
+  el 05 es el consolidado del plan). El siguiente es el 06.
 
 ## 2. Innegociables (del usuario)
 
@@ -68,10 +68,12 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
 3. Qué hacer con `exclusion_beneficios_economicos`, que resultó «no medible» (§5 del
    pre-registro r2). Sigue en el radar con su frase vigente; no se retira salvo que lo diga el
    usuario.
-4. Siguiente paso del proyecto. `orquesta-lead` propone la tarea 0 del backlog: preguntar a la
-   profesora qué índice del DANE es `radar_oficial_promedio` y cuáles son sus ejes. Costo: solo
-   minutos, sin GPU. Sirve para saber a qué concepto apuntar en una eventual ronda 3 de solo
-   hipótesis sobre otros indicadores. Sin decidir.
+4. Siguiente paso del proyecto: **probar otro modelo NLI** (`vicgalle/xlm-roberta-large-xnli-anli`,
+   3 clases, reemplazo directo), en 3 etapas: filtro sin jueces, juicio y escala nacional.
+   Propuesta en `informes/05_informe_consolidado_5ind_MAX.md` §7 y en el log
+   [2026-09-23] «REAPERTURA». Si se aprueba, primero va un pre-registro y la revisión de
+   `orquesta-lead`. El usuario **rechazó** consultar a la profesora (tarea 0 del backlog): no
+   proponerlo de nuevo.
 
 ## 5. Ronda 2 — resumen del pre-registro congelado
 
