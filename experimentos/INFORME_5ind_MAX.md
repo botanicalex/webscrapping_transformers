@@ -1,0 +1,270 @@
+# Informe — Reformulación de 5 indicadores del radar bajo agregación MAX
+
+Fecha: 2026-09-22 · Rama: `hipotesis-5ind-max` (desde `radar-max_Septiembre`) · Estado: fases 0–5
+cerradas; fase 7 (holdout nacional) aprobada y pendiente.
+
+Documentos fuente: plan `experimentos/PLAN_5ind_MAX.md`, pre-registro
+`experimentos/PREREG_5ind_MAX.md`, tablas `experimentos/RESULTADOS_5ind_MAX.md`, registro de
+decisiones `contexto/08_log_decisiones.md` (entradas del 2026-09-22).
+
+---
+
+## 1. Por qué se hizo
+
+Una auditoría externa de los Excel de lugares (Maicao, Oicatá, Paraguachón) señaló que cinco
+indicadores confunden su concepto con temas vecinos. El problema se verificó en los datos:
+
+- Con agregación **MAX**, el valor de un indicador en un lugar es el de **un solo artículo**.
+  Basta un falso positivo entre 1.101 artículos para que el indicador marque ~0.99.
+- Los artículos que fijaban esos máximos no eran artículos "que dicen sí a todo" (su sesgo
+  calibrado era 0): eran **vecinos semánticos**, textos densos en conflicto, comunidad o
+  protesta. Ejemplos: "Unidad de Búsqueda recuperó diez cuerpos" como máximo de *exclusión
+  de beneficios económicos*; una protesta laboral de un hospital como máximo de *rechazo a
+  proyecto*; "hombre asesinado a tiros" como máximo de *presencia de grupos armados*.
+
+Por eso, bajo MAX, cada indicador tiene que funcionar como un **detector de alta precisión en
+la cola**: lo que importa es que el artículo con mayor puntaje de verdad reporte el concepto.
+La precisión en la cola pesa más que el AUC global.
+
+Indicadores estudiados: `exclusion_beneficios_economicos`, `rechazo_proyecto`,
+`desplazamiento_forzado`, `conflicto_territorial`, `presencia_grupos_armados`.
+
+## 2. Restricciones del diseño (fijadas antes de empezar)
+
+| Restricción | Detalle |
+|---|---|
+| Agregación | **MAX** por lugar, sin cambios. Solo se modifica el score de cada artículo. |
+| Producción | Solo NLI (`mDeBERTa-v3-base-xnli-multilingual-nli-2mil7`) más reglas de palabras clave. **Ningún LLM entra a producción.** |
+| Referencia | Sin etiquetado humano. La "verdad" la dan **dos jueces LLM independientes y ciegos**, solo en evaluación local. |
+| Alcance | Solo los 5 indicadores; los otros 21 no se tocan. |
+| Reglas del proyecto | Control absurdo obligatorio (regla 1); recalibrar cortes si cambia lo medido (2); absurdo en el formato de la variante (3); la nula de prueba nunca en calibración (4); no repetir GPU, guardar `ent_`/`neu_` sin enmascarar (8); toda decisión al log (10). |
+| Pre-registro | Hipótesis, gemelas absurdas, regex, métricas y criterio se congelaron **antes** de ver resultados (commit `6dc6ef5`). |
+
+## 3. Datos
+
+- **Corpus de trabajo:** `datos/corpus/df_corpus_5lugares.pkl`, **1.647 artículos únicos**.
+  Lugares: Antioquia 2023 (494), Maicao (1.101), Oicatá (32) y Paraguachón (77, el corpus que
+  vio la profesora; 57 de esos artículos también son de Maicao). Tabla `url → lugar` en
+  `experimentos/resultados/juicio_5ind/url_lugares.csv`.
+- **Premisa:** la misma que usa producción, **solo el cuerpo** del artículo (sin título),
+  truncado a lo que cabe en 512 tokens junto a la hipótesis. El 77% de los artículos es más
+  largo, así que el modelo ve solo el comienzo. El juez ve exactamente ese mismo texto
+  (decisión del usuario).
+- **Corpus nacional (fase 7):** `df_corpus_combinado_32deptos.pkl` (11.439 artículos) y
+  `datos/scores/scores_v2_32deptos.pkl`, los scores V2 nacionales ya calculados. Estaban fuera
+  del repo; se verificaron re-puntuando 300 artículos en GPU (diferencia ≤ 3e-05).
+
+## 4. Qué se probó: 12 variantes por indicador
+
+Todas son NLI + reglas. El score atómico de una hipótesis `h` es la fórmula vigente de
+producción:
+
+`s(h) = clip( clip(ent − sesgo, 0) · (1 − neutral), 0, 1 )`
+
+donde `sesgo` es la media del entailment de 4 hipótesis nulas absurdas (pingüinos, helio-3,
+caligrafía japonesa, metano líquido), que mide cuánto "dice sí" cada artículo a cualquier cosa.
+
+Las variantes combinan scores atómicos (offline, sin nueva GPU):
+
+| Id | Familia | Construcción | Idea |
+|---|---|---|---|
+| V01 | F1 | `s(vigente)` | Línea base: la hipótesis de producción |
+| V02 | F1 | `s(redacción de la auditoría)` | Frase propuesta por la auditoría externa |
+| V03 | F1 | `s(redacción propia)` | Frase más concreta |
+| V04 | F4 Acuerdo de paráfrasis | `min(s(propia), s(p1), s(p2))` | Solo puntúa alto si tres redacciones equivalentes coinciden |
+| V05 | F2 Composición "Y" | `min(s(A1), s(A2))` | El concepto partido en dos piezas cortas que deben cumplirse a la vez |
+| V06 | F3 Resta de confusores | `s(vigente) − máx s(confusor)` | Se descuenta lo que se parece al vecino semántico (p. ej., "protesta por servicios públicos") |
+| V07 | F3 | `s(propia) − máx s(confusor)` | Igual, sobre la redacción propia |
+| V08 | F5 Compuerta léxica | `s(vigente) · g` | `g` = 1 solo si el texto contiene palabras clave del concepto |
+| V09 | F5 | `s(propia) · g` | Igual, sobre la redacción propia |
+| V10–V12 | Cruces | F5+F2, F5+F3, F2+F3 | Combinaciones de dos familias |
+
+En total, 83 hipótesis atómicas distintas (incluidas gemelas absurdas y nulas). Textos exactos
+y listas de palabras clave: `experimentos/hipotesis_5ind_max.py`. Ejemplos de palabras clave de
+la compuerta: grupos armados `ELN, FARC, disidencia, Clan del Golfo, AGC, autodefensas,
+paramilitar, guerrilla, Segunda Marquetalia, frente N…` (sin "combo", "banda", "Tren de Aragua");
+desplazamiento `desplaz-, huyó/huyeron, éxodo, abandonaron sus casas…`.
+
+### Controles absurdos (el "detector de mentiras")
+
+Para cada variante se construyó su **gemela absurda en el mismo formato**, con un contenido
+reservado que nunca se usó para calibrar (**osos polares**):
+
+- **Objeto absurdo:** la misma frase con el objeto cambiado por osos polares, siempre en el
+  mismo hueco para cada indicador. Ejemplo para rechazo: "Hay oposición de comunidades o
+  autoridades a *un criadero de osos polares*".
+- **Absurdo total:** "En este territorio hay colonias de osos polares", pasado por la misma
+  operación de la variante.
+
+Si una variante da puntajes altos también a su gemela absurda, su "sí" no significa nada: el
+modelo está confirmando la *forma* de la frase, no su contenido.
+
+## 5. Cómo se juzgó: dos jueces LLM ciegos
+
+1. **Puntuación en GPU (fase 2):** 83 hipótesis × 1.647 artículos, 87 minutos en una RTX 4050,
+   una sola vez. Se guardaron las probabilidades crudas (`ent_`, `neu_`, `con_`) en
+   `datos/scores/scores_5ind_atomicas_lugares.pkl`. Control: V01 reproduce producción con una
+   diferencia máxima de 5.4e-07.
+2. **Pool (método TREC, fase 3):** por indicador y lugar, se tomó la unión de los 15 artículos
+   con mayor puntaje de cada una de las 12 variantes (sin artículos con score 0). Resultado:
+   **565 artículos únicos**. Cada artículo se juzga una vez para los 5 indicadores.
+3. **Lotes ciegos (fase 4):** los 565 artículos se barajaron con semilla fija (20260922) y se
+   repartieron en 15 lotes de 40. Cada entrada del lote tiene solo un id opaco y la premisa.
+   Los jueces **no ven** título, lugar, variante, puntaje ni orden original; el mapa id → url
+   se guarda aparte.
+4. **Jueces:** dos agentes definidos en `.claude/agents/`:
+   - `juez-a`: modelo **Sonnet**, esfuerzo bajo.
+   - `juez-b`: modelo **Opus**, esfuerzo bajo.
+
+   Ambos llevan embebido el **codebook congelado** (tabla siguiente). Por cada artículo e
+   indicador responden `SI`, `NO` o `DUDOSO`, con una cita literal de ≤ 20 palabras. Escriben
+   las etiquetas en disco (`etiquetas_a/`, `etiquetas_b/`) y devuelven solo "lote N listo". Se
+   corrieron 3 instancias de cada juez en paralelo, con 5 lotes por instancia.
+5. **Referencia:** un artículo es **positivo solo si ambos jueces dicen SI**. Cualquier otra
+   combinación es negativa. El acuerdo se mide con la **kappa de Cohen** por indicador; si
+   kappa < 0.4, la referencia es débil y el indicador no se adopta.
+
+**Codebook (lo que cuenta como SÍ y como NO):**
+
+| Indicador | SÍ | NO |
+|---|---|---|
+| Exclusión de beneficios económicos | Una comunidad no recibe regalías, compensaciones o beneficios de un proyecto concreto | Falta de servicios, deportaciones, hallazgo de cuerpos, pobreza general |
+| Rechazo a proyecto | Oposición a una obra o proyecto identificable (mina, peaje, eólico, hidroeléctrica, relleno, concesión) | Protestas laborales, bloqueos por agua o luz, asonadas contra militares, paros generales |
+| Desplazamiento forzado | Personas o familias **ya** abandonaron su territorio por violencia o presión | Amenaza o riesgo sin desplazamiento, migración económica o venezolana |
+| Conflicto territorial | Disputa violenta y sostenida por el control, uso o propiedad de un territorio | Protestas, bloqueos, amenazas aisladas, conflictividad política |
+| Presencia de grupos armados | Guerrillas, disidencias, paramilitares o grupos armados organizados (ELN, EMC, Clan del Golfo, ACSN…) operando en la zona | Combos, delincuencia común, bandas de hurto, porte ilegal de armas, sicariato sin grupo identificado |
+
+**Revisión metodológica independiente.** Antes de puntuar, el agente `orquesta-lead` (Opus)
+revisó el pre-registro buscando contradicciones con decisiones cerradas y ambigüedades.
+Propuso 10 correcciones; se adoptaron 9 (entre ellas: gemelas absurdas con una sola operación
+por indicador, reglas para lugares sin artículos, kappa sobre SÍ contra el resto, regex más
+precisas) y se rechazó 1 (cambiar el umbral 0.766, fijado en el plan aprobado).
+
+## 6. Métricas y criterio de adopción
+
+Por variante e indicador, sobre los 4 lugares:
+
+| Métrica | Qué mide |
+|---|---|
+| **M1** Top-1 verdadero | ¿El artículo que fija el MAX es un positivo real? |
+| **M2** Precisión@10 | Fracción de positivos entre los 10 artículos con mayor puntaje de cada lugar (media de los 4 lugares) |
+| **M3** Coherencia del MAX | Lugar sin positivos → MAX < 0.766; lugar con positivos → MAX ≥ 0.766 (se cuentan violaciones) |
+| **M4** Control absurdo | MAX por lugar de la gemela de objeto absurdo y del absurdo total |
+| **M5** Diferenciación | Cuántos de los otros 25 indicadores comparten el mismo artículo máximo (solo se reporta) |
+| **M6** AUC contra plata | Solo grupos armados, contra el estándar de plata por palabras clave |
+
+**Una variante reemplaza a la vigente solo si cumple TODO:**
+1. M2 ≥ 0.60 y al menos 0.20 más que la vigente.
+2. Top-1 verdadero en ≥ 3 de 4 lugares (o en todos los que tienen positivos).
+3. Ninguna violación de coherencia nueva respecto a la vigente.
+4. Control absurdo: gemela de objeto absurdo < 0.766 en cada lugar y ≤ vigente + 0.05; absurdo total ≤ vigente + 0.05.
+5. (Grupos armados) AUC ≥ vigente − 0.02.
+6. (Fase 7) Holdout Cauca, Chocó y Cundinamarca: M2 ≥ 0.50 y ≥ vigente.
+
+Si empatan varias, gana la más simple.
+
+## 7. Resultados
+
+### Acuerdo de los jueces
+
+| Indicador | SÍ juez A | SÍ juez B | Positivos (SÍ/SÍ) | Kappa |
+|---|---|---|---|---|
+| Presencia de grupos armados | 91 | 82 | 82 | 0.94 |
+| Desplazamiento forzado | 14 | 11 | 11 | 0.88 |
+| Conflicto territorial | 19 | 20 | 17 | 0.87 |
+| Rechazo a proyecto | 6 | 11 | 4 | 0.46 |
+| Exclusión de beneficios económicos | 1 | 2 | 0 | ≈ 0 (referencia débil) |
+
+Los jueces coinciden casi siempre en grupos armados, desplazamiento y conflicto. Rechazo a
+proyecto tiene acuerdo moderado. En exclusión de beneficios no hay ningún caso real en los 565
+artículos del pool.
+
+### Veredicto por indicador
+
+| Indicador | Vigente (V01): M2 / top-1 | Mejor alternativa | Decisión |
+|---|---|---|---|
+| **Presencia de grupos armados** | 0.17 / 2 de 4 | **V08: 0.93 / 4 de 4**, AUC 0.788→0.879, control absurdo sin empeorar | **Finalista**; falta el holdout (fase 7) |
+| Conflicto territorial | 0.07 / 1 de 4 | V09: 0.59 / 2 de 4; V08: 0.57 / 3 de 4 | Rechazado: no llega a 0.60 y el control absurdo supera 0.766 en Antioquia |
+| Desplazamiento forzado | 0.05 / 0 de 4 | V10: 0.40 / 1 de 4 | Rechazado |
+| Rechazo a proyecto | 0.00 / 0 de 4 | ≤ 0.03 | Rechazado (solo 4 positivos en todo el pool) |
+| Exclusión de beneficios | 0.00 / 0 de 4 | — | No se puede evaluar (0 positivos) |
+
+**Ejemplo del cambio en grupos armados (V01 → V08):**
+- **Maicao:** el máximo pasa de "Maicao fortalece su seguridad… contra el crimen" (0.98, un
+  falso positivo) a "Autoridades… esclarecer masacre en Maicao que dejó cinco víctimas" (0.98,
+  un positivo según ambos jueces).
+- **Oicatá:** baja de 0.65 (un hurto en zona rural) a 0. Oicatá no tiene ningún artículo con
+  grupos armados, y ahora el indicador lo refleja.
+- **Antioquia y Paraguachón:** sin cambio; el artículo máximo ya era un positivo.
+
+V08 no inventa una frase nueva: conserva la hipótesis de producción y le exige que el texto
+mencione un grupo armado identificable. Es la regla de palabras clave que la restricción de
+diseño permite en producción.
+
+## 8. Hallazgos
+
+1. **El NLI confirma la forma de la frase, no su contenido.** Con la hipótesis vigente de
+   rechazo, "Hay oposición… a un criadero de osos polares" alcanza un MAX de 0.96–0.99 en los 4
+   lugares. Pasa lo mismo en desplazamiento y conflicto. **La propia vigente suspende el control
+   absurdo** en esos tres indicadores. Es la cuarta vez que el control absurdo detecta un
+   problema que el AUC no ve (regla 1).
+2. **Solo las compuertas léxicas mejoran la cola sin disparar el control.** Las familias
+   puramente NLI (reescritura, paráfrasis, composición, resta de confusores) mueven poco la
+   precisión y a menudo solo "apagan" el ranking.
+3. **La escasez de positivos limita lo medible.** Rechazo a proyecto tiene 4 positivos en todo
+   el pool y exclusión de beneficios ninguno: en estos lugares esos fenómenos casi no aparecen
+   en la prensa.
+4. **Exclusión de beneficios no distingue entre lugares.** A escala nacional, su MAX va de 0.95
+   a 0.99 en los 32 departamentos (desviación 0.012, la segunda menor de los 26 indicadores).
+   Suma una constante al radar sin separar un lugar de otro.
+
+## 9. Limitaciones
+
+- La referencia es de jueces LLM, no humana; el acuerdo alto (kappa ≥ 0.87 en tres indicadores)
+  la hace creíble, pero no infalible.
+- Solo 4 lugares, dos de ellos pequeños (Oicatá 32 y Paraguachón 77 artículos).
+- El juez y el NLI ven solo el comienzo del artículo en el 77% de los casos.
+- El umbral 0.766 es el corte del radar (media de 26 indicadores), no uno propio de cada
+  indicador; se declaró como límite antes de medir.
+- La AUC de V08 contra la plata es en parte circular (ambas usan palabras clave); por eso no se
+  usó para desempatar.
+
+## 10. Recomendación sobre exclusión de beneficios económicos
+
+**Recomendación: retirarlo del cálculo del radar, no fusionarlo**, siempre que el holdout de la
+fase 7 confirme que tampoco hay positivos.
+
+- En 565 artículos juzgados no hay ningún caso que ambos jueces acepten.
+- A escala nacional vale ~0.99 en todos los departamentos: no aporta diferencia, solo sube el
+  nivel general del radar con falsos positivos.
+- **Fusionarlo con `incentivos_economicos_inequitativos` sería peor.** Ese indicador sí varía
+  entre departamentos (desviación 0.113). Mezclarle una señal constante en ~0.99 la aplanaría.
+  Por MAX, además, la sobrescribiría.
+- Retirarlo cambia lo que mide el radar (25 indicadores en lugar de 26), así que exige
+  recalibrar los cortes (regla 2). Esa recalibración ya está prevista en la fase 7.
+
+## 11. Próximos pasos
+
+- **Fase 7 (aprobada):** puntuar la gemela absurda de grupos armados sobre los 11.439 artículos
+  (~8 min de GPU; el resto ya existe en el pkl nacional); holdout de V01 frente a V08 y de
+  exclusión en Cauca, Chocó y Cundinamarca con los mismos dos jueces; recalibración de los
+  cortes Bajo/Medio/Alto verificando las 12 anclas.
+- **Fase 8:** promover V08 a `src/` si pasa el holdout, retirar exclusión si se confirma,
+  regenerar los Excel de lugares (antes/después) y hacer la revisión final con `orquesta-lead`.
+- **Línea nueva (requiere su propio pre-registro):** para conflicto territorial y
+  desplazamiento, las compuertas léxicas estuvieron cerca del criterio (M2 0.57–0.59 y 0.40). El
+  hallazgo 1 sugiere diseñar compuertas y controles específicos antes que reescribir frases.
+
+## Anexo — Trazabilidad
+
+| Commit | Contenido |
+|---|---|
+| `b715ec2`, `5a6bbd6` | Restauración de `experimentos/` y del registro previo (cherry-pick) |
+| `4566efc` | Plan aprobado |
+| `303ca12`, `bc0f98f` | Fase 0: verificación del entorno; pkl nacional V2 localizado y verificado |
+| `293a80e`, `6dc6ef5` | Fase 1: pre-registro y congelamiento tras la revisión de `orquesta-lead` |
+| `fabddb7` | Scripts `exp_5ind_max_{atomicas,variantes,juicio,metricas}.py` y agentes `juez-a`/`juez-b` |
+| `00497f8` | Fases 2–5: pool, lotes, etiquetas de ambos jueces, referencia, métricas |
+
+Archivos clave: `experimentos/resultados/juicio_5ind/` (`lotes/`, `etiquetas_a/`,
+`etiquetas_b/`, `referencia.csv`, `pool.csv`, `max_por_lugar.csv`, `metricas_5ind.xlsx`).

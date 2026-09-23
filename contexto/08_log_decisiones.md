@@ -1021,3 +1021,15 @@ Hallazgos de método (no cambian el criterio congelado, se registran para no rep
 - El 77% de los artículos supera los 512 tokens: el NLI (y por diseño el juez) ve solo el comienzo.
 - M2 en lugares sin positivos vale 0 si la variante puntúa algo > 0: con pocos positivos el
   criterio 1 es casi inalcanzable salvo con variantes que anulan el lugar entero (compuerta).
+
+## [2026-09-22] F6 — visto bueno del usuario y recomendación sobre `exclusion_beneficios_economicos`
+
+El usuario **aprobó la Fase 7**. Sobre exclusión delegó la decisión en una recomendación
+justificada. **Recomendación adoptada (condicional al holdout):** retirar el indicador del
+cálculo del radar, **no** fusionarlo con `incentivos_economicos_inequitativos`. Evidencia: 0
+positivos SÍ/SÍ en 565 artículos juzgados; a escala nacional (`scores_v2_32deptos.pkl`, fórmula
+V2) su MAX por departamento va de 0.950 a 0.999 (mediana 0.994, std 0.012, la segunda menor de
+26): suma una constante sin discriminar. Fusionarlo por MAX sobrescribiría a `incentivos` (std
+0.113) con esa constante. Si el holdout (Cauca, Chocó, Cundinamarca) trae algún SÍ/SÍ, no se
+retira y se informa. Retirarlo exige recalibrar cortes (regla 2), ya previsto en F7.
+Informe del experimento: `experimentos/INFORME_5ind_MAX.md`.
