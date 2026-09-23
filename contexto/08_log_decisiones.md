@@ -1299,4 +1299,18 @@ espera del visto bueno del usuario, como dice §7.4.
 Notas de implementación (no cambian el diseño): las 5 vigentes se puntuaron primero para hacer
 la sanidad antes de gastar GPU en el resto. M5 «conflicto ↔ grupos armados» se mide como el
 número de lugares donde el artículo del MAX de la candidata coincide con el de la vigente del
-otro indicador.
+otro indicador. El M2 de 0.25 de rechazo N1 sale entero de Oicatá, que no tiene positivos y
+donde N1 da MAX 0. Su M2+ es 0.00.
+
+## [2026-09-23] 2a ronda, fase A — aprobada por el usuario; informe 04
+
+- El usuario aprueba el resultado de la fase A: 0 finalistas. Rechazo, desplazamiento,
+  conflicto y grupos armados conservan su hipótesis vigente, y la fase B no se ejecuta.
+  Producción sin cambios: `src/` = `radar-max_Septiembre` (`git diff base-26ind-radar-max HEAD --
+  src/` vacío), cortes 0.766/0.9233.
+- Informe para el jefe y la profesora: `informes/04_informe_ronda2_solo_hipotesis.md` (fila en
+  `informes/README.md`).
+- **Sigue pendiente del usuario:** qué hacer con `exclusion_beneficios_economicos`, que quedó
+  «no medible» (sigue en el radar con su frase vigente), la fusión a `radar-max_Septiembre`
+  (¿entra `experimentos/`?) y el push/merge.
+- Revisión final de la ronda por `orquesta-lead`: a continuación, en entrada propia.
