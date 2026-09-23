@@ -966,7 +966,16 @@ Rama `hipotesis-5ind-max` desde `radar-max_Septiembre` (71072a1). Cherry-pick de
   MAX Paraguachón-77 difiere del de 20 en `desplazamiento_forzado` (0.985 vs 0.723).
 - Premisa de producción = **solo `texto`** (`procesar()` usa `df["texto"]`), no título+texto
   como dice §3 del plan. El juez verá exactamente eso (cuerpo truncado a 512 tokens con la hipótesis).
-- `datos/scores/df_procesado_32deptos.pkl`: sin columna `sesgo`, trae `score_social` y
-  medianas crudas ~0.83–0.99 → es **V0 sin corregir**. La Fase 7 no puede reutilizarlo para
-  los 21 indicadores no tocados: recalibrar cortes nacionales MAX exige re-puntuar las 26
-  (o al menos las 21 + las 4 nulas) sobre 11.439 artículos.
+- `datos/scores/df_procesado_32deptos.pkl` es V0 sin corregir (sin `sesgo`, trae
+  `score_social`, medianas crudas ~0.83–0.99), pero **el nacional V2 sí existe**:
+  `scores_v2_32deptos.pkl` (11.439 × 58: `sesgo`, `score_social_v2` y pares `ent_`/`neu_` de
+  las 26 + `NULA_TEST`, 2026-08-30). Faltaba en `datos/scores/`; estaba en
+  `C:\Users\Usuario\Documents\Datos_alexa\Datos\scores\`. Copiado a `datos/scores/`.
+  Verificado: filas alineadas 1:1 con `df_corpus_combinado_32deptos.pkl` (título y
+  departamento 100%, no trae `url`: se une por posición); las 26 hipótesis de
+  `hipotesis_v2.py` están en `src/Transformer_optimo.py`; re-puntuación GPU de 300 filas al
+  azar (semilla 0): `sesgo` max|dif| 4.2e-06, `ent_`/`neu_` ≤ 2.9e-05 en `rechazo_proyecto`,
+  `presencia_grupos_armados` y `exclusion_beneficios_economicos`.
+  **Consecuencia para F7:** los 21 indicadores no tocados y el sesgo se reutilizan; solo se
+  puntúan las hipótesis atómicas nuevas de los finalistas (+ piezas/confusores y gemelas).
+- Decisión del usuario (2026-09-22): el juez ve **solo el cuerpo** (`texto`), como el NLI.
