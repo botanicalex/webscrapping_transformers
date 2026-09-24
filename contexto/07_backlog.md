@@ -11,8 +11,9 @@ cambiar hipótesis (regla 15 de `CLAUDE.md`); `src/` = `radar-max_Septiembre`, c
 0.766/0.9233. **Segunda ronda cerrada (2026-09-23):** solo reescritura de hipótesis de los 5
 indicadores, 0 finalistas (mejor M2 0.38 frente a 0.60); los 5 conservan su hipótesis vigente
 (`experimentos/RESULTADOS_5ind_MAX_r2.md`, informe 04). Pendiente del usuario: (a) qué hacer con
-`exclusion_beneficios_economicos`, «no medible» (0 SÍ/SÍ en 940 juzgados; sigue en el radar);
-(b) decisión de fusión a `radar-max_Septiembre` (¿entra `experimentos/`?); (c) push/merge.
+`exclusion_beneficios_economicos`, «no medible» (0 SÍ/SÍ en 962 juzgados; sigue en el radar;
+diagnóstico y opciones en el informe 08); (b) fusión a `radar-max_Septiembre`, **en espera** de la
+opinión del jefe (informe 09, 2026-09-24); (c) push/merge.
 Detalle: `contexto/11_relevo_5ind_MAX.md`.
 
 ---

@@ -1,0 +1,32 @@
+== 1. Referencia (962 juzgados, sin controles)
+             juicio  juzgados  SI_a  SI_b  SI_SI
+        juicio_5ind       565     1     2      0
+juicio_5ind_holdout        94     0     0      0
+     juicio_5ind_r2       281     4     1      0
+  juicio_modelo_nli        22     0     0      0
+              total       962     5     3      0
+Articulos con algun SI o DUDOSO: 18 (detalle en experimentos/resultados\exclusion/casos_dudosos.csv)
+== 2. Cuatro lugares (produccion)
+Antioquia: 494 articulos; > 0.766: 122; MAX vigente 0.996; MAX gemela (osos polares) 0.993
+    0.996  Disidencias de las Farc impusieron “manual de convivencia” en 14 municipios de Antioquia
+    0.995  Posible nueva ola de migrantes preocupa a las autoridades en Antioquia
+    0.994  Empleados del Hospital San Rafael de Itagüí protestaron de nuevo por malas condiciones laborales
+Maicao: 1101 articulos; > 0.766: 223; MAX vigente 0.996; MAX gemela (osos polares) 0.994
+    0.996  Unidad de Búsqueda recupera 25 cuerpos en cementerio de Riohacha
+    0.995  Comunidad bloquea la vía Maicao – Paradero por falta de agua potable y servicio eléctrico
+    0.995  AHF inaugura Centros de Atención Gratuita de ITS en Cúcuta y Maicao para reforzar la respuesta contra el VIH en Colombia: ofrecen pruebas gratis
+Oicata: 32 articulos; > 0.766: 5; MAX vigente 0.989; MAX gemela (osos polares) 0.900
+    0.989  La Unidad de Búsqueda de Personas recuperó diez cuerpos en el cementerio de Oicatá
+    0.976  Bloqueos en Boyacá este jueves por paro nacional en rechazo al aumento del avalúo catastral: estos son los puntos confirmados
+    0.958  Estos fueron los compromisos acordados tras las protestas en el peaje de Tuta
+Paraguachon: 77 articulos; > 0.766: 25; MAX vigente 0.994; MAX gemela (osos polares) 0.984
+    0.994  Paraguachón, frontera cerrada: así se vive en La Guajira el bloqueo del paso entre Colombia y Venezuela tras la captura de Nicolás Maduro
+    0.994  Tensión del lado venezolano por caso judicial afecta comercio binacional
+    0.988  Se reabre frontera y se normaliza paso por Paraguachón en La Guajira
+== 3. Nacional (produccion, MAX por departamento)
+MAX por departamento: min 0.950 (La Guajira), mediana 0.994, max 0.998; std 0.0125 (puesto 2 de 26 de menor a mayor)
+Articulos con s > 0.766: 20.3% de 11439
+Radar sin exclusion (25) frente a 26: Spearman 1.0000; diferencia media -0.0055, max |dif| 0.0199
+  26 indicadores: clases {'Medio': 19, 'Alto': 7, 'Bajo': 6}; accuracy 0.344; Spearman frente al DANE -0.1653
+  25, sin exclusion, mismos cortes: clases {'Medio': 19, 'Alto': 7, 'Bajo': 6}; accuracy 0.344; Spearman frente al DANE -0.1653
+  Departamentos que cambian de clase: 0

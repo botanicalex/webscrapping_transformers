@@ -26,8 +26,9 @@ están en los archivos que cita.
   `base-26ind-f7` (705a557), `base-26ind-f8-compuerta` (85db4e1, versión con la compuerta,
   revertida), `prueba-modelo-nli-rechazado` (27a39a1, historial de la prueba del modelo NLI,
   cuya rama se borró).
-- Informes para el jefe/profesora: **`informes/`** (01 a 07; índice en `informes/README.md`;
-  el 05 es el consolidado del plan; 06–07, la prueba del modelo NLI). El siguiente es el 08.
+- Informes para el jefe/profesora: **`informes/`** (01 a 09; índice en `informes/README.md`;
+  el 05 es el consolidado del plan; 06–07, la prueba del modelo NLI; 08, exclusión; 09, avances
+  de la rama para el jefe). El siguiente es el 10.
 
 ## 2. Innegociables (del usuario)
 
@@ -62,7 +63,8 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
 
 ## 4. Pendiente de decisión del usuario
 
-1. **Fusión a `radar-max_Septiembre`:** ¿entra `experimentos/`? Tras la reversión, `src/` y los
+1. **Fusión a `radar-max_Septiembre`: EN ESPERA** (2026-09-24). El usuario le muestra antes la
+   rama a su jefe (informe 09); no fusionar hasta que lo diga. ¿Entra `experimentos/`? Tras la reversión, `src/` y los
    entregables ya coinciden con esa rama. Las reglas 5–6 de `CLAUDE.md` siguen diciendo que no
    hay `experimentos/`.
 2. Push/merge de `hipotesis-5ind-max`.

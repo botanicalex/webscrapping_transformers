@@ -1617,3 +1617,57 @@ Lo aprobó el usuario («haz todo eso, lo que tú recomiendes») tras la revisi�
   SSL de Python. Producción no pasa por ahí, porque usa `_ruta_modelo_local`.
 
 Sin push ni merge.
+
+## [2026-09-24] Informes 08 (exclusión) y 09 (avances de la rama) — pedido del usuario; fusión EN ESPERA de la opinión del jefe
+
+**Pedido del usuario:**
+1. Explicar en un informe aparte qué pasa con `exclusion_beneficios_economicos` y por qué no se
+   ha podido medir.
+2. **No fusionar:** antes mostrará la rama `hipotesis-5ind-max` a su jefe.
+3. Un informe que argumente y exponga los avances.
+
+Los dos informes van en `informes/`, con su fila en el índice.
+
+- **Diagnóstico nuevo, sin GPU:** `experimentos/exp_exclusion_diagnostico.py`, con salida en
+  `experimentos/resultados/exclusion/diagnostico_exclusion.log` y `casos_dudosos.csv`.
+  - **Referencia (962 juzgados, sin controles):**
+    - el juez A dijo SÍ 5 veces y el B 3, nunca en el mismo artículo, así que hay 0 SÍ/SÍ;
+    - 18 artículos tienen algún SÍ o DUDOSO: columnas sobre regalías, municipios que pierden
+      regalías porque se va una empresa, reclamos de compensaciones y un pago de sustitución de
+      cultivos.
+  - **4 lugares (producción):**
+    - pasan de 0.766: 122 de 494 artículos, 223 de 1.101, 5 de 32 y 25 de 77;
+    - el MAX lo fijan artículos de otro tema: cuerpos recuperados en Riohacha y Oicatá,
+      disidencias en Antioquia y frontera en Paraguachón;
+    - la gemela de osos polares da 0.993/0.994/0.900/0.984.
+  - **Nacional** (`scores_v2_32deptos.pkl`, MAX):
+    - rango de 0.950 (La Guajira) a 0.998, mediana 0.994;
+    - desviación estándar 0.0125, la segunda menor de los 26;
+    - pasan de 0.766 el 20.3 % de los 11.439 artículos.
+  - **Sin exclusión (25 indicadores):**
+    - Spearman 1.0000 con el radar de 26;
+    - diferencia media −0.0055, máxima 0.0199;
+    - con los cortes vigentes no cambia la clase de ningún departamento;
+    - accuracy 0.344 y Spearman frente al DANE −0.1653, iguales.
+- **Informe 08** (`informes/08_informe_exclusion_beneficios_economicos.md`):
+  - contenido: qué mide, qué significa «no medible», los 5 intentos con 0 casos, las causas y
+    su efecto en el radar;
+  - opciones: A, mantenerlo; B, retirarlo con recalibración formal; C, fusionarlo, ya
+    descartado; D, buscar casos en otra fuente; E, redefinir el concepto;
+  - recomendación técnica: mantenerlo mientras se decide; D si el concepto importa para el
+    negocio, B si no.
+  - **No se cambia nada:** decide el usuario o su jefe.
+- **Informe 09** (`informes/09_informe_avances_rama_hipotesis_5ind_max.md`): avances de la rama
+  para el jefe:
+  - sistema de evaluación con jueces ciegos (962 juzgados);
+  - causa medida del problema (forma y no objeto);
+  - compuerta de grupos armados validada pero fuera de producción por la regla 15, guardada en
+    `base-26ind-f8-compuerta`;
+  - más de 80 alternativas y un modelo descartados con evidencia;
+  - producción intacta.
+
+  Incluye lo que no se consiguió, las decisiones pendientes y una guía de lectura. No propone
+  cambiar la agregación MAX.
+- **Fusión a `radar-max_Septiembre`: EN ESPERA.** No se fusiona hasta que el usuario lo diga, tras
+  hablar con su jefe. Sin push. `src/` sin cambios. Se actualizan `contexto/11_relevo_5ind_MAX.md`
+  (el siguiente informe es el 10 y la fusión queda en espera) y `contexto/07_backlog.md`.
