@@ -1,0 +1,26 @@
+Sesgo del modelo nuevo: media 0.475, P95 0.966, % > 0.5 45.7 (actual: media 0.364, P95 0.933, % > 0.5 26.4)
+Absurdo total, MAX A/M/O/P: nuevo 0.51/0.11/0.03/0.00 | actual 0.38/0.57/0.43/0.21
+
+indicador                        pos A/M/O/P |           vig nuevo           gem nuevo |          vig actual          gem actual | a b pasa
+exclusion_beneficios_economicos      0/0/0/0 | 0.96/0.98/0.99/0.96 0.73/0.97/0.48/0.57 | 1.00/1.00/0.99/0.99 0.99/0.99/0.90/0.98 | s s (no decide)
+rechazo_proyecto                     1/3/0/0 | 0.97/1.00/0.99/0.98 0.94/0.96/0.53/0.80 | 0.99/1.00/0.98/0.99 0.98/0.99/0.97/0.96 | n s no
+desplazamiento_forzado              10/1/0/0 | 0.96/0.98/0.99/0.97 0.80/0.68/0.94/0.33 | 0.99/0.98/0.52/0.98 0.98/0.96/0.70/0.94 | n s no
+conflicto_territorial               10/8/0/3 | 0.94/1.00/0.99/0.98 0.47/0.68/0.26/0.43 | 1.00/0.99/0.90/0.99 0.95/0.99/0.89/0.72 | s s SI
+presencia_grupos_armados           42/45/0/5 | 0.96/1.00/0.62/1.00 0.60/0.24/0.15/0.16 | 1.00/0.98/0.65/0.99 0.67/0.69/0.65/0.36 | s s (no decide)
+
+Razon MAX(gemela)/MAX(vigente) A/M/O/P, nuevo | actual:
+  exclusion_beneficios_economicos  0.76/0.99/0.49/0.60 | 1.00/1.00/0.91/0.99
+  rechazo_proyecto                 0.97/0.97/0.53/0.82 | 0.99/1.00/0.99/0.97
+  desplazamiento_forzado           0.83/0.69/0.94/0.34 | 0.99/0.98/1.36/0.96
+  conflicto_territorial            0.50/0.68/0.26/0.44 | 0.95/0.99/0.99/0.73
+  presencia_grupos_armados         0.62/0.24/0.24/0.16 | 0.67/0.70/0.99/0.36
+
+indicador                         % s>0.766 vig n/a      % gem n/a  M2prov n/a  top10 sin juzgar n/a
+exclusion_beneficios_economicos      2.1/21.6        0.2/13.7   0.00/0.00     8/0
+rechazo_proyecto                     7.6/6.9         0.5/5.5    0.00/0.00     8/0
+desplazamiento_forzado               2.9/3.5         0.1/1.8    0.10/0.05     4/0
+conflicto_territorial                3.9/8.8         0.0/1.8    0.07/0.07     9/0
+presencia_grupos_armados             3.7/10.8        0.0/0.0    0.28/0.17     9/0
+
+Exclusion: solo reporte (no medible salvo >= 5 SI/SI en total; hoy 0 en total, 0 en los 4 lugares)
+Pasan el filtro (rechazo, desplazamiento, conflicto): ['conflicto_territorial']; entran a la etapa 2: ['conflicto_territorial', 'presencia_grupos_armados']

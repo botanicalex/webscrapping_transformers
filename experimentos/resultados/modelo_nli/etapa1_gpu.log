@@ -1,0 +1,25 @@
+The tokenizer you are loading from 'C:\Users\Usuario\.cache\huggingface\hub\models--vicgalle--xlm-roberta-large-xnli-anli\snapshots\85981da85b85045fecd6e81e501767de7da370eb' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790218360.337499   31948 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790218362.390563   31948 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+NLI cargado | device=cuda
+  id2label   : {0: 'contradiction', 1: 'neutral', 2: 'entailment'}
+  entailment=2  neutral=1  contradiction=0
+1647 articulos x 15 hipotesis pendientes (de 15)
+[1/15] exclusion_beneficios_economicos__vig  1.6 min (lote 16), faltan ~22 min
+[2/15] rechazo_proyecto__vig  3.3 min (lote 16), faltan ~21 min
+[3/15] desplazamiento_forzado__vig  5.0 min (lote 16), faltan ~20 min
+[4/15] conflicto_territorial__vig  6.7 min (lote 16), faltan ~18 min
+[5/15] presencia_grupos_armados__vig  8.4 min (lote 16), faltan ~17 min
+[6/15] exclusion_beneficios_economicos__vig_abs  10.0 min (lote 16), faltan ~15 min
+[7/15] rechazo_proyecto__vig_abs  11.7 min (lote 16), faltan ~13 min
+[8/15] desplazamiento_forzado__vig_abs  13.4 min (lote 16), faltan ~12 min
+[9/15] conflicto_territorial__vig_abs  15.1 min (lote 16), faltan ~10 min
+[10/15] presencia_grupos_armados__vig_abs  16.8 min (lote 16), faltan ~8 min
+[11/15] ABSURDO_TOTAL  18.4 min (lote 16), faltan ~7 min
+[12/15] NULA_CAL_0  20.1 min (lote 16), faltan ~5 min
+[13/15] NULA_CAL_1  21.7 min (lote 16), faltan ~3 min
+[14/15] NULA_CAL_2  23.4 min (lote 16), faltan ~2 min
+[15/15] NULA_CAL_3  25.0 min (lote 16), faltan ~0 min
+OK -> experimentos/resultados/modelo_nli\scores_xlmr_lugares.pkl (1647, 46)

@@ -1384,3 +1384,236 @@ El usuario aprueba el pre-registro de la prueba del modelo, con una condición: 
 borrador (`experimentos/PREREG_modelo_nli.md`, commit 5909a37), su log y su relevo
 (`contexto/12_relevo_modelo_nli.md`). Esta rama (`hipotesis-5ind-max`) no cambia: `src/` sigue
 siendo `radar-max_Septiembre`. Continúa en una conversación nueva.
+
+## [2026-09-23] Prueba del modelo NLI — pre-registro `experimentos/PREREG_modelo_nli.md` congelado tras revisión de `orquesta-lead`
+
+`orquesta-lead` (una vez, sobre 5909a37): CONGELABLE CON CORRECCIONES. Comprobó que §3 cuadra
+con `RESULTADOS_5ind_MAX_r2.md`, que las hipótesis son 15 (etapa 1) y 36 (etapa 3) y que
+«512 − 4» es correcto para XLM-R. Planteó 4 bloqueantes y 8 menores. **Se adoptan los 12**,
+verificados contra sus archivos, y ninguno se rechaza:
+1. (bloqueante, §4) El filtro no discriminaba en grupos armados: con el modelo actual ya cumple
+   (a) y (b) (gemela 0.67/0.69/0.65/0.36). La parada se decide solo con rechazo, desplazamiento
+   y conflicto, los de gemela actual > 0.766 en ≥ 3 lugares, como en el diseño aprobado
+   («donde hoy la supera»). Grupos armados entra a la etapa 2 si alguno de los tres pasa.
+2. (bloqueante, §1) Orden de etiquetas: el modelo nuevo es (con, neu, ent) = (0, 1, 2) y el
+   fallback de `_resolver_labels` lo invertiría en silencio. Se añaden la aserción (2, 1, 0), dos
+   pares de control (idénticas → ent > 0.9; contrarias → con > 0.9) y la medida de los 4 tokens
+   especiales. La sanidad usa los 300 `texto` más largos, para que la truncación entre en juego.
+3. (bloqueante, §2) Cobertura: se mide en CPU antes de la GPU, con distribución. La parada pasa
+   a «> 5 % de artículos pierden > 10 tokens», con la etapa 1 corrida igual y parada antes de
+   juzgar. `n_hip` es el de la etapa (15 o 36 hipótesis).
+4. (bloqueante, §6) Criterio 6: el pool del holdout es la unión de los top-15 con el modelo
+   nuevo y con el actual, para que la base tenga su top-10 juzgado.
+5. (§5) Criterio 4 explícito: la gemela nueva se compara con la gemela actual + 0.05, y el
+   absurdo total nuevo con 0.38/0.57/0.43/0.21 + 0.05.
+6. (§3) Base del criterio 3 y del reporte: M3 4/2/1/1/0, M2+ —/0.00/0.10/0.10/0.23 y kappa
+   −0.00/0.44/0.88/0.87/0.94 (verificados en `RESULTADOS_5ind_MAX_r2.md`). Con la referencia
+   ampliada solo se recalculan los positivos y M3.
+7. (§4–§5) Exclusión no entra al pool ni a la parada; si llega a ≥ 5 SÍ/SÍ, se informa y decide
+   el usuario. El M2 provisional de la etapa 1 va sin la aserción de top-10 juzgado.
+8. (§5) M5 no se calcula en la etapa 2, porque mezclaría los dos modelos.
+9. (§1) Si el lote 16 difiere del 8 en más de 1e-4, todo va con lote 8. La sanidad usa el lote
+   de la etapa 1.
+10. (§0, §5, §6) Veredicto: «mejora» exige los criterios 1–7; con 1–5 y fallo en 6 o 7, «no
+    confirmado». «No se adopta» pasa a «no cuenta como mejora».
+11. (§5) Control: 40 artículos al azar entre los 940, semilla 20260924, ids nuevos.
+12. (§4) Se reporta la razón MAX(gemela)/MAX(vigente), que no depende de la escala.
+
+**Añadido del orquestador (entorno, no cambia el diseño):** la API de Hugging Face (consultada
+con curl el 2026-09-23) confirma la revisión 85981da y la licencia MIT. En esa revisión hay
+`model.safetensors` (2.239.626.978 bytes, SHA256 `3a67d414…6c66`), `config.json`,
+`sentencepiece.bpe.model`, `special_tokens_map.json` y `tokenizer_config.json`, y **no** hay
+`tokenizer.json`: hace falta el paquete `sentencepiece`, que no está instalado. Python no valida
+el certificado de huggingface.co (`CERTIFICATE_VERIFY_FAILED`) y curl sí conecta, así que §1
+admite la descarga con curl a la ruta del snapshot, comprobando el SHA256. Todo ello queda
+pendiente de la confirmación del usuario.
+
+Script de la etapa 1: `experimentos/exp_modelo_nli_etapa1.py` (`etiquetas`, `lote`, `sanidad`,
+`cobertura`, `gpu`, `filtro`). Siguiente: confirmación de la descarga (§7.2).
+
+## [2026-09-23] Prueba del modelo NLI — descarga autorizada; chequeos previos de §1–§2 superados; etapa 1 lanzada
+
+- **Descarga (autorizada por el usuario):** los 5 archivos de la revisión 85981da, bajados con
+  curl a `~/.cache/huggingface/hub/models--vicgalle--xlm-roberta-large-xnli-anli/snapshots/85981da…/`.
+  Tamaños iguales a los de la API; SHA256 de `model.safetensors` = `3a67d414…6c66` (coincide).
+  `pip install sentencepiece` (0.2.2), también autorizado.
+- **Etiquetas (§1):** `id2label` {0: contradiction, 1: neutral, 2: entailment}; (ent, neu, con) =
+  (2, 1, 0), resuelto por nombre. Par idéntico: ent 0.999; par contrario: con 0.999. Hay 4
+  tokens especiales (`<s> a </s></s> b </s>`). OK.
+- **Lote (§1):** 16 frente a 8 en 50 artículos, max|dif| = 1.9e-06; se usa lote 16 (pico de
+  memoria de la GPU: 2.45 GiB).
+- **Sanidad del código (§1):** modelo de producción, los 300 `texto` más largos (los 300
+  truncados), vigente de grupos armados y lote 16: max|dif| = 1.0e-05 frente a
+  `scores_5ind_atomicas_lugares.pkl`. OK.
+- **Cobertura (§2):** la hipótesis más larga de la etapa tiene 21 tokens XLM-R, así que el
+  modelo nuevo ve 487 tokens de premisa. Ninguna premisa de juez pierde tokens (0 de 1.647 en
+  los lugares y 0 de 11.439 en la nacional; `experimentos/resultados/modelo_nli/cobertura.csv`).
+  OK.
+- **Nota (no es desviación):** transformers 4.57 avisa de un «regex incorrecto» (el de Mistral) al
+  cargar el tokenizador. Se comprobó que es espurio: el tokenizador rápido y el lento
+  (sentencepiece) dan los mismos `input_ids` en 1.646 de los 1.647 pares (texto, vigente de
+  grupos armados). En el único que difiere, «sirvieron» se parte distinto y la longitud es la
+  misma. Se usa el rápido, como `AutoTokenizer` en producción.
+- **Ensayo en seco del filtro** (antes de la GPU), con los scores del modelo actual haciendo de
+  «nuevo»: reproduce §3 y para (ninguno de los 3 decisivos pasa), así que el filtro discrimina.
+- Etapa 1 lanzada en segundo plano: `exp_modelo_nli_etapa1.py gpu`, log
+  `experimentos/resultados/modelo_nli/etapa1_gpu.log`.
+
+## [2026-09-23] Prueba del modelo NLI, etapa 1 — conflicto pasa el filtro; rechazo y desplazamiento no; etapa 2 con conflicto y grupos armados
+
+GPU (`exp_modelo_nli_etapa1.py gpu`): 15 hipótesis × 1.647 artículos en **25.0 min** (1.6 min por
+hipótesis; se estimaban 1–1.5 h). Lote 16. Salida
+`experimentos/resultados/modelo_nli/scores_xlmr_lugares.pkl` (no versionada). Filtro
+(`… filtro`, `etapa1_filtro.log` y `.xlsx`). Se da MAX por lugar A/M/O/P, modelo nuevo | actual:
+
+| Indicador | vigente nuevo | gemela nuevo | gemela actual | (a) | (b) | Decisión |
+|---|---|---|---|---|---|---|
+| rechazo | 0.97/1.00/0.99/0.98 | 0.94/0.96/0.53/0.80 | 0.98/0.99/0.97/0.96 | no | sí | no pasa |
+| desplazamiento | 0.96/0.98/0.99/0.97 | 0.80/0.68/0.94/0.33 | 0.98/0.96/0.70/0.94 | no (2 de 4) | sí | no pasa |
+| conflicto | 0.94/1.00/0.99/0.98 | 0.47/0.68/0.26/0.43 | 0.95/0.99/0.89/0.72 | sí | sí | **pasa** |
+| grupos armados | 0.96/1.00/0.62/1.00 | 0.60/0.24/0.15/0.16 | 0.67/0.69/0.65/0.36 | sí | sí | entra (§4, no decide) |
+| exclusión | 0.96/0.98/0.99/0.96 | 0.73/0.97/0.48/0.57 | 0.99/0.99/0.90/0.98 | — | — | solo reporte |
+
+Reporte: absurdo total nuevo 0.51/0.11/0.03/0.00 (actual 0.38/0.57/0.43/0.21). **Sesgo del
+modelo nuevo más alto:** media 0.475, P95 0.966, 45.7 % de artículos > 0.5; con el actual, 0.364,
+0.933 y 26.4 %. Es decir, el modelo nuevo afirma más a menudo las frases absurdas de
+calibración. La fórmula lo descuenta, y el criterio 7(b) de la etapa 3 lo controla. Artículos con
+s > 0.766, nuevo / actual: exclusión 2.1/21.6 %, rechazo 7.6/6.9 %, desplazamiento 2.9/3.5 %,
+conflicto 3.9/8.8 %, grupos armados 3.7/10.8 %. M2 provisional, nuevo / actual: conflicto
+0.07/0.07 y grupos armados 0.28/0.17, con 9 artículos sin juzgar en el top-10 de cada uno (no
+informativo). Desplazamiento con el modelo nuevo da MAX 0.99 en Oicatá, que no tiene positivos;
+no pasa el filtro de todos modos.
+
+**Decisión (§4):** pasa conflicto, así que no se para. A la etapa 2 van conflicto y grupos
+armados. Rechazo y desplazamiento quedan descartados para el modelo nuevo por el filtro.
+
+**Etapa 2, lotes** (`exp_modelo_nli_etapa2.py lotes`, `etapa2_lotes.log`): pool de 90 URL
+únicas (109 entradas), 68 ya juzgadas y **22 nuevas** (conflicto: 4 en Antioquia y 9 en Maicao;
+grupos armados: 3 y 8; ninguna en Oicatá ni en Paraguachón), más 40 de control → 62 artículos en
+2 lotes, ids `c0000…`, semilla 20260924, en `experimentos/resultados/juicio_modelo_nli/`.
+**Pendiente:** jueces, `consolidar`, `metricas` (escritos, sin ejecutar) y parada con informe
+intermedio. Informe de la etapa 1: `informes/06_informe_modelo_nli_etapa1.md`. Relevo por
+contexto (pedido del usuario): `contexto/12_relevo_modelo_nli.md`.
+
+## [2026-09-23] Prueba del modelo NLI, etapa 2 — ni conflicto ni grupos armados cumplen los criterios 1–5: modelo RECHAZADO (§5); no hay etapa 3
+
+**Jueces** (`juez-a` sonnet y `juez-b` opus, ciegos, codebook sin cambios): 2 lotes (40 + 22), 4
+instancias en paralelo, 62 artículos (22 nuevos + 40 de control). **Consolidación**
+(`exp_modelo_nli_etapa2.py consolidar`, `juicio_modelo_nli/etapa2_consolidar.log`): en los 22
+nuevos, SÍ/SÍ conflicto 1 y grupos armados 4 (kappa 1.00 en los dos); rechazo, desplazamiento y
+exclusión 0. Control: acuerdo SÍ/SÍ con la etiqueta anterior 0.97–1.00.
+
+**Métricas** (`… metricas`, `etapa2_metricas.log`, `metricas_modelo_nli.xlsx`,
+`experimentos/RESULTADOS_modelo_nli.md`), referencia ampliada de 962. La base reproduce §3
+(comprobación contra `candidatas_r2.pkl` y M6 = 0.788 superadas). Modelo nuevo | actual:
+
+| Indicador | kappa | M2 | M2+ | M1 (de 4) | M3 | M6 | c1 c2 c3 c4 c5 | Decisión |
+|---|---|---|---|---|---|---|---|---|
+| conflicto | 0.88 | 0.07 / 0.07 | 0.10 / 0.10 | 0 / 1 | 1 / 1 | — | n n s n s | no pasa |
+| grupos armados | 0.95 | 0.35 / 0.17 | 0.47 / 0.23 | 1 / 2 | 0 / 0 | 0.877 / 0.788 | n n s n s | no pasa |
+
+- **c4 falla en los dos** por el absurdo total en Antioquia: 0.5052 con el modelo nuevo frente al
+  tope 0.3787 + 0.05 = 0.4287. Solo 1 de los 494 artículos de Antioquia lo supera («Celsia sembró
+  más de 13 millones de árboles nativos»). Ya lo fijaba la etapa 1 (0.51 frente a 0.38); el
+  criterio se aplica tal cual está congelado.
+- **c1 y c2 fallarían igual sin c4.** Grupos armados duplica M2 (0.35 frente a 0.17; por lugar
+  0.7/0.4/0/0.3 frente a 0.4/0.2/0/0.1) y sube M6, pero queda lejos de 0.60, y el top-1 acierta
+  solo en Antioquia (en Paraguachón pasa de un positivo a «Se reabre frontera…»). En conflicto la
+  gemela deja de puntuar como la real (razón gemela/vigente 0.26–0.68 frente a 0.73–0.99), pero
+  el top-10 sigue sin reportar conflicto: M2 igual (0.075) y top-1 negativo en los 4 lugares.
+  **Pasar el control absurdo no basta:** el modelo nuevo deja de confirmar «osos polares», pero
+  no pone arriba los artículos que reportan el hecho.
+- Exclusión: 0 SÍ/SÍ en 962; sigue «no medible».
+- Corrección menor del script, sin efecto en las métricas: `referencia_ampliada()` etiqueta las
+  940 como `rondas_1_2` (sin esa columna, el desglose por ronda de exclusión las perdía).
+
+**Decisión (§5):** ninguno cumple 1–5 → se para. **`vicgalle/xlm-roberta-large-xnli-anli` queda
+RECHAZADO** para el radar; no hay etapa 3 ni GPU nacional. Producción no cambia (`src/` intacto).
+Informe `informes/07_informe_modelo_nli_etapa2.md`. **Pendiente del usuario:** revisión final
+única de `orquesta-lead` y limpieza (§7.6). La rama no se fusiona: antes de borrarla hay que
+decidir qué documentación se lleva a `hipotesis-5ind-max` (log, informes 06–07, pre-registro y
+resultados) o dejar una etiqueta.
+
+## [2026-09-23] Prueba del modelo NLI — revisión final de `orquesta-lead` (una vez, sobre 4b54ecf): APROBADO, 1 bloqueante (limpieza), 8 menores
+
+`orquesta-lead` (solo lectura) confirma que el rechazo se sigue del pre-registro congelado sin
+reinterpretar ningún criterio: c1 y c2 fallan aunque no fallara c4. También confirma que
+`exp_modelo_nli_etapa2.py` calcula M1–M3, M6, M2+, kappa y c1–c5 igual que
+`exp_5ind_max_r2_metricas.py`. **Se adoptan los 9 puntos y ninguno se rechaza:**
+- **B1 (limpieza):** `datos/corpus` y `datos/scores` del worktree son junctions a
+  `desarrollo/datos/`, datos compartidos. Se quitan con `cmd /c rmdir` (sin `/s`) antes de quitar
+  el worktree, se comprueba que los datos siguen ahí y se opera desde otra carpeta.
+1. Faltaba M4 (proporción de artículos con gemela > 0.766 por lugar). Se añadió al script y se
+   recalculó: solo reporte, los criterios no cambian. Con el modelo nuevo da 0 en los 8 pares; con
+   el actual, 0.024/0.015/0.062/0.000 en conflicto y 0 en grupos armados.
+2, 3 y 5. El informe 06 no se reescribe. Tres frases suyas se corrigen como fe de erratas en el
+   07 §6:
+   - «primera vez en tres rondas» pasa a «con la frase vigente», porque la N3 de la r2 ya lo
+     había logrado;
+   - «9 de los 10» pasa a 9 de 40 y 9 de 34;
+   - las «6–7 h» son una estimación.
+
+   En el 07: se marca la estimación, la lectura se limita a este modelo (M1 en 1 de 6 pares,
+   frente a 3 con el actual) y se declara no medida la concordancia de los jueces LLM con un juicio
+   humano.
+4. El «1 de 494» y el artículo de Celsia pasan a tener archivo: tabla «Criterio 4» de
+   `RESULTADOS_modelo_nli.md` y `etapa2_metricas.log`. Las cifras de los chequeos previos de la
+   entrada «descarga autorizada» (0.999, 1.9e-06, 2.45 GiB, 1.0e-05, 21/487 tokens) son salidas
+   de consola sin archivo. Las excepciones son `cobertura.csv` y el orden de etiquetas, que está
+   en `etapa1_gpu.log`.
+6. A `hipotesis-5ind-max` también se llevan:
+   - los 2 scripts;
+   - `experimentos/resultados/modelo_nli/` y `juicio_modelo_nli/`, que son las fuentes que citan
+     06, 07 y RESULTADOS y que contienen 22 etiquetas nuevas (la referencia pasa a 962);
+   - `12_relevo`, que el log cita.
+7. En `hipotesis-5ind-max` se actualizan `07_backlog.md`, `11_relevo_5ind_MAX.md` (el siguiente
+   informe es el 08 y cambia el puntero a la rama) y `orquesta-lead.md` (la decisión cerrada
+   sobre cambiar de modelo). Del log se copian las entradas desde «pre-registro congelado»; la de
+   «aprobada» ya está allí como puntero en a08f54a.
+8. Orden del cierre:
+   1. Commit de estas correcciones.
+   2. Etiqueta anotada `prueba-modelo-nli-rechazado` en ese commit, que mantiene válidos 710c7be
+      y e161796, citados en 06–07.
+   3. Documentación a `hipotesis-5ind-max`, copia de los pkl propios y B1.
+   4. Quitar el worktree, borrar la rama y mandar la caché del modelo a la papelera.
+      `sentencepiece` 0.2.2, que se instaló solo para esta prueba, se desinstala.
+
+**Lección para el próximo pre-registro:** evaluar antes de juzgar los criterios que no dependen
+de los jueces (aquí, c4).
+
+## [2026-09-23] Prueba del modelo NLI — CERRADA: documentación y resultados traídos aquí; rama borrada (etiqueta `prueba-modelo-nli-rechazado`); limpieza hecha
+
+Lo aprobó el usuario («haz todo eso, lo que tú recomiendes») tras la revisión final de
+`orquesta-lead`, cuya entrada anterior se copió de la rama de prueba.
+- **Traído desde la etiqueta** con `git checkout prueba-modelo-nli-rechazado -- …`, con contenido
+  idéntico:
+  - las 4 entradas del log desde «pre-registro congelado» (la de «aprobada» ya estaba aquí como
+    puntero, a08f54a);
+  - `informes/06` y `07`, con sus filas del índice;
+  - `experimentos/PREREG_modelo_nli.md` y `RESULTADOS_modelo_nli.md`;
+  - los scripts `exp_modelo_nli_etapa{1,2}.py`;
+  - `experimentos/resultados/modelo_nli/` y `juicio_modelo_nli/`, con 22 etiquetas nuevas (la
+    referencia de juzgados pasa de 940 a 962);
+  - `contexto/12_relevo_modelo_nli.md`, como registro.
+
+  No se trae `src/`, que no cambió, ni el `CLAUDE.md` de la rama de prueba. Los 2 pkl propios de
+  la prueba (`etapa1_scores.pkl` y `scores_xlmr_lugares.pkl`, unos 0.5 MB cada uno) se copiaron a
+  `experimentos/resultados/modelo_nli/`: son copias idénticas y git los ignora.
+- **Referencias actualizadas:** `07_backlog.md` (tarea 0), `11_relevo_5ind_MAX.md` (etiquetas,
+  siguiente informe 08, punto 4), `.claude/agents/orquesta-lead.md` (decisión cerrada sobre
+  cambiar de modelo) y `CLAUDE.md` (una línea en «Estado técnico»).
+- **Limpieza (§7.6):**
+  - Las junctions `datos/corpus` y `datos/scores` del worktree se quitaron con `cmd /c rmdir`.
+    Los datos de `desarrollo/datos/` siguen intactos, con los mismos archivos y bytes antes y
+    después: corpus 5 y 55.170.484, scores 8 y 73.140.082.
+  - Después, `git worktree remove ../prueba_modelo_nli` y `git branch -D prueba-modelo-nli`
+    (apuntaba a 27a39a1, el mismo commit que la etiqueta).
+  - La caché del modelo (2.244.696.938 bytes) fue **a la papelera de reciclaje**, sin borrado
+    definitivo.
+  - `sentencepiece` 0.2.2 quedó desinstalado. Producción no lo necesita: carga el tokenizador por
+    ruta local (`DebertaV2TokenizerFast`) y `python src/test_integracion.py` pasa 10/10.
+- **Nota operativa:** con transformers 4.57.3, cargar un tokenizador por su id del Hub (en lugar
+  de por ruta local) llama a `model_info` (parche del regex de Mistral) y falla por el certificado
+  SSL de Python. Producción no pasa por ahí, porque usa `_ruta_modelo_local`.
+
+Sin push ni merge.

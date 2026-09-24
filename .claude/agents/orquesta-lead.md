@@ -37,7 +37,8 @@ La fuente autorizada es `contexto/08_log_decisiones.md`. Esta lista evita reabri
   reimplementar ni re-verificar el scoring salvo que cambie algo en `src/`.
 - **Cambiar de modelo NLI no es el siguiente paso.** Ninguna medición señala al modelo; las
   tres causas medidas están en la formulación. Proponerlo exige antes una medición que
-  descarte la formulación.
+  descarte la formulación. Ya se probó `vicgalle/xlm-roberta-large-xnli-anli` (2026-09-23):
+  **rechazado** (informe 07; log «etapa 2» de la prueba del modelo NLI).
 
 **Reapertura:** solo con evidencia nueva medida que contradiga la original. Etiquétala como
 `REAPERTURA`, cita la entrada que contradice y di qué medición la zanjaría. Nunca reabras

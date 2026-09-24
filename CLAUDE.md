@@ -92,6 +92,8 @@ su columna (antes se recalculaba con terciles propios — era un bug).
 **Rama `hipotesis-5ind-max`:** `src/` es idéntico al de `radar-max_Septiembre`. La compuerta
 léxica de `presencia_grupos_armados` promovida en la F8 (2026-09-22, cortes 0.7574/0.9233) se
 **revirtió el 2026-09-23** por la regla 15; cortes de nuevo 0.766/0.9233 (clasificación 6/19/7).
+La prueba de un modelo NLI alternativo (`vicgalle/xlm-roberta-large-xnli-anli`, solo pruebas)
+terminó el 2026-09-23 con el modelo **rechazado** (informe 07; etiqueta `prueba-modelo-nli-rechazado`).
 
 **Abierto:** ampliar el estándar de plata (cubre 2 de 26 — es la mayor debilidad, todas las
 conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos_ambientales`

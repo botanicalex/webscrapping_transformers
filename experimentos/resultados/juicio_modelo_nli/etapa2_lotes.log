@@ -1,0 +1,13 @@
+Indicadores de la etapa 2: ['conflicto_territorial', 'presencia_grupos_armados']
+Pool: 90 URL unicas (109 entradas); ya juzgadas 68; nuevas 22
+                                      top  nuevas
+indicador                lugar                   
+conflicto_territorial    Antioquia     15       4
+                         Maicao        15       9
+                         Oicata        15       0
+                         Paraguachon   15       0
+presencia_grupos_armados Antioquia     15       3
+                         Maicao        15       8
+                         Oicata         4       0
+                         Paraguachon   15       0
+62 articulos (22 nuevos + 40 control) -> 2 lotes de <= 40 en experimentos/resultados/juicio_modelo_nli/lotes

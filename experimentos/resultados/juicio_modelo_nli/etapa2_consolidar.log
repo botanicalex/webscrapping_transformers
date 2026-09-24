@@ -1,0 +1,7 @@
+22 nuevos + 40 control -> experimentos/resultados/juicio_modelo_nli/referencia.csv
+indicador                           SI_a  SI_b  SI/SI  kappa | control: acuerdo SI/SI antes SI/SI ahora
+exclusion_beneficios_economicos        0     0      0    nan |    1.00           0           0
+rechazo_proyecto                       0     0      0    nan |    0.97           0           1
+desplazamiento_forzado                 0     0      0    nan |    1.00           1           1
+conflicto_territorial                  1     1      1   1.00 |    0.97           2           1
+presencia_grupos_armados               4     4      4   1.00 |    0.97           2           3

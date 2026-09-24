@@ -24,9 +24,10 @@ están en los archivos que cita.
   bloqueantes, 7 menores adoptados. Informe `informes/04_informe_ronda2_solo_hipotesis.md`.
 - Etiquetas locales: `base-26ind-radar-max` (71072a1), `base-26ind-f5` (cb336fa),
   `base-26ind-f7` (705a557), `base-26ind-f8-compuerta` (85db4e1, versión con la compuerta,
-  revertida).
-- Informes para el jefe/profesora: **`informes/`** (01 a 05; índice en `informes/README.md`;
-  el 05 es el consolidado del plan). El siguiente es el 06.
+  revertida), `prueba-modelo-nli-rechazado` (27a39a1, historial de la prueba del modelo NLI,
+  cuya rama se borró).
+- Informes para el jefe/profesora: **`informes/`** (01 a 07; índice en `informes/README.md`;
+  el 05 es el consolidado del plan; 06–07, la prueba del modelo NLI). El siguiente es el 08.
 
 ## 2. Innegociables (del usuario)
 
@@ -68,11 +69,12 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
 3. Qué hacer con `exclusion_beneficios_economicos`, que resultó «no medible» (§5 del
    pre-registro r2). Sigue en el radar con su frase vigente; no se retira salvo que lo diga el
    usuario.
-4. **Prueba de otro modelo NLI: APROBADA, solo pruebas, en otra rama.** Rama
-   `prueba-modelo-nli`, worktree `…/Web_scrapping_2026/prueba_modelo_nli`. Su relevo es
-   `contexto/12_relevo_modelo_nli.md` y su pre-registro, en borrador, está en esa rama. Aquí no
-   se hace nada de esa prueba. El usuario **rechazó** consultar a la profesora (tarea 0 del
-   backlog): no proponerlo de nuevo.
+4. **Prueba de otro modelo NLI: CERRADA, modelo RECHAZADO** (2026-09-23).
+   `xlm-roberta-large-xnli-anli` no cumple los criterios 1–5 en la etapa 2 (informe 07,
+   `experimentos/RESULTADOS_modelo_nli.md`). La rama y el worktree se borraron; su historial está
+   en la etiqueta `prueba-modelo-nli-rechazado` y su documentación y resultados, aquí (log,
+   informes 06–07, `PREREG_modelo_nli.md`, scripts `exp_modelo_nli_*`, relevo 12 como registro).
+   El usuario **rechazó** consultar a la profesora (tarea 0 del backlog): no proponerlo de nuevo.
 
 ## 5. Ronda 2 — resumen del pre-registro congelado
 
