@@ -1855,3 +1855,15 @@ grupos armados y desplazamiento, sesgo descontado, MAX, cortes 0.7572/0.9233. In
 **Cierra:** la aprobación pendiente de la entrada anterior.
 **Abre:** la etapa 2 (`experimentos/PLAN_prefiltro_indicador_etapa2.md`, sin pre-registrar); cualquier `df_procesado` anterior al
 2026-09-29 debe regenerarse antes de clasificarlo con los cortes nuevos (no trae el filtro y nada en sus columnas lo delata).
+
+## [2026-09-29] Pre-filtro por indicador, etapa 2 — DISEÑO APROBADO, pre-registro congelado (F0; listas pendientes de confirmación)
+
+**Decisiones del usuario (2026-09-29):** arrancar la etapa 2 con un **tramo 1 de 6 indicadores** (`reasentamiento`,
+`amenaza_lideres`, `amenaza_intimidacion`, `protesta_social`, `violacion_derechos_humanos`, `danos_ambientales`); **tope de 3**
+listas nuevas; **techo de apertura del 50 %** de los 11.439 artículos nacionales; **sin lista placebo (rechazada)**: interesa la
+trazabilidad del artículo que fija el MAX, que se muestra en el front, y se añade como reporte (§7 del pre-registro).
+**Pre-registro:** `experimentos/PREREG_prefiltro_indicador_e2.md`; listas, hipótesis y gemelas en
+`experimentos/hipotesis_prefiltro_e2.py` (huella `0c730c76…`; listas del borrador §3 sin retocar). Jueces nuevos `juez-c` (sonnet) y
+`juez-d` (opus) con codebook de 6 indicadores; `juez-a`/`juez-b` sin tocar. Regla de inclusión (a)–(d) de la etapa 1; mecanismo
+combinado contra producción actual (Spearman DANE ≥ −0.0913, tamaño ≤ +0.8640, 0 anclas). Nada calculado todavía.
+**Pendiente:** confirmación expresa del usuario de las 6 listas (regla 15) antes de la F1.
