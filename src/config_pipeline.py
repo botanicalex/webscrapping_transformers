@@ -84,10 +84,17 @@ MIN_ARTICULOS_RESPALDO = 50
 # Esta rama vuelve al MAX de V0 a pedido explicito, con esa limitacion conocida:
 # favorece a los departamentos con mas articulos.
 #
+# Recalibrado de nuevo el 2026-09-29 (regla 2: cambia lo medido) al adoptar el
+# pre-filtro por indicador de grupos armados y desplazamiento (PREFILTRO_OBJETO
+# en Transformer_optimo.py): mismo procedimiento, 26 indicadores; 0.766 -> 0.7572,
+# 0.9233 igual. La clasificacion de los 32 no cambia (6 Bajo / 19 Medio / 7 Alto)
+# y ninguna de las 12 anclas se rompe -- ver contexto/08_log_decisiones.md
+# [2026-09-29].
+#
 # Vive aqui (no en radar.py) para que metricas_y_calculo_de_error.py pueda
 # usar el mismo corte sin crear un import circular con radar.py (que ya
 # importa metricas_y_calculo_de_error).
-CORTE_BAJO_MEDIO_RADAR = 0.766
+CORTE_BAJO_MEDIO_RADAR = 0.7572
 CORTE_MEDIO_ALTO_RADAR = 0.9233
 
 # ── Rutas (relativas a la raiz de desarrollo/) ───────────────────────────────

@@ -1,0 +1,10 @@
+Hipotesis y listas de src iguales a las del experimento en ['desplazamiento_forzado', 'presencia_grupos_armados']
+  desplazamiento_forzado: la compuerta abre en 6.3%; distinta del experimento con truncacion de produccion en 0 articulos; distinta de la del experimento (premisa mas larga) en 4
+  presencia_grupos_armados: la compuerta abre en 12.2%; distinta del experimento con truncacion de produccion en 0 articulos; distinta de la del experimento (premisa mas larga) en 16
+max|dif| MAX (26 x 32) src vs experimento-produccion: 0.0e+00; vs experimento-premisa larga: 0.0e+00; radar src vs experimento-produccion: 3.3e-16, vs premisa larga: 3.3e-16
+CalculadorRadar src: cortes cfg 0.7572/0.9233; dist {'Medio': 19, 'Alto': 7, 'Bajo': 6}; max|dif| radar_propio vs experimento 0.0e+00
+elegir_cortes sobre el radar src: 0.7572/0.9233; anclas rotas ninguna
+Spearman contra el DANE: sin mecanismo -0.1653 -> src -0.0913; con el numero de articulos +0.8640
+Departamentos que cambian de clase (0.766/0.9233 sin mecanismo -> 0.7572/0.9233 con src): 0
+EQUIVALENCIA pre-filtro por indicador: OK
+-> experimentos/resultados/exp_prefiltro_indicador_equivalencia.csv
