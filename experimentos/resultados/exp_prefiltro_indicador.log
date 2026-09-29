@@ -1,0 +1,49 @@
+Cargando datos...
+
+=== S. Sanidad sin juicio (puntajes y radar) ===
+  [OK] S1 sin mecanismo: clasificacion con 0.766/0.9233: {'Bajo': 6, 'Medio': 19, 'Alto': 7} (esperado 6/19/7)
+  [OK] S1 sin mecanismo: elegir_cortes: (0.766, 0.9233) (esperado (0.766, 0.9233))
+  [OK] S1 sin mecanismo: Spearman DANE: -0.1653 (esperado -0.1653)
+  [OK] S1 sin mecanismo: Spearman con el tamano: 0.884 (esperado 0.884)
+  [OK] S2 solo grupos armados: cortes de la F8: (0.7574, 0.9233) (esperado (0.7574, 0.9233))
+  [OK] S2 solo grupos armados: Spearman DANE: -0.1173 (esperado -0.1173)
+  [OK] S2 solo grupos armados: 6/19/7 y 0 anclas rotas: ({'Medio': 19, 'Alto': 7, 'Bajo': 6}, 0) (esperado 6/19/7, 0)
+  [OK] S2 MAX de grupos armados (32 deptos) y radar (32) de V01 y V08 vs F7, a 4 decimales: max|dif| MAX=0.0e+00, radar=0.0e+00 (esperado 0)
+  [OK] S2 los cuatro mayores cambios de MAX de grupos armados son Quindío, Caldas, San Andrés y Guainía: ['Caldas', 'Guainía', 'Quindío', 'San Andrés y Providencia'] (esperado esos cuatro)
+  [OK] S3 lugares: MAX real/gemela/absurdo total de V01 y V08 (5 indicadores) vs ronda 1: max|dif|=0.0e+00 (esperado 0)
+  [OK] S4 holdout de grupos armados: MAX real/gemela/total de V01 y V08 vs F7: max|dif|=0.0e+00 (esperado 0)
+  [OK] S5 gemela de conflicto_territorial en los 1.117 del holdout: 1117 (esperado 1117)
+  [OK] S5 gemela de desplazamiento_forzado en los 1.117 del holdout: 1117 (esperado 1117)
+
+=== Referencia ===
+  referencia total: 966 juzgados
+
+=== I. Inclusion (a)-(d) ===
+
+=== R. Radar nacional: configuraciones, cadena y veredicto ===
+
+=== F. Impacto ===
+Token indices sequence length is longer than the specified maximum sequence length for this model (3680 > 512). Running this sequence through the model will result in indexing errors
+
+Entran: ['presencia_grupos_armados', 'desplazamiento_forzado'] | Final: ['presencia_grupos_armados', 'desplazamiento_forzado'] | VEREDICTO: ADOPTAR (cumple los tres criterios del radar)
+                      indicador  a_ganancia  a_pasa  b_ganancia  b_cobertura_min b_pasa c_pasa  d_violaciones_nuevas d_pasa  entra
+exclusion_beneficios_economicos       0.000   False         NaN              NaN   None   None                   NaN   None  False
+               rechazo_proyecto       0.025   False         NaN              NaN   None   None                   NaN   None  False
+         desplazamiento_forzado       0.300    True       0.200              1.0   True   True                   0.0   True   True
+          conflicto_territorial       0.492    True       0.333              1.0   True  False                   1.0  False  False
+       presencia_grupos_armados       0.750    True       0.300              1.0   True   True                   0.0   True   True
+                                                                   listas        cortes  anclas_rotas  rho_dane  rho_size  pasa
+                                          exclusion_beneficios_economicos 0.7424/0.9209             0   -0.1514    0.8757  True
+                                                         rechazo_proyecto 0.7660/0.9225             0   -0.1782    0.8893 False
+                                                   desplazamiento_forzado 0.7621/0.9233             0   -0.1459    0.8724  True
+                                                    conflicto_territorial 0.7534/0.9097             0   -0.1448    0.8680  True
+                                                 presencia_grupos_armados 0.7574/0.9233             0   -0.1173    0.8695  True
+                         presencia_grupos_armados + conflicto_territorial 0.7359/0.9097             0   -0.1133    0.8633  True
+                        presencia_grupos_armados + desplazamiento_forzado 0.7572/0.9233             0   -0.0913    0.8640  True
+                           conflicto_territorial + desplazamiento_forzado 0.7495/0.9097             0   -0.1250    0.8618  True
+presencia_grupos_armados + conflicto_territorial + desplazamiento_forzado 0.7327/0.9097             0   -0.0924    0.8607  True
+          configuracion        cortes  deptos_cambian_vigentes  deptos_cambian_recalibrados  celdas_que_cambian  celdas_gt_0.05  celdas_a_cero  lugares_cambian_clase
+F8: solo grupos armados 0.7574/0.9233                        0                            0                  12               4              1                      0
+  incluidas por (a)-(d) 0.7572/0.9233                        0                            0                  27              14              2                      0
+
+Guardado -> experimentos/resultados/exp_prefiltro_indicador.xlsx y experimentos/RESULTADOS_prefiltro_indicador.md

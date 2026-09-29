@@ -1,0 +1,6 @@
+indicador,n_control,acuerdo_SI_SI,SI_SI_previo,SI_SI_nuevo
+exclusion_beneficios_economicos,10,1.0,0,0
+rechazo_proyecto,10,1.0,0,0
+desplazamiento_forzado,10,1.0,3,3
+conflicto_territorial,10,1.0,1,1
+presencia_grupos_armados,10,0.8,5,7

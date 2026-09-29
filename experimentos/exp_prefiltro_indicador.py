@@ -530,7 +530,7 @@ def escribir_md(ruta, R):
     L = ["# Resultados — pre-filtro por indicador (listas de objeto) bajo MAX, etapa 1", "",
          "Generado por `experimentos/exp_prefiltro_indicador.py`; todas las tablas salen de "
          "`experimentos/resultados/exp_prefiltro_indicador.xlsx` (hoja indicada). Pre-registro congelado antes de calcular: "
-         "`experimentos/PREREG_prefiltro_indicador.md` (12c494c).", "",
+         "`experimentos/PREREG_prefiltro_indicador.md` (12c494c). Juicio: `experimentos/resultados/juicio_prefiltro_indicador/`.", "",
          f"**Veredicto: {V['veredicto']}.** {V['motivo'].capitalize()}. Listas que entran por (a)–(d): "
          f"{', '.join(R['entran']) or 'ninguna'}. Configuración final: {', '.join(V['final']) or 'ninguna'}.", "",
          "## Inclusión por indicador (hoja `I_inclusion`)", ""]
@@ -538,18 +538,63 @@ def escribir_md(ruta, R):
     L += md_tabla(inc[[c for c in cols if c in inc.columns]],
                   ren={"a_ganancia": "(a) ΔM2 lugares", "a_pasa": "(a)", "b_ganancia": "(b) ΔM2 holdout", "b_cobertura_min": "cobertura mín.",
                        "b_pasa": "(b)", "c_pasa": "(c)", "d_violaciones_nuevas": "M3 nuevas", "d_pasa": "(d)", "entra": "entra"})
+    L += ["", "(a) usa los valores congelados de la ronda 1 (`juicio_5ind/metricas_5ind.xlsx`); recalculados con la referencia actual coinciden "
+          "en los 5 indicadores (columna `a_coincide`).", "", "### (b) Holdout por departamento (hoja `I_holdout_b`)", ""]
+    L += md_tabla(R["det_b"][["indicador", "departamento", "n_positivos", "k_sin", "M2_sin", "cobertura_sin", "k_con", "M2_con", "cobertura_con"]],
+                  ren={"k_sin": "k sin filtro", "M2_sin": "M2 sin", "cobertura_sin": "cobertura sin", "k_con": "k con filtro",
+                       "M2_con": "M2 con", "cobertura_con": "cobertura con"})
+    L += ["", "### (c) Control absurdo con la misma máscara (hoja `I_control_c`)", "",
+          "Diferencia de la brecha media «MAX real − MAX de la gemela» (con máscara − sin máscara); debe ser ≥ −5e-5 en las cuatro primeras columnas.", ""]
+    ccols = ["indicador", "c_dif_brecha_gemela_lugares", "c_dif_brecha_total_lugares", "c_dif_brecha_gemela_holdout",
+             "c_dif_brecha_total_holdout", "c_dif_brecha_gemela_los_7", "c_dif_brecha_total_los_7", "c_pasa"]
+    L += md_tabla(inc[inc["c_pasa"].notna()][ccols],
+                  ren={"c_dif_brecha_gemela_lugares": "gemela, lugares", "c_dif_brecha_total_lugares": "total, lugares",
+                       "c_dif_brecha_gemela_holdout": "gemela, holdout", "c_dif_brecha_total_holdout": "total, holdout",
+                       "c_dif_brecha_gemela_los_7": "gemela, los 7", "c_dif_brecha_total_los_7": "total, los 7", "c_pasa": "(c)"})
+    dc = R["det_c"]
+    dc = dc[dc["indicador"].isin(R["entran"])]
+    L += ["", "MAX de la hipótesis real, de su gemela de objeto absurdo y del absurdo total, sin → con máscara, en las listas que entran:", ""]
+    L += md_tabla(dc[["indicador", "lugar", "real_sin", "real_con", "gemela_sin", "gemela_con", "total_sin", "total_con"]],
+                  ren={"real_sin": "real sin", "real_con": "real con", "gemela_sin": "gemela sin", "gemela_con": "gemela con",
+                       "total_sin": "total sin", "total_con": "total con"}, dec=3)
+    L += ["", "### (d) M3 (hoja `I_m3_d`)", "",
+          "Lugares donde V01 o V08 violan M3 (el MAX contradice la existencia de casos confirmados); «nueva» = solo V08 la viola:", ""]
+    dd = R["det_d"]
+    dd = dd[dd["viola_V01"] | dd["viola_V08"]]
+    L += md_tabla(dd[["indicador", "lugar", "n_positivos", "MAX_V01", "MAX_V08", "viola_V01", "viola_V08", "nueva"]], dec=3)
     L += ["", "## Juicio (hojas `J_kappa`, `J_control`)", ""]
     L += md_tabla(R["kappa"]) + [""] + md_tabla(R["control"]) + ["",
+         "Los 10 de control conservan su etiqueta previa en la referencia; aquí solo se mide el acuerdo.", "",
          "## Radar nacional: cada lista y cada combinación (hoja `R_configs`)", ""]
     L += md_tabla(R["configs"][["listas", "cortes", "anclas_rotas", "rho_dane", "rho_size", "clases_B/M/A", "c1_anclas",
                                 "c2_spearman_dane", "c3_tamano_no_sube", "pasa"]],
                   ren={"rho_dane": "Spearman DANE", "rho_size": "Spearman tamaño", "c1_anclas": "0 anclas", "c2_spearman_dane": "DANE ≥ base",
                        "c3_tamano_no_sube": "tamaño no sube"})
-    L += ["", f"Sin mecanismo: Spearman DANE {R['base']['rho_dane']:+.4f}; Spearman con el tamaño {R['base']['rho_size']:+.4f}.", "",
+    L += ["", f"Sin mecanismo: Spearman DANE {R['base']['rho_dane']:+.4f}; Spearman con el tamaño {R['base']['rho_size']:+.4f}; cortes 0.766/0.9233.", "",
           "## Cadena de retirada (hoja `R_cadena`)", ""]
-    L += md_tabla(R["cadena"]) + ["", "## Impacto (hojas `F_*`)", ""]
-    L += md_tabla(R["impacto_resumen"]) + ["", "## Sanidad (hoja `S_sanidad`)", "",
-                                           f"{int(R['sanidad']['ok'].sum())} de {len(R['sanidad'])} chequeos OK."]
+    L += md_tabla(R["cadena"]) if len(R["cadena"]) else ["(no hubo configuración que evaluar)"]
+    L += ["", "## Impacto (hojas `F_*`)", ""]
+    L += md_tabla(R["impacto_resumen"])
+    nom = "incluidas por (a)-(d)" if "incluidas por (a)-(d)" in R["imp"] else next(iter(R["imp"]))
+    fd, indi, celdas, fl, r = R["imp"][nom]
+    cz = f"{r['cortes'][0]:.4f}/{r['cortes'][1]:.4f}" if r["cortes"] else "sin cortes válidos"
+    L += ["", f"Configuración «{nom}» (cortes recalibrados {cz}):", "",
+          f"- El radar baja en {int((fd['diferencia'] < -1e-9).sum())} de 32 departamentos; diferencia media {fd['diferencia'].mean():+.4f}, "
+          f"mínima {fd['diferencia'].min():+.4f}. Cambian de clase: {int(fd['cambia_vigentes'].sum())} con los cortes vigentes y "
+          f"{int(fd['cambia_recalibrados'].sum())} con los recalibrados.", "",
+          "Mayores caídas del radar:", ""]
+    L += md_tabla(fd.sort_values("diferencia").head(6).reset_index().rename(columns={"index": "departamento"})[
+        ["departamento", "n_articulos", "radar_sin", "radar_con", "diferencia", "clase_sin_vigentes", "clase_con_recalibrados"]])
+    L += ["", "MAX que se mueven, por indicador:", ""]
+    L += md_tabla(indi.reset_index()[["indicador", "media_abs_dMAX", "celdas_gt_0.05", "celdas_a_cero", "MAX_medio_sin", "MAX_medio_con"]])
+    L += ["", "Celdas departamento × indicador con |ΔMAX| > 0.05:", ""]
+    L += md_tabla(celdas[celdas["dMAX"].abs() > 0.05][["departamento", "indicador", "n_articulos", "MAX_sin", "MAX_con", "dMAX"]], dec=3)
+    L += ["", "Los 4 lugares (convención de producción):", ""]
+    L += md_tabla(fl.reset_index().rename(columns={"index": "lugar"})[
+        ["lugar", "radar_sin", "radar_con", "diferencia", "clase_sin_vigentes", "clase_con_recalibrados", "indicadores_que_cambian"]])
+    L += ["", "## Robustez: compuerta con la truncación de producción de cada indicador (hoja `Z_robustez`)", ""]
+    L += md_tabla(R["rob"], dec=6)
+    L += ["", "## Sanidad (hoja `S_sanidad`)", "", f"{int(R['sanidad']['ok'].sum())} de {len(R['sanidad'])} chequeos OK."]
     with open(ruta, "w", encoding="utf-8") as fh:
         fh.write("\n".join(L) + "\n")
 
@@ -635,7 +680,8 @@ def main():
     rob = robustez_truncacion(D, base, lista_rob)
 
     R = {"veredicto": V, "inclusion": inc, "entran": entran, "kappa": kap, "control": ctrl, "configs": cfg, "cadena": cad,
-         "base": base, "impacto_resumen": imp_res, "sanidad": S}
+         "base": base, "impacto_resumen": imp_res, "sanidad": S, "det_b": det_b, "det_c": det_c, "det_d": det_d,
+         "imp": {n: x for (n, _), x in zip(conjuntos, imp)}, "rob": rob}
     print(f"\nEntran: {entran or 'ninguna'} | Final: {V['final'] or 'ninguna'} | VEREDICTO: {V['veredicto']} ({V['motivo']})")
     print(inc[["indicador", "a_ganancia", "a_pasa", "b_ganancia", "b_cobertura_min", "b_pasa", "c_pasa", "d_violaciones_nuevas", "d_pasa", "entra"]]
           .round(3).to_string(index=False))

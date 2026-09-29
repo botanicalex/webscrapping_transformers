@@ -1757,3 +1757,72 @@ leyó `datos/corpus/df_corpus_5lugares.pkl` sin regenerarlo (sin llamar a `paso1
 0 en los 104 MAX por lugar × indicador (con el mismo artículo detrás) y mismo radar y clase por lugar: Antioquia (2023)
 0.9354 Alto, Maicao 0.9625 Alto, Oicatá 0.6688 Bajo, Paraguachón 0.6801 Bajo. `python src/test_integracion.py`: 10/10.
 No hay diferencias que explicar: la producción da lo mismo, a 6 decimales, en las dos corridas.
+
+## [2026-09-29] Pre-filtro por indicador (listas de objeto) bajo MAX, etapa 1 — ADOPTAR grupos armados + desplazamiento (pendiente de aprobación del usuario; `src/` sin tocar)
+
+**Pregunta:** el pre-filtro social general no sirve (log [2026-09-28]): los falsos positivos de la cabeza del ranking son específicos de
+cada indicador. Rediseño que el coordinador transmite como aprobado por el usuario: un **pre-filtro por indicador**, mecanismo único para
+los 26 y aplicado antes de puntuar. Cada indicador con lista exige que su objeto aparezca en la premisa visible normalizada
+(`score' = s × 1[regex]`); los indicadores sin lista pasan. La excepción a la regla 15 se extendió, según ese encargo, a listas de palabras
+por indicador calculadas por dentro y sin columnas nuevas. ¿Aporta valor al radar sin empeorar ningún indicador? Listas: las 5 congeladas
+de la ronda 1 (`REGEX_F5`, variante V08; huella `74b2dd69…`), sin retocar ninguna.
+
+**Método:** pre-registro `experimentos/PREREG_prefiltro_indicador.md` (12c494c), antes de calcular nada nuevo. Regla de inclusión por
+lista: (a) M2 en los lugares +0.20 (dato conocido de la ronda 1); (b) M2 en el holdout +0.10 en la media de Cauca, Chocó y Cundinamarca
+con cobertura de juicio ≥ 90 %; (c) control absurdo con la misma máscara (la brecha real − gemela y real − absurdo total no baja, en la
+media de los lugares y en la del holdout); (d) M3 sin violaciones nuevas en los 7 lugares. Criterios del mecanismo combinado: radar
+nacional MAX con cortes recalibrados (`elegir_cortes`), 0 anclas rotas, Spearman contra el DANE ≥ el de sin mecanismo y Spearman con el
+número de artículos que no sube; retirada de listas de una en una en el orden desplazamiento, conflicto, grupos armados; empate = NO.
+- **Juicio del holdout** (`experimentos/resultados/juicio_prefiltro_indicador/`): top-10 con y sin filtro de conflicto y de
+  desplazamiento en los 3 departamentos = 79 url, 53 ya juzgadas, 26 nuevas + 10 de control en un lote (`p0000…p0035`, semilla
+  20260928). `juez-a` y `juez-b` (codebook congelado) los lanzó el coordinador. Referencia = SÍ de los dos: kappa 0.923
+  (desplazamiento), 1.000 (conflicto), 0.875 (grupos armados); los 10 de control coinciden con su etiqueta previa en 4 indicadores y en 8
+  de 10 en grupos armados (los controles conservan la etiqueta previa).
+- **GPU acotada** (`experimentos/exp_prefiltro_indicador_gpu.py`): gemelas de objeto absurdo de conflicto y desplazamiento para los 1.117
+  artículos del holdout, en `datos/scores/scores_prefiltro_indicador_holdout.pkl` (nuevo, no versionado). Verificación de producción
+  9.8e-07; la gemela de grupos armados recalculada coincide con la del pkl nacional (≤ 9.8e-06).
+- **Análisis** offline: `experimentos/exp_prefiltro_indicador.py` → `experimentos/resultados/exp_prefiltro_indicador.xlsx` y
+  `experimentos/RESULTADOS_prefiltro_indicador.md`. Sanidad 13/13: sin mecanismo 6/19/7, Spearman −0.1653, tamaño +0.884; solo
+  grupos armados = F8 (cortes 0.7574/0.9233, Spearman −0.1173).
+- **Desviación menor de cálculo:** el chequeo «los cuatro MAX de grupos armados que cambian» se sustituyó por la comparación con el archivo
+  original de la F7 (`cortes_radar.xlsx`) en los 32 departamentos, a 4 decimales (diferencia 0): el log de la F7 redondeó Caldas 0.7245 a
+  0.725 (exacto 0.724465).
+
+**Evidencia** (hojas de `exp_prefiltro_indicador.xlsx`):
+- Inclusión (`I_inclusion`, `I_holdout_b`, `I_control_c`, `I_m3_d`):
+  - `exclusion_beneficios_economicos` (a) 0.000 y `rechazo_proyecto` (a) +0.025: fuera, pasan sin filtro.
+  - `presencia_grupos_armados`: (a) +0.750; (b) 0.467 → 0.767 (+0.300, cobertura 100 %); (c) pasa (gemela, lugares +0.097 y holdout +0.051;
+    total +0.070 y +0.200); (d) 0 nuevas. **ENTRA.**
+  - `desplazamiento_forzado`: (a) +0.300; (b) 0.367 → 0.567 (+0.200; Cauca 0.30 → 0.80, Chocó 0.80 → 0.90, Cundinamarca 0 → 0 sin casos
+    confirmados); (c) pasa (gemela +0.0013 y 0.0000; total +0.046 y +0.286); (d) 0 nuevas. **ENTRA.**
+  - `conflicto_territorial`: (a) +0.492; (b) 0.233 → 0.567 (+0.333); **(c) falla** (total, lugares −0.0089) y **(d) falla** (1 violación
+    nueva: Paraguachón, MAX 0.993 → 0.634 con 3 casos confirmados). **FUERA.**
+- Radar nacional (`R_configs`, `R_cadena`): con grupos armados + desplazamiento y cortes recalibrados **0.7572/0.9233**: 0 anclas rotas,
+  Spearman contra el DANE −0.1653 → **−0.0913**, Spearman con el tamaño +0.8842 → **+0.8640**, clasificación 6/19/7 (accuracy 0.3438, igual).
+  Pasa los tres criterios en la primera configuración: no se retiró ninguna lista.
+- Impacto (`F_*`): ningún departamento ni lugar cambia de clase; el radar baja en 20 de 32 departamentos (media −0.0048; San Andrés −0.0407);
+  cambian 27 celdas de MAX (15 de desplazamiento, 12 de grupos armados), 14 en más de 0.05 y 2 pasan a 0 (grupos armados en San Andrés,
+  0.861; desplazamiento en Guainía, 0.142). Lugares (producción): Antioquia 0.9354 → 0.9354, Maicao 0.9625 → 0.9623, Oicatá 0.6688 →
+  0.6239, Paraguachón 0.6801 → 0.6523.
+- Robustez (`Z_robustez`): con la truncación de producción de cada indicador la compuerta difiere en 16 (grupos armados) y 4
+  (desplazamiento) artículos de 11.439 y no cambia ningún MAX departamental.
+
+**Salvedades registradas:**
+- Desplazamiento pasa el control absurdo por no empeorar, no por mejorar: su gemela («…por los osos polares») sigue con MAX 0.86–0.99 en los
+  seis lugares con artículos, con y sin filtro. Tampoco cumple los criterios absolutos de la ronda 1 (M2 0.35 < 0.60; M1 1 de 4; gemela por
+  encima de 0.766): entra por la regla relativa de esta etapa.
+- La mejora del Spearman contra el DANE (+0.074) es menor que el +0.15 que se distingue del ruido con 32 departamentos; los criterios
+  del radar eran de no empeorar.
+- Las listas se diseñaron con los lugares de la ronda 1; el holdout (3 departamentos, pocos casos confirmados) es la comprobación
+  fuera de muestra.
+
+**Decisión:** ADOPTAR, según el pre-registro, el mecanismo con `presencia_grupos_armados` y `desplazamiento_forzado`, cortes 0.7572/0.9233.
+**No se implementa:** `src/` queda intacto hasta que el usuario apruebe. Plan de implementación (tests, cortes, verificación, alternativa
+conservadora de solo grupos armados): `experimentos/PLAN_implementacion_prefiltro_indicador.md`. Borrador de la etapa 2 (los otros 21
+indicadores, escrito solo con el texto de las hipótesis): `experimentos/PLAN_prefiltro_indicador_etapa2.md`. El informe 12 se escribe
+tras la aprobación.
+
+**Cierra:** la lista de conflicto territorial con esta redacción (falla el control absurdo y M3; no se reintenta sin evidencia nueva); la
+pregunta «¿un pre-filtro por indicador aporta al radar?» para grupos armados y desplazamiento, con las salvedades de arriba.
+**Abre:** la aprobación del usuario (excepción a la regla 15 y configuración A o B del plan); la etapa 2; y la lista de desplazamiento, que
+recorta artículos sin las palabras pero no distingue el objeto.

@@ -1,0 +1,6 @@
+indicador,SI_a,SI_b,SI_SI,kappa,referencia_debil
+exclusion_beneficios_economicos,0,0,0,,
+rechazo_proyecto,0,0,0,,
+desplazamiento_forzado,9,8,8,0.923076923076923,False
+conflicto_territorial,3,3,3,1.0,False
+presencia_grupos_armados,12,12,11,0.8749999999999999,False
