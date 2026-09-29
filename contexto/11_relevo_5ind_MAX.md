@@ -166,8 +166,21 @@ pre-registro congelado; si la 2a ronda lo cambia, hay que crear agentes nuevos (
 
 ## 7. Siguiente paso exacto
 
-0. (2026-09-29) Pre-filtro por indicador: etapa 1 promovida y documentada; lo pendiente es la etapa 2 (§4.5) y las
-   decisiones de §4. Leer las entradas [2026-09-28] y [2026-09-29] del log y los informes 11 y 12.
+0. (2026-09-29) Pre-filtro por indicador: etapa 1 promovida y documentada (último commit `f30549e`); lo pendiente es
+   la etapa 2 (§4.5) y las decisiones de §4. Leer las entradas [2026-09-28] y [2026-09-29] del log y los informes 11 y 12.
+   Motivo de fondo: la jefa quiere un pre-filtro que se aplique a TODOS los indicadores; el general (una sola pregunta NLI)
+   no sirve porque los falsos positivos de la cabeza son específicos de cada indicador (informe 11 y diagnóstico: los
+   artículos que fijan el MAX no se distinguen del corpus por territorio, sesgo ni fecha). La etapa 2 es el camino a los 26.
+   Lecciones operativas de esa sesión:
+   - Un solo subagente ejecutor (Sonnet, tipo `claude`) para tres tareas seguidas se quedó sin contexto al final: en la
+     etapa 2, un subagente nuevo por fase, con un prompt autocontenido.
+   - Si el límite de uso corta a un agente, revisar `git log`/`git status` antes de retomarlo (suele haber commiteado más
+     de lo que alcanzó a reportar) y retomarlo con `SendMessage`.
+   - No correr `python src/pipeline_lugares.py` tal cual: su `paso1_combinar()` reescribe `datos/corpus/df_corpus_5lugares.pkl`
+     (compartido por junction). Usar el envoltorio `experimentos/exp_prefiltro_correr_lugares.py`, que comprueba el sha256.
+   - `juez-a`/`juez-b` solo tienen codebook para 5 indicadores: la etapa 2 necesita agentes jueces nuevos con un codebook
+     por indicador (no editar los existentes). Cada lista nueva requiere pre-registro y confirmación expresa del usuario
+     (regla 15), y el pre-registro debe fijar cuántas listas se admiten (con 17, alguna pasaría por azar).
 1. Leer `CLAUDE.md` (regla 15), este documento, `experimentos/PREREG_5ind_MAX_r2.md`,
    `experimentos/RESULTADOS_5ind_MAX_r2.md` y las entradas [2026-09-23] del log.
 2. Fase A hecha: scripts `exp_5ind_max_r2_atomicas.py` (GPU), `exp_5ind_max_r2_pool.py
