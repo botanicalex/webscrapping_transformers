@@ -1907,3 +1907,14 @@ Informe 13 escrito (`informes/13_informe_prefiltro_etapa2_y_prefiltro_social.md`
 detallada de por qué no se reactiva el pre-filtro social. **Decisión del usuario:** cómo muestra el front el artículo que fija el
 MAX ya está resuelto y queda fuera de este proyecto (solo backend; el front vive en otra rama). Se actualizan `CLAUDE.md` (reglas
 5–6 y convenciones, desactualizadas) y el relevo 11. **Siguiente:** decidir qué hacer con los 11 indicadores restantes de la etapa 2.
+
+## [2026-09-29] Pre-filtro por indicador, etapa 2, tramo 2 — cribado sin jueces de los 11 restantes: DISEÑO APROBADO, pre-registro congelado (F0)
+
+**Decisión del usuario (2026-09-29):** opción C de las tres propuestas (A, cerrar sin medir; B, tramo 2 completo con jueces; C,
+cribado sin jueces). Confirma las 11 listas de `LISTAS_SOLO_APERTURA` (da30a63) sin retocar y la condición del radar con la lista
+sola como filtro previo (excepción a la regla 15 solo en `experimentos/`). Motivo: en el tramo 1 las 4 medibles cayeron por el control
+absurdo o por el Spearman con el tamaño, que se calculan sin jueces (los jueces son el costo alto).
+**Pre-registro:** `experimentos/PREREG_prefiltro_indicador_e2_t2.md`; gemelas en `experimentos/hipotesis_prefiltro_e2_t2.py`.
+Condición C (control absurdo, 4 comparaciones) y R (radar con la lista sola: 0 anclas, DANE ≥ −0.0913, tamaño ≤ +0.8640). Sin
+sobrevivientes → cierre de la etapa 2 sin jueces; con sobrevivientes → parada y fase de jueces (`juez-e`/`juez-f`) solo para ellas.
+Nada calculado todavía salvo las tasas de apertura ya conocidas.
