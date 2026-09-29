@@ -98,11 +98,33 @@ def main():
           .round(6).to_string())
     print("\nencabezados nueva:", hb)
 
+    # 4. indicadores que mas pesan en el radar de cada lugar (corrida nueva): cada MAX aporta MAX/26 al promedio
+    n_art = b.groupby("departamento").size()
+    filas = []
+    for lugar in mb.index:
+        orden = mb.loc[lugar].sort_values(ascending=False)
+        for rango, (c, v) in enumerate(orden.items(), 1):
+            filas.append({"lugar": lugar, "n_articulos": int(n_art[lugar]), "rango": rango, "indicador": c,
+                          "MAX": float(v), "aporte_al_radar": float(round(v, 4) / len(INDS26)),
+                          "MAX>=corte_bajo_medio": bool(v >= cfg.CORTE_BAJO_MEDIO_RADAR),
+                          "MAX>=corte_medio_alto": bool(v >= cfg.CORTE_MEDIO_ALTO_RADAR), "articulo_del_MAX": tb.loc[lugar, c]})
+    top = pd.DataFrame(filas)
+    resumen = top.groupby("lugar").agg(n_articulos=("n_articulos", "first"),
+                                       n_indicadores_MAX_ge_0766=("MAX>=corte_bajo_medio", "sum"),
+                                       n_indicadores_MAX_ge_09233=("MAX>=corte_medio_alto", "sum"),
+                                       n_indicadores_MAX_cero=("MAX", lambda s: int((s == 0).sum())))
+    print("\n[4] indicadores con MAX >= 0.766 y >= 0.9233 por lugar:")
+    print(resumen.to_string())
+    for lugar in mb.index:
+        print(f"    {lugar}: " + ", ".join(f"{r.indicador} {r.MAX:.3f}" for r in top[(top.lugar == lugar) & (top.rango <= 5)].itertuples()))
+
     os.makedirs(os.path.dirname(SALIDA), exist_ok=True)
     with pd.ExcelWriter(SALIDA, engine="openpyxl") as w:
         por_art.to_excel(w, sheet_name="por_articulo", index=False)
         max_li.to_excel(w, sheet_name="max_lugar_x_indicador", index=False)
         rc.to_excel(w, sheet_name="radar_clase")
+        resumen.to_excel(w, sheet_name="resumen_indicadores")
+        top.to_excel(w, sheet_name="indicadores_por_peso", index=False)
     print(f"\nGuardado -> {SALIDA}")
 
 

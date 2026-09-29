@@ -1,0 +1,41 @@
+[1] corpus C:\Users\Usuario\Documents\REPOSITORIOS\Web_scrapping_2026\pruebas\datos\corpus\df_corpus_5lugares.pkl
+    sha256 b4ccb0e6122c91b79981c8aaddc908f61f9b15cc55dafe16fd4889f8c344cf80
+    fecha  2026-09-01T02:11:51
+    tamano 6720801 bytes
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790652656.254687    2412 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790652659.060287    2412 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+
+[2] leido: (1647, 6) | lugares: {'Municipio Maicao': 1101, 'Antioquia (2023)': 494, 'Municipio Oicatá': 32, 'Vereda Paraguachón': 20}
+
+[3] PipelineTransformers().procesar(df) ...
+CUDA disponible: True | dispositivo: cuda
+NLI: C:\Users\Usuario\.cache\huggingface\hub\models--MoritzLaurer--mDeBERTa-v3-base-xnli-multilingual-nli-2mil7\snapshots\b5113eb38ab63efdd7f280f8c144ea8b13f978ce
+[batch] Calibrando sesgo por articulo (4 nulas)...
+[batch] NLI hipotesis 5/26 completada (1647 articulos)
+[batch] NLI hipotesis 10/26 completada (1647 articulos)
+[batch] NLI hipotesis 15/26 completada (1647 articulos)
+[batch] NLI hipotesis 20/26 completada (1647 articulos)
+[batch] NLI hipotesis 25/26 completada (1647 articulos)
+[batch] NLI hipotesis 26/26 completada (1647 articulos)
+[batch] Procesamiento completado: 1647 articulos
+    procesado en 32.1 min (shape (1647, 38))
+
+[4] respaldo -> C:\Users\Usuario\Documents\REPOSITORIOS\Web_scrapping_2026\pruebas\resultados\tablas_lugares_max_2026-09-28\df_procesado_5lugares.pkl
+  Antioquia (2023)             494 articulos -> tabla_indicadores_antioquia__2023.xlsx
+  Municipio Maicao            1101 articulos -> tabla_indicadores_municipio_maicao.xlsx
+  Municipio Oicatá              32 articulos -> tabla_indicadores_municipio_oicata.xlsx
+  Vereda Paraguachón            20 articulos -> tabla_indicadores_vereda_paraguachon.xlsx
+
+  Guardado -> C:\Users\Usuario\Documents\REPOSITORIOS\Web_scrapping_2026\pruebas\resultados\tablas_lugares_max_2026-09-28\resumen_indicadores_MAX_y_articulos_por_lugar.xlsx (shape=(26, 8))
+
+  Lugar                       radar_MAX   Clasif  Articulos
+  Municipio Maicao               0.9625     Alto       1101
+  Antioquia (2023)               0.9354     Alto        494
+  Vereda Paraguachón             0.6801     Bajo         20
+  Municipio Oicatá               0.6688     Bajo         32
+
+[5] corpus despues: sha256 IGUAL, fecha IGUAL
+
+LISTO -> C:\Users\Usuario\Documents\REPOSITORIOS\Web_scrapping_2026\pruebas\resultados\tablas_lugares_max_2026-09-28 (32.1 min)

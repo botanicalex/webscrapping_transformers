@@ -1746,3 +1746,13 @@ volver a probar los umbrales 0.50, 0.65 y 0.75 (no pasan C1). No reintentar sin 
 - El artefacto de tamaño de MAX (Spearman(radar, nº de artículos) +0.88) no se toca con este filtro.
 - La referencia sigue siendo el límite: 13 celdas con positivos, 21 de 26 indicadores sin referencia y Oicatá sin
   positivos de ningún indicador.
+
+**Corrida de los 4 lugares con `src/` tal cual (Fase 4, por el veredicto NO):** `experimentos/exp_prefiltro_correr_lugares.py`
+leyó `datos/corpus/df_corpus_5lugares.pkl` sin regenerarlo (sin llamar a `paso1_combinar`; sha256 `b4ccb0e6122c91b7…` y fecha
+2026-09-01T02:11:51 iguales antes y después) y ejecutó `PipelineTransformers().procesar`, `paso4_tablas` y `paso5_resumen`
+(32.1 min de GPU) sobre `resultados/tablas_lugares_max_2026-09-28/` (carpeta local, no versionada). Comparación con
+`resultados/tablas_lugares_max/` (1-sep) en `experimentos/resultados/exp_prefiltro_lugares_recorrida.xlsx`
+(`experimentos/exp_prefiltro_comparar_lugares.py`): diferencia máxima 0 por artículo en los 26 indicadores y en el sesgo,
+0 en los 104 MAX por lugar × indicador (con el mismo artículo detrás) y mismo radar y clase por lugar: Antioquia (2023)
+0.9354 Alto, Maicao 0.9625 Alto, Oicatá 0.6688 Bajo, Paraguachón 0.6801 Bajo. `python src/test_integracion.py`: 10/10.
+No hay diferencias que explicar: la producción da lo mismo, a 6 decimales, en las dos corridas.

@@ -1,0 +1,30 @@
+1-sep : C:\Users\Usuario\Documents\REPOSITORIOS\Web_scrapping_2026\pruebas\resultados\tablas_lugares_max
+nueva : C:\Users\Usuario\Documents\REPOSITORIOS\Web_scrapping_2026\pruebas\resultados\tablas_lugares_max_2026-09-28
+formas: (1647, 38) / (1647, 38)
+
+[1] por articulo: max|dif| global 0.00e+00 (col desplazamiento_forzado); articulos con |dif|>1e-4 en algun indicador: 0
+[2] MAX por lugar x indicador: max|dif| 0.00e+00; celdas con |dif|>1e-4: 0 de 104; articulo distinto en 0
+
+[3] radar y clase por lugar:
+                    radar_1sep clase_1sep  radar_nueva clase_nueva  dif  misma_clase  mismo_encabezado
+departamento                                                                                          
+Antioquia (2023)      0.935446       Alto     0.935446        Alto  0.0         True              True
+Municipio Maicao      0.962500       Alto     0.962500        Alto  0.0         True              True
+Municipio Oicatá      0.668823       Bajo     0.668823        Bajo  0.0         True              True
+Vereda Paraguachón    0.680108       Bajo     0.680108        Bajo  0.0         True              True
+
+encabezados nueva: ['Antioquia (2023) — Alto (0.9354)', 'Municipio Maicao — Alto (0.9625)', 'Municipio Oicatá — Bajo (0.6688)', 'Vereda Paraguachón — Bajo (0.6801)']
+
+[4] indicadores con MAX >= 0.766 y >= 0.9233 por lugar:
+                    n_articulos  n_indicadores_MAX_ge_0766  n_indicadores_MAX_ge_09233  n_indicadores_MAX_cero
+lugar                                                                                                         
+Antioquia (2023)            494                         24                          21                       0
+Municipio Maicao           1101                         26                          23                       0
+Municipio Oicatá             32                         14                           6                       3
+Vereda Paraguachón           20                         13                           9                       3
+    Antioquia (2023): derechos_vulnerados 0.998, conflicto_activo 0.996, conflicto_territorial 0.996, poblacion_afectada 0.996, exclusion_beneficios_economicos 0.996
+    Municipio Maicao: derechos_vulnerados 0.998, poblacion_afectada 0.996, rechazo_proyecto 0.996, exclusion_beneficios_economicos 0.996, violacion_derechos_humanos 0.996
+    Municipio Oicatá: derechos_vulnerados 0.990, exclusion_beneficios_economicos 0.989, conflicto_activo 0.985, rechazo_proyecto 0.979, exclusion_comunidades 0.953
+    Vereda Paraguachón: derechos_vulnerados 0.996, exclusion_beneficios_economicos 0.994, conflicto_territorial 0.993, rechazo_proyecto 0.989, conflicto_activo 0.989
+
+Guardado -> C:\Users\Usuario\Documents\REPOSITORIOS\Web_scrapping_2026\pruebas\experimentos\resultados\exp_prefiltro_lugares_recorrida.xlsx
