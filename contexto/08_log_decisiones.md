@@ -1937,3 +1937,17 @@ siembras, cosechas o producción agropecuaria, pecuaria o pesquera de alimentos 
 producción local, cultivos ilícitos, entrega de mercados o ayudas, gastronomía, anuncios genéricos, jardinería ornamental; DUDOSO:
 premisa cortada). Agentes nuevos `.claude/agents/juez-e.md` (sonnet) y `juez-f.md` (opus); `juez-a`–`juez-d` sin tocar. Premisa de
 los lotes = premisa visible recortada con la hipótesis del indicador. Se lanza la fase de jueces (§4 del pre-registro del tramo 2).
+
+## [2026-09-29] Pre-filtro por indicador, etapa 2, tramo 2 — jueces y F3 de `zonas_proteccion_alimentaria`: NO ADOPTAR; etapa 2 CERRADA
+
+**Jueces:** pool de 105 url (`eaba2ae`, semilla 20260930, ids `t0000…`, 3 lotes); `juez-e` y `juez-f`, una instancia cada uno, citas
+literales verificadas por el coordinador (`226dea7`). Kappa 0.72; SÍ/SÍ 9 (≥ 5: medible); cobertura 100 %.
+**F3** (`343db57`, subagente; `experimentos/exp_prefiltro_e2_t2_analisis.py` → `experimentos/resultados/exp_prefiltro_e2_t2_analisis.xlsx`,
+`experimentos/RESULTADOS_prefiltro_e2_t2_analisis.md`). Sanidad 11/11. (a) M2 lugares 0.0500 → 0.1861 (+0.1361 < +0.20): falla;
+(b) holdout 0.0667 → 0.1333 (+0.0667 < +0.10; cobertura 1.0): falla; (c) pasa (+0.1993, +0.0507, +0.0609, +0.1298); (d) 0 nuevas.
+Trazabilidad: artículo del MAX SÍ en 2 de 7 sin y con filtro. Comprobado por el coordinador en la hoja `I_inclusion`.
+**Decisión:** NO ADOPTAR. **Etapa 2 CERRADA sin listas nuevas:** de 17 listas, 2 no medibles, 4 no cumplen (tramo 1), 10 descartadas en el
+cribado y 1 no cumple con jueces. `src/` no cambia; los 24 indicadores sin lista pasan sin filtro. Informe 14
+(`informes/14_informe_prefiltro_etapa2_cierre.md`). **Cierra:** estas 11 listas con esta redacción y la extensión del pre-filtro por
+indicador a los 26 con este modelo y esta referencia (no se reintenta sin evidencia nueva medida). **Abre:** nada nuevo; siguen la fusión,
+el push/merge y exclusión de beneficios.

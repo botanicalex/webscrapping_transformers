@@ -115,10 +115,8 @@ conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos
 queda en cero en P75 a escala nacional — la etiqueta "tres muertos" es del corpus de 5
 lugares); re-puntuar los 32
 departamentos con el código de `src/` ya promovido (~4 h GPU, nunca se corrió a escala
-nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos; la **etapa 2** del pre-filtro por indicador: el
-tramo 1 (6 indicadores, pre-registro `experimentos/PREREG_prefiltro_indicador_e2.md`) terminó el
-2026-09-29 con **NO ADOPTAR** (informe 13); quedan 11 indicadores con lista propuesta sin evaluar y 4
-abstractos (`experimentos/PLAN_prefiltro_indicador_etapa2.md`).
+nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos; la **etapa 2** del pre-filtro por indicador quedó **cerrada** el 2026-09-29 sin listas nuevas (tramo 1: informe 13;
+cribado de los 11 restantes y jueces de la única sobreviviente: informe 14).
 
 ## Mapa
 

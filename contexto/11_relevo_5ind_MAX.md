@@ -1,4 +1,4 @@
-# 11 — Relevo: plan 5 indicadores bajo MAX (estado al 2026-09-29: etapa 2, tramo 1 del pre-filtro por indicador cerrado, NO ADOPTAR)
+# 11 — Relevo: plan 5 indicadores bajo MAX (estado al 2026-09-29: etapa 2 del pre-filtro por indicador CERRADA sin listas nuevas)
 
 Documento de traspaso entre conversaciones. **Leerlo entero antes de actuar.** Resume lo que
 una conversación nueva necesita para seguir sin redescubrir nada; el detalle y la evidencia
@@ -26,6 +26,10 @@ están en los archivos que cita.
   ambientales (3) «no medibles»; amenaza a líderes, amenazas/intimidación, protesta y violación de DDHH no cumplen (a)–(d)
   (la más cercana, amenazas/intimidación: (a) +0.43, (b) +0.27, falla (c) gemela −0.114). Trazabilidad del MAX: artículo SÍ en
   8 → 14 de 42 celdas. Informe 13 (9366c39), que además explica en detalle por qué no se reactiva el pre-filtro social.
+- **Etapa 2, tramo 2 (2026-09-29): etapa 2 CERRADA.** Opción C elegida por el usuario: cribado sin jueces de los 11 restantes
+  (pre-registro `experimentos/PREREG_prefiltro_indicador_e2_t2.md`, 26618f8; condición C = control absurdo y R = radar con la lista sola).
+  Sobrevive solo `zonas_proteccion_alimentaria` (560fa9f); con jueces nuevos `juez-e`/`juez-f` (kappa 0.72, 9 SÍ/SÍ) falla (a) +0.136 y
+  (b) +0.067 (343db57): NO ADOPTAR. Ninguna lista nueva en toda la etapa 2; `src/` sin cambios. Informe 14.
 - Ronda 1 (fases 0–8 de `experimentos/PLAN_5ind_MAX.md`) cerrada. **La F8 se revirtió el
   2026-09-23** (commit e1546fb) por la regla 15 (entonces `src/` era idéntico a `radar-max_Septiembre`,
   cortes 0.766/0.9233, `test_integracion` 10/10). Informe `informes/03_informe_reversion_f8.md`.
@@ -42,10 +46,10 @@ están en los archivos que cita.
   `base-26ind-f7` (705a557), `base-26ind-f8-compuerta` (85db4e1, versión con la compuerta,
   revertida), `prueba-modelo-nli-rechazado` (27a39a1, historial de la prueba del modelo NLI,
   cuya rama se borró).
-- Informes para el jefe/profesora: **`informes/`** (01 a 12; índice en `informes/README.md`;
+- Informes para el jefe/profesora: **`informes/`** (01 a 14; índice en `informes/README.md`;
   el 05 es el consolidado del plan; 06–07, la prueba del modelo NLI; 08, exclusión; 09, avances
   de la rama para el jefe; 10, resumen consolidado 01–09; 11, pre-filtro social general (rechazado);
-  12, pre-filtro por indicador (promovido)). **El siguiente es el 13.**
+  12, pre-filtro por indicador (promovido); 13, etapa 2 tramo 1 y pre-filtro social; 14, cierre de la etapa 2). **El siguiente es el 15.**
 
 ## 2. Innegociables (del usuario)
 
@@ -95,10 +99,7 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
    en la etiqueta `prueba-modelo-nli-rechazado` y su documentación y resultados, aquí (log,
    informes 06–07, `PREREG_modelo_nli.md`, scripts `exp_modelo_nli_*`, relevo 12 como registro).
    El usuario **rechazó** consultar a la profesora (tarea 0 del backlog): no proponerlo de nuevo.
-5. **Etapa 2 del pre-filtro por indicador:** tramo 1 (6) cerrado con NO ADOPTAR. **Pendiente: qué hacer con los 11
-   indicadores restantes con lista propuesta** (`LISTAS_SOLO_APERTURA` de `experimentos/hipotesis_prefiltro_e2.py`, tasas de
-   apertura ya medidas en `juicio_prefiltro_e2/aperturas.csv`, todas ≤ 0.2369) y los 4 abstractos. El pre-registro solo
-   contemplaba un tramo 2 si el 1 dejaba alguna lista; no dejó ninguna.
+5. **Etapa 2 del pre-filtro por indicador: CERRADA** (2026-09-29, informe 14). Nada pendiente.
 
 ## 5. Ronda 2 — resumen del pre-registro congelado
 
@@ -175,8 +176,8 @@ pre-registro congelado; si la 2a ronda lo cambia, hay que crear agentes nuevos (
 
 ## 7. Siguiente paso exacto
 
-0. (2026-09-29, cierre) Etapa 2, tramo 1: NO ADOPTAR, informe 13 escrito. Siguiente: proponer al usuario (sin ejecutar) qué
-   hacer con los 11 indicadores restantes (§4.5); lo demás de §4 sigue pendiente. Antes (etapa 1, `f30549e`): Leer las entradas [2026-09-28] y [2026-09-29] del log y los informes 11 y 12.
+0. (2026-09-29, cierre) Etapa 2 CERRADA sin listas nuevas (informes 13 y 14). Siguiente: esperar las decisiones del usuario de §4
+   (fusión, push/merge, exclusión); no proponer más listas de pre-filtro sin evidencia nueva medida. Antes (etapa 1, `f30549e`): Leer las entradas [2026-09-28] y [2026-09-29] del log y los informes 11 y 12.
    Motivo de fondo: la jefa quiere un pre-filtro que se aplique a TODOS los indicadores; el general (una sola pregunta NLI)
    no sirve porque los falsos positivos de la cabeza son específicos de cada indicador (informe 11 y diagnóstico: los
    artículos que fijan el MAX no se distinguen del corpus por territorio, sesgo ni fecha). La etapa 2 es el camino a los 26.
