@@ -11,6 +11,7 @@ Preguntas:
   3. Los positivos de grupos armados con puntaje social < umbral: ¿en que lugar y en que rango del
      ranking sin mascara estaban?
   4. El caso de Chocó (unico positivo que sale de un top-10): top-10 antes y despues.
+  5. Articulos enmascarados por ambito (nacional y los 4 lugares, convencion de produccion).
 
   PYTHONIOENCODING=utf-8 python experimentos/exp_prefiltro_max_mecanismo.py
 Salida: experimentos/resultados/exp_prefiltro_max_mecanismo.xlsx
@@ -33,28 +34,42 @@ def main():
     D = X.cargar()
     places = X.armar_lugares(D)
     cells = X.celdas(places)
+    # 0. enmascarados por ambito
+    filas = [{"ambito": "nacional (32 departamentos)", "articulos": len(D.nac), "enmascarados": int((D.nac_social < U).sum())}]
+    for g in sorted(set(D.l["departamento"])):
+        sel = (D.l["departamento"] == g).values
+        filas.append({"ambito": g, "articulos": int(sel.sum()), "enmascarados": int((D.l_social[sel] < U).sum())})
+    ambitos = pd.DataFrame(filas)
+    ambitos["pct_enmascarado"] = ambitos["enmascarados"] / ambitos["articulos"]
+    print("0.", ambitos.round(4).to_dict("records"))
     tit = D.nac.set_index("url")["titulo"]
     tit_l = D.l.set_index("url")["titulo"]
     titulo = lambda u: str((tit_l if u in tit_l.index else tit).get(u, ""))  # noqa: E731
 
     # 1. articulos que la mascara saca de los top-10 (sin mascara) de cada celda
-    filas, n_puestos = [], 0
+    filas, puestos = [], []
     for p, i in cells:
         m = p.social >= U
         x = p.S[i]
         o = np.lexsort((np.arange(p.n), -x))
         k = min(10, int((x > 0).sum()))
-        n_puestos += k
         for rango, j in enumerate(o[:k], 1):
+            puestos.append({"positivo": bool(p.pos[i][j]), "social": float(p.social[j]), "pasa": bool(m[j])})
             if not m[j]:
                 filas.append({"indicador": i, "lugar": p.name, "rango_sin_mascara": rango, "score": float(x[j]),
                               "score_social": float(p.social[j]), "positivo_de_referencia": bool(p.pos[i][j]),
                               "titulo": titulo(p.urls[j])})
     sacados = pd.DataFrame(filas)
+    pu = pd.DataFrame(puestos)
+    nopos = pu[~pu["positivo"]]
     resumen = pd.DataFrame([{
-        "umbral": U, "celdas": len(cells), "puestos_top10": n_puestos, "articulos_sacados": len(sacados),
+        "umbral": U, "celdas": len(cells), "puestos_top10": len(pu), "articulos_sacados": len(sacados),
         "sacados_positivos": int(sacados["positivo_de_referencia"].sum()),
-        "sacados_no_positivos": int((~sacados["positivo_de_referencia"]).sum())}])
+        "sacados_no_positivos": int((~sacados["positivo_de_referencia"]).sum()),
+        "puestos_positivos": int(pu["positivo"].sum()), "puestos_no_positivos": len(nopos),
+        "no_positivos_que_pasan": int(nopos["pasa"].sum()),
+        "pct_no_positivos_que_pasan": float(nopos["pasa"].mean()),
+        "mediana_social_de_los_que_pasan": float(nopos.loc[nopos["pasa"], "social"].median())}])
     print("1.", resumen.to_dict("records")[0])
 
     # 2. juzgados (759) enmascarados, por indicador y etiqueta
@@ -96,6 +111,7 @@ def main():
 
     os.makedirs(os.path.dirname(SALIDA), exist_ok=True)
     with pd.ExcelWriter(SALIDA, engine="openpyxl") as w:
+        ambitos.to_excel(w, sheet_name="enmascarados_por_ambito", index=False)
         resumen.to_excel(w, sheet_name="resumen_top10", index=False)
         sacados.to_excel(w, sheet_name="sacados_del_top10", index=False)
         juz.to_excel(w, sheet_name="juzgados_enmascarados", index=False)

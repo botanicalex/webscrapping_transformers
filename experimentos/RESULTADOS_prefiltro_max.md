@@ -216,7 +216,10 @@ no cambian de clase (Antioquia 2023 0.9354 → 0.9354, Maicao 0.9625 → 0.9614,
 `experimentos/exp_prefiltro_max_mecanismo.py`, `experimentos/resultados/exp_prefiltro_max_mecanismo.xlsx`).
 - De los 225 puestos de los top-10 de las 23 celdas, la máscara saca 27 artículos: 26 no positivos y 1 positivo. Limpia
   ruido, pero los reemplazos también son no positivos (la referencia tiene 13 celdas con positivos y pocos en cada una),
-  así que la precisión no sube. Y el único positivo que se lleva es el nº 1 de grupos armados en Chocó, «Chocó: 79 % de los
+  así que la precisión no sube. De los 199 puestos que ocupan artículos no positivos, 173 (87 %) pasan el filtro, con una
+  mediana de puntaje social de 0.998 (hoja `resumen_top10`): los falsos positivos de la cabeza son artículos socialmente
+  relevantes, que un filtro general de relevancia no toca. Y el único positivo que se lleva es el nº 1 de grupos armados en
+  Chocó, «Chocó: 79 % de los
   confinamientos y el segundo con más desplazamientos», con puntaje social 0.049: un texto de cifras que el filtro no
   reconoce como riesgo para una comunidad.
 - En los 759 juzgados enmascara el 13.2 % de los negativos y el 3.9 % de los positivos de grupos armados (5 de 128:

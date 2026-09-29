@@ -1,4 +1,5 @@
-1. {'umbral': 0.85, 'celdas': 23, 'puestos_top10': 225, 'articulos_sacados': 27, 'sacados_positivos': 1, 'sacados_no_positivos': 26}
+0. [{'ambito': 'nacional (32 departamentos)', 'articulos': 11439, 'enmascarados': 1442, 'pct_enmascarado': 0.1261}, {'ambito': 'Antioquia (2023)', 'articulos': 494, 'enmascarados': 65, 'pct_enmascarado': 0.1316}, {'ambito': 'Municipio Maicao', 'articulos': 1101, 'enmascarados': 113, 'pct_enmascarado': 0.1026}, {'ambito': 'Municipio Oicatá', 'articulos': 32, 'enmascarados': 13, 'pct_enmascarado': 0.4062}, {'ambito': 'Vereda Paraguachón', 'articulos': 20, 'enmascarados': 5, 'pct_enmascarado': 0.25}]
+1. {'umbral': 0.85, 'celdas': 23, 'puestos_top10': 225, 'articulos_sacados': 27, 'sacados_positivos': 1, 'sacados_no_positivos': 26, 'puestos_positivos': 26, 'puestos_no_positivos': 199, 'no_positivos_que_pasan': 173, 'pct_no_positivos_que_pasan': 0.8693467336683417, 'mediana_social_de_los_que_pasan': 0.9975117444992065}
 2. juzgados 759, enmascarados 88 (11.6%)
                       indicador  positivos  positivos_enmascarados  frac_positivos_enmascarados  negativos  negativos_enmascarados  frac_negativos_enmascarados
 exclusion_beneficios_economicos          0                       0                        0.000        759                      88                        0.116

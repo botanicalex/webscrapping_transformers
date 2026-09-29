@@ -1740,9 +1740,10 @@ no mejora la cabeza del ranking con jueces y cuesta AUC contra plata (reproducid
 volver a probar los umbrales 0.50, 0.65 y 0.75 (no pasan C1). No reintentar sin evidencia nueva medida.
 
 **Abre:**
-- Los falsos positivos de la cabeza del ranking son artículos socialmente relevantes (pasan el filtro con puntajes de
-  0.99), así que un filtro general de relevancia no puede corregirlos: es la misma causa que se midió en la ronda 1
-  (el NLI confirma la forma de la frase, no su objeto).
+- Los falsos positivos de la cabeza del ranking son artículos socialmente relevantes: de los 199 puestos de top-10
+  que ocupan artículos no positivos, 173 (87 %) pasan el filtro, con mediana de puntaje social 0.998
+  (`experimentos/resultados/exp_prefiltro_max_mecanismo.xlsx`, hoja `resumen_top10`). Un filtro general de relevancia
+  no puede corregirlos; es coherente con la ronda 1 (el NLI confirma la forma de la frase, no su objeto).
 - El artefacto de tamaño de MAX (Spearman(radar, nº de artículos) +0.88) no se toca con este filtro.
 - La referencia sigue siendo el límite: 13 celdas con positivos, 21 de 26 indicadores sin referencia y Oicatá sin
   positivos de ningún indicador.
