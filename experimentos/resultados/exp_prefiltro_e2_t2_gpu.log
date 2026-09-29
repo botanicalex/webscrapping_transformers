@@ -1,0 +1,24 @@
+Inicio 2026-09-29 15:00:45
+NLI cargado | device=cuda
+  id2label   : {0: 'entailment', 1: 'neutral', 2: 'contradiction'}
+  entailment=0  neutral=1  contradiction=2
+
+[0] Verificacion bloqueante contra produccion V2 (presencia_grupos_armados)...
+Verificacion V2 'presencia_grupos_armados': max|dif| = 9.77e-07 -> OK
+    (76 s)
+
+[1] Lugares 1647 + holdout 1117 {'Cauca': 598, 'Cundinamarca': 371, 'Chocó': 148}
+    resistencia_territorial__gemela listo: 'Hay resistencia de los osos polares en defensa del territorio o el medio ambiente.' (1.8 min; acumulado 3.0 min)
+    exclusion_comunidades__gemela listo: 'Los osos polares exigen ser consultados o incluidos en las decisiones.' (1.8 min; acumulado 4.8 min)
+    deficit_participacion_comunitaria__gemela listo: 'No hubo consulta ni participación de los osos polares en un proyecto o decisión.' (1.8 min; acumulado 6.5 min)
+    incentivos_economicos_inequitativos__gemela listo: 'El reparto de compensaciones o regalías entre los osos polares fue desigual.' (1.8 min; acumulado 8.3 min)
+    conflictos_socioambientales__gemela listo: 'Hay un conflicto de los osos polares por el uso del territorio, el agua o los recursos naturales.' (1.8 min; acumulado 10.1 min)
+    exclusion_servicios_derechos__gemela listo: 'Hay osos polares sin acceso a servicios básicos o a sus derechos.' (1.8 min; acumulado 11.9 min)
+    grupos_etnicos_existentes__gemela listo: 'En este territorio hay comunidades de osos polares.' (1.8 min; acumulado 13.7 min)
+    movimientos_sociales__gemela listo: 'Hay movilizaciones u organizaciones de osos polares activas.' (1.8 min; acumulado 15.5 min)
+    irregularidad_contractual__gemela listo: 'Hubo irregularidades o corrupción en contratos con osos polares.' (1.8 min; acumulado 17.2 min)
+    zonas_proteccion_alimentaria__gemela listo: 'Hay cultivos, tierras de siembra o producción de alimentos para osos polares.' (1.8 min; acumulado 19.0 min)
+    dano_territorios__gemela listo: 'Hubo destrucción, ocupación ilegal o despojo de territorios de osos polares.' (1.8 min; acumulado 20.8 min)
+
+Guardado -> datos/scores/scores_prefiltro_e2_t2.pkl (2764, 25)
+TOTAL 20.8 min
