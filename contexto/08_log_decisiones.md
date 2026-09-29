@@ -1867,3 +1867,5 @@ trazabilidad del artículo que fija el MAX, que se muestra en el front, y se añ
 `juez-d` (opus) con codebook de 6 indicadores; `juez-a`/`juez-b` sin tocar. Regla de inclusión (a)–(d) de la etapa 1; mecanismo
 combinado contra producción actual (Spearman DANE ≥ −0.0913, tamaño ≤ +0.8640, 0 anclas). Nada calculado todavía.
 **Pendiente:** confirmación expresa del usuario de las 6 listas (regla 15) antes de la F1.
+**Confirmación del usuario (2026-09-29):** las 6 listas de `LISTAS_TRAMO_1` quedan confirmadas como excepción a la regla 15, con el
+alcance del pre-registro (solo entran a `src/` las que pasen §3–§6 y tras nueva aprobación). Se lanza la F1.
