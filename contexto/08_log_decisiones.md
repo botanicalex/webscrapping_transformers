@@ -1826,3 +1826,32 @@ tras la aprobación.
 pregunta «¿un pre-filtro por indicador aporta al radar?» para grupos armados y desplazamiento, con las salvedades de arriba.
 **Abre:** la aprobación del usuario (excepción a la regla 15 y configuración A o B del plan); la etapa 2; y la lista de desplazamiento, que
 recorta artículos sin las palabras pero no distingue el objeto.
+
+## [2026-09-29] Promoción a `src/` del pre-filtro por indicador (configuración A) — PROMOVIDO
+
+**Aprobación del usuario (2026-09-29):** configuración A del plan (`presencia_grupos_armados` + `desplazamiento_forzado`, cortes
+0.7572/0.9233), con las salvedades de desplazamiento de la entrada anterior. La excepción a la regla 15 para listas de objeto por
+indicador ya estaba confirmada; su alcance quedó escrito en `CLAUDE.md` (regla 15): solo esas dos listas congeladas; cualquier lista
+nueva, compuerta ad hoc, `min` o resta de confusores sigue prohibida sin pre-registro y confirmación expresa del usuario.
+
+**Cambios** (`d249bba`): `src/Transformer_optimo.py` (`PREFILTRO_OBJETO`, compuerta sobre la premisa visible del par con la hipótesis
+de cada indicador, multiplicada dentro de `procesar()`, sin columnas nuevas; comentario de las líneas 168–175 al día),
+`src/config_pipeline.py` (`CORTE_BAJO_MEDIO_RADAR` 0.766 → 0.7572) y `src/test_integracion.py` (6 pruebas nuevas). Documentación en
+`b73e8ec` (`CLAUDE.md`: regla 15 y estado técnico; relevo 11). `ESTADO_DEL_PROYECTO.md` no se toca hasta la fusión (regla 13).
+
+**Verificación:** `python src/test_integracion.py` 16/16 (re-ejecutado por el coordinador). Equivalencia offline
+(`experimentos/exp_prefiltro_indicador_equivalencia.py`, `.log`/`.csv`): listas e hipótesis de `src/` iguales a las del experimento;
+MAX de los 26 indicadores en los 32 departamentos con diferencia 0; clasificación 6/19/7; `elegir_cortes` devuelve 0.7572/0.9233 sin
+anclas rotas; Spearman contra el DANE −0.1653 → −0.0913. Recorrida de los 4 lugares con el `src/` nuevo (GPU 31.6 min,
+`experimentos/resultados/exp_prefiltro_indicador_correr_lugares.log`; salida local `resultados/tablas_lugares_max_prefiltro_2026-09-29/`),
+sobre `datos/corpus/df_corpus_5lugares.pkl` sin regenerarlo (sha256 `b4ccb0e6…` idéntico antes y después): las 24 columnas no filtradas
+y el sesgo idénticos a la corrida anterior; las dos filtradas = puntaje anterior × compuerta (diferencia 0); radar igual a la
+predicción (Antioquia (2023) 0.9354 Alto, Maicao 0.9623 Alto, Oicatá 0.6239 Bajo, Paraguachón 0.6523 Bajo; ninguna clase cambia;
+5 de 104 MAX cambian) (`experimentos/resultados/exp_prefiltro_indicador_lugares.xlsx`).
+
+**Decisión:** PROMOVIDO. Producción de esta rama = hipótesis V2, sin pre-filtro social general, con pre-filtro por indicador en
+grupos armados y desplazamiento, sesgo descontado, MAX, cortes 0.7572/0.9233. Informe para lector externo:
+`informes/12_informe_prefiltro_por_indicador.md`.
+**Cierra:** la aprobación pendiente de la entrada anterior.
+**Abre:** la etapa 2 (`experimentos/PLAN_prefiltro_indicador_etapa2.md`, sin pre-registrar); cualquier `df_procesado` anterior al
+2026-09-29 debe regenerarse antes de clasificarlo con los cortes nuevos (no trae el filtro y nada en sus columnas lo delata).
