@@ -1883,3 +1883,20 @@ Kappa en el pool (SÍ frente a {NO, DUDOSO}): reasentamiento 0.786, amenaza a l�
 0.949, violación de DDHH 0.753, daños ambientales 0.849 (ninguno < 0.4). SÍ/SÍ en el pool: 4, 10, 30, 42, 13, 3. Cobertura 100 %.
 **Decisión (por §3 del pre-registro):** `reasentamiento` y `danos_ambientales` quedan **«no medibles»** (< 5 SÍ/SÍ) y pasan sin
 filtro; a la F3 van `amenaza_lideres`, `amenaza_intimidacion`, `protesta_social` y `violacion_derechos_humanos`.
+
+## [2026-09-29] Pre-filtro por indicador, etapa 2, tramo 1 — F3: NO ADOPTAR (ninguna lista nueva)
+
+**Método:** análisis offline según `experimentos/PREREG_prefiltro_indicador_e2.md` (subagente; `experimentos/exp_prefiltro_e2.py` →
+`experimentos/resultados/exp_prefiltro_e2.xlsx`, `experimentos/RESULTADOS_prefiltro_e2.md`, commit `600c5d3`). Sanidad 11/11: sin
+listas nuevas reproduce producción (0.7572/0.9233, 6/19/7, Spearman DANE −0.0913, tamaño +0.8640, 0 anclas); pool y cobertura 100 %.
+**Evidencia** (ΔM2 con filtro; (c) control absurdo; (d) violaciones nuevas de M3):
+- `amenaza_lideres`: (a) +0.050 no; (b) +0.100 sí; (c) falla (gemela, lugares −0.035); (d) 0. NO.
+- `amenaza_intimidacion`: (a) +0.425 sí; (b) +0.267 sí; (c) falla (gemela, lugares −0.114); (d) 0. NO (la más cercana).
+- `protesta_social`: (a) +0.038 no; (b) +0.200 sí; (c) pasa; (d) 1 nueva. NO.
+- `violacion_derechos_humanos`: (a) +0.125 no; (b) 0.000 no; (c) falla (absurdo total, lugares −0.035); (d) 1 nueva. NO.
+- Solas (reporte): las cuatro suben el Spearman con el tamaño (≥ +0.8658) y tres bajan el Spearman contra el DANE; ninguna rompe anclas.
+- Trazabilidad (§7, reporte): el artículo que fija el MAX es SÍ de referencia en 8 de 42 celdas (6 indicadores × 7 lugares) sin filtro
+  y 14 con filtro; en violación de DDHH, ninguno sin filtro.
+**Decisión:** NO ADOPTAR. `src/` no cambia; producción sigue con 2 listas (grupos armados, desplazamiento). Reasentamiento y daños
+ambientales, «no medibles». **Cierra:** estas 6 listas con esta redacción (no se reintentan sin evidencia nueva medida).
+**Abre:** informe 13; decisión del usuario sobre un tramo 2 (el pre-registro solo lo contempla si el tramo 1 dejaba alguna lista).
