@@ -1900,3 +1900,10 @@ listas nuevas reproduce producción (0.7572/0.9233, 6/19/7, Spearman DANE −0.0
 **Decisión:** NO ADOPTAR. `src/` no cambia; producción sigue con 2 listas (grupos armados, desplazamiento). Reasentamiento y daños
 ambientales, «no medibles». **Cierra:** estas 6 listas con esta redacción (no se reintentan sin evidencia nueva medida).
 **Abre:** informe 13; decisión del usuario sobre un tramo 2 (el pre-registro solo lo contempla si el tramo 1 dejaba alguna lista).
+
+## [2026-09-29] Cierre de la sesión de la etapa 2 — informe 13 y alcance backend
+
+Informe 13 escrito (`informes/13_informe_prefiltro_etapa2_y_prefiltro_social.md`, 9366c39): tramo 1 NO ADOPTAR y explicación
+detallada de por qué no se reactiva el pre-filtro social. **Decisión del usuario:** cómo muestra el front el artículo que fija el
+MAX ya está resuelto y queda fuera de este proyecto (solo backend; el front vive en otra rama). Se actualizan `CLAUDE.md` (reglas
+5–6 y convenciones, desactualizadas) y el relevo 11. **Siguiente:** decidir qué hacer con los 11 indicadores restantes de la etapa 2.

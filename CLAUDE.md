@@ -38,11 +38,12 @@ optimizar indicadores — hay un techo estructural y una decisión de diseño pe
    configuración): solo son comparables mediciones con el mismo contenido absurdo.
 4. **`NULA_TEST` no entra jamás en la calibración del sesgo.** Para eso están las 4 de
    `NULAS_CALIBRACION`. Mezclarlas destruye la única evaluación honesta que queda.
-5. **En esta rama no existe `experimentos/`** (se eliminó en la poda). Las 26 hipótesis V2
-   viven únicamente en `src/Transformer_optimo.py`; no hay copia V0 aquí.
-6. **En esta rama no existe `nli_core`** (se eliminó con `experimentos/`), así que la
-   verificación `verificar_contra_produccion_v2()` no aplica aquí. Para validar cambios,
-   correr `python src/test_integracion.py` (10 tests, sin GPU).
+5. **`experimentos/` existe en esta rama** (pre-registros, scripts y resultados de los
+   experimentos). Las 26 hipótesis V2 de producción viven en `src/Transformer_optimo.py`;
+   `src/` no importa de `experimentos/`.
+6. **NLI fuera de `src/`: `experimentos/nli_core.py`** (con la verificación contra
+   producción). Para validar cambios en `src/`, correr `python src/test_integracion.py`
+   (16 tests, sin GPU).
 7. **Un experimento aísla UNA variable.** Dos cambios a la vez no se pueden atribuir.
 8. **No repetir GPU.** Puntuar los 32 departamentos son ~4 h. Se guardan `ent_` y `neu_`
    **sin enmascarar** en un pkl y todo el análisis posterior se hace sobre el pkl.
@@ -114,9 +115,10 @@ conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos
 queda en cero en P75 a escala nacional — la etiqueta "tres muertos" es del corpus de 5
 lugares); re-puntuar los 32
 departamentos con el código de `src/` ya promovido (~4 h GPU, nunca se corrió a escala
-nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos; la **etapa 2** del pre-filtro por indicador (17
-listas propuestas y 4 indicadores abstractos en `experimentos/PLAN_prefiltro_indicador_etapa2.md`, sin
-pre-registrar).
+nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos; la **etapa 2** del pre-filtro por indicador: el
+tramo 1 (6 indicadores, pre-registro `experimentos/PREREG_prefiltro_indicador_e2.md`) terminó el
+2026-09-29 con **NO ADOPTAR** (informe 13); quedan 11 indicadores con lista propuesta sin evaluar y 4
+abstractos (`experimentos/PLAN_prefiltro_indicador_etapa2.md`).
 
 ## Mapa
 
@@ -160,8 +162,9 @@ Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`).
 - Español, sin emojis. Los scripts imprimen tablas de texto y guardan un `.xlsx`.
 - Los informes para el jefe o la profesora van a `informes/` (`NN_informe_<tema>.md`), no a
   `experimentos/` ni a la raíz.
-- En esta rama no hay carpeta `experimentos/`: los cambios se prueban directamente sobre
-  `src/` y se documentan en `explicacion_alexa.md`.
+- Los experimentos se pre-registran y ejecutan en `experimentos/`; `src/` solo cambia al
+  promover algo aprobado por el usuario.
+- Este proyecto es solo backend: el front vive en otra rama/repositorio y no se toca aquí.
 - Todo número citado lleva su archivo de origen. Si no está medido, se dice "no medido".
 - Para decidir el siguiente paso, usar el agente `orquesta-lead`
   (`.claude/agents/orquesta-lead.md`). Si el harness no lo registra como subagente

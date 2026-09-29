@@ -1,4 +1,4 @@
-# 11 — Relevo: plan 5 indicadores bajo MAX (estado al 2026-09-29: pre-filtro por indicador promovido)
+# 11 — Relevo: plan 5 indicadores bajo MAX (estado al 2026-09-29: etapa 2, tramo 1 del pre-filtro por indicador cerrado, NO ADOPTAR)
 
 Documento de traspaso entre conversaciones. **Leerlo entero antes de actuar.** Resume lo que
 una conversación nueva necesita para seguir sin redescubrir nada; el detalle y la evidencia
@@ -18,6 +18,14 @@ están en los archivos que cita.
   `experimentos/RESULTADOS_prefiltro_indicador.md`, plan `experimentos/PLAN_implementacion_prefiltro_indicador.md`,
   equivalencia `experimentos/exp_prefiltro_indicador_equivalencia.py`; informe `informes/12_informe_prefiltro_por_indicador.md`.
   Antes (2026-09-28) el pre-filtro social general se rechazó bajo MAX (informe 11).
+- **Etapa 2, tramo 1 (2026-09-29): NO ADOPTAR** (`src/` sin cambios). Pre-registro
+  `experimentos/PREREG_prefiltro_indicador_e2.md` (da30a63; tramo de 6, tope 3, techo de apertura 50 %, sin placebo);
+  listas/gemelas `experimentos/hipotesis_prefiltro_e2.py`; jueces nuevos `juez-c` (sonnet) y `juez-d` (opus); datos en
+  `experimentos/resultados/juicio_prefiltro_e2/` y `datos/scores/scores_prefiltro_e2.pkl`; análisis
+  `experimentos/exp_prefiltro_e2.py` → `experimentos/RESULTADOS_prefiltro_e2.md` (600c5d3). Reasentamiento (4 SÍ/SÍ) y daños
+  ambientales (3) «no medibles»; amenaza a líderes, amenazas/intimidación, protesta y violación de DDHH no cumplen (a)–(d)
+  (la más cercana, amenazas/intimidación: (a) +0.43, (b) +0.27, falla (c) gemela −0.114). Trazabilidad del MAX: artículo SÍ en
+  8 → 14 de 42 celdas. Informe 13 (9366c39), que además explica en detalle por qué no se reactiva el pre-filtro social.
 - Ronda 1 (fases 0–8 de `experimentos/PLAN_5ind_MAX.md`) cerrada. **La F8 se revirtió el
   2026-09-23** (commit e1546fb) por la regla 15 (entonces `src/` era idéntico a `radar-max_Septiembre`,
   cortes 0.766/0.9233, `test_integracion` 10/10). Informe `informes/03_informe_reversion_f8.md`.
@@ -49,8 +57,9 @@ están en los archivos que cita.
 - **No se retira ningún indicador**: el radar sigue con 26.
 - Sin push ni merge sin aprobación explícita. Toda decisión (adopciones y rechazos) a
   `contexto/08_log_decisiones.md`.
-- Economía de tokens: el orquestador escribe los scripts; subagentes solo `orquesta-lead` (una
-  vez por pre-registro y una al final) y los jueces. Nada de Explore ni general-purpose.
+- Economía de tokens. Ejecución pesada: un subagente Sonnet (tipo `claude`) NUEVO por fase, con prompt autocontenido;
+  los jueces los lanza el coordinador. Nada de Explore ni general-purpose.
+- Proyecto solo backend: el front (que muestra el artículo que fija el MAX) es de otra rama y no se toca.
   Resúmenes ≤ 40 líneas; no volcar dataframes. GPU una sola vez por corpus.
 - Si el contexto se llena: parar en un punto limpio (todo commiteado) y entregar un prompt de
   relevo (actualizar este documento).
@@ -86,10 +95,10 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
    en la etiqueta `prueba-modelo-nli-rechazado` y su documentación y resultados, aquí (log,
    informes 06–07, `PREREG_modelo_nli.md`, scripts `exp_modelo_nli_*`, relevo 12 como registro).
    El usuario **rechazó** consultar a la profesora (tarea 0 del backlog): no proponerlo de nuevo.
-5. **Etapa 2 del pre-filtro por indicador** (los otros 21 indicadores): solo hay un borrador
-   (`experimentos/PLAN_prefiltro_indicador_etapa2.md`, 17 listas propuestas y 4 abstractos, escrito sin mirar
-   puntajes ni jueces). Nada pre-registrado; exigiría referencia de jueces por indicador y, por la regla 15,
-   pre-registro y confirmación expresa del usuario para cada lista nueva.
+5. **Etapa 2 del pre-filtro por indicador:** tramo 1 (6) cerrado con NO ADOPTAR. **Pendiente: qué hacer con los 11
+   indicadores restantes con lista propuesta** (`LISTAS_SOLO_APERTURA` de `experimentos/hipotesis_prefiltro_e2.py`, tasas de
+   apertura ya medidas en `juicio_prefiltro_e2/aperturas.csv`, todas ≤ 0.2369) y los 4 abstractos. El pre-registro solo
+   contemplaba un tramo 2 si el 1 dejaba alguna lista; no dejó ninguna.
 
 ## 5. Ronda 2 — resumen del pre-registro congelado
 
@@ -166,8 +175,8 @@ pre-registro congelado; si la 2a ronda lo cambia, hay que crear agentes nuevos (
 
 ## 7. Siguiente paso exacto
 
-0. (2026-09-29) Pre-filtro por indicador: etapa 1 promovida y documentada (último commit `f30549e`); lo pendiente es
-   la etapa 2 (§4.5) y las decisiones de §4. Leer las entradas [2026-09-28] y [2026-09-29] del log y los informes 11 y 12.
+0. (2026-09-29, cierre) Etapa 2, tramo 1: NO ADOPTAR, informe 13 escrito. Siguiente: proponer al usuario (sin ejecutar) qué
+   hacer con los 11 indicadores restantes (§4.5); lo demás de §4 sigue pendiente. Antes (etapa 1, `f30549e`): Leer las entradas [2026-09-28] y [2026-09-29] del log y los informes 11 y 12.
    Motivo de fondo: la jefa quiere un pre-filtro que se aplique a TODOS los indicadores; el general (una sola pregunta NLI)
    no sirve porque los falsos positivos de la cabeza son específicos de cada indicador (informe 11 y diagnóstico: los
    artículos que fijan el MAX no se distinguen del corpus por territorio, sesgo ni fecha). La etapa 2 es el camino a los 26.
