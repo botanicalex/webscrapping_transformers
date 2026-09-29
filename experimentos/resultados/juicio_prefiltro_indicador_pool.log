@@ -1,0 +1,26 @@
+referencia: 940 juzgados
+conflicto_territorial: la compuerta abre en 4.2% de los 11.439
+desplazamiento_forzado: la compuerta abre en 6.2% de los 11.439
+
+Top-k por indicador x departamento x variante (k, ya juzgados, sin juzgar):
+     indicador departamento variante  k  ya_juzgados  nuevos
+conflicto_terr        Cauca      V01 10           10       0
+conflicto_terr        Cauca      V08 10            9       1
+conflicto_terr        Chocó      V01 10            9       1
+conflicto_terr        Chocó      V08 10            9       1
+conflicto_terr Cundinamarca      V01 10            8       2
+conflicto_terr Cundinamarca      V08  2            2       0
+desplazamiento        Cauca      V01 10            8       2
+desplazamiento        Cauca      V08 10            6       4
+desplazamiento        Chocó      V01 10            7       3
+desplazamiento        Chocó      V08 10            8       2
+desplazamiento Cundinamarca      V01 10            3       7
+desplazamiento Cundinamarca      V08 10            0      10
+
+Pool: 112 entradas, 79 url unicas; ya juzgadas 53; SIN JUZGAR 26
+Control: 10 de 113 juzgados del holdout
+
+36 articulos (26 nuevos + 10 control) -> 1 lotes de <= 40 en experimentos/resultados/juicio_prefiltro_indicador\lotes
+origen
+pool       26
+control    10
