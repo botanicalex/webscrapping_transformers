@@ -1671,3 +1671,78 @@ Los dos informes van en `informes/`, con su fila en el índice.
 - **Fusión a `radar-max_Septiembre`: EN ESPERA.** No se fusiona hasta que el usuario lo diga, tras
   hablar con su jefe. Sin push. `src/` sin cambios. Se actualizan `contexto/11_relevo_5ind_MAX.md`
   (el siguiente informe es el 10 y la fusión queda en espera) y `contexto/07_backlog.md`.
+
+## [2026-09-28] Pre-filtro de relevancia social bajo MAX (umbral 0.85) — RECHAZADO (NO REINTEGRAR)
+
+**Pregunta:** el pre-filtro social V2 se rechazó el 2026-08-31 con un AUC por artículo contra plata (2 de 26
+indicadores) y antes se había mirado con un A/B de radar bajo P75. Desde entonces la agregación pasó a MAX (el efecto
+del pre-filtro sobre el radar bajo MAX nunca se midió) y hay una referencia nueva de jueces (SÍ de `juez-a` y `juez-b`,
+940 juzgados, 5 indicadores) que mide la cabeza del ranking, que es lo único que ve el MAX. Regla 10: evidencia nueva,
+se reabre. ¿Reintegrar el pre-filtro con umbral 0.85 (`score_social_v2 < 0.85` pone el score de los 26 indicadores en 0)?
+
+**Decisiones del usuario (2026-09-28):** el pre-filtro se admite como excepción a la regla 15 si gana (el score social se
+calcularía por dentro de `procesar()`, sin columna nueva; la regla sigue para los 26 indicadores). Si el veredicto era
+REINTEGRAR, no tocar `src/` ni correr los lugares hasta su aprobación.
+
+**Método:** pre-registro `experimentos/PREREG_prefiltro_max.md`, congelado en `3849793` antes de calcular ninguna métrica.
+Variable única: máscara sí/no con umbral 0.85 (el calibrado para `HIPOTESIS_SOCIAL`; el 0.65 de
+`hipotesis_v2.UMBRAL_SOCIAL` es el heredado de la hipótesis anterior, regla 2). GPU única: `score_social_v2` y
+`NULA_TEST` (ent, neu) de los 1.647 artículos de los 4 lugares (`experimentos/exp_prefiltro_gpu_lugares.py`, pkl nuevo
+`datos/scores/scores_prefiltro_lugares.pkl`, no versionado), tras `verificar_contra_produccion_v2` (max|dif| 9.8e-07) y con
+los 494 de Antioquia iguales al nacional por `url` (≤ 1.3e-05). Análisis offline en `experimentos/exp_prefiltro_max.py`
+(`experimentos/resultados/exp_prefiltro_max.xlsx`, `experimentos/RESULTADOS_prefiltro_max.md`): A, AUC contra plata
+(reproducción exacta del 08-31); B, AUC contra jueces (759 juzgados en lugares y holdout); C, M1–M3 con jueces en 23
+celdas (cotas inferior y superior); D, control absurdo con `NULA_TEST` y la misma máscara; E, radar nacional con cortes
+vigentes y recalibrados (`elegir_cortes`); F, impacto; sensibilidad con 0.50, 0.65 y 0.75. Bootstrap de 2.000
+remuestreos, semilla 20260928 (A, 20260831). Regla de decisión C1–C4; un empate es NO.
+
+**Evidencia** (hojas de `experimentos/resultados/exp_prefiltro_max.xlsx`):
+- Sanidad (`S_sanidad`): 21 de 21 OK. Sin máscara se reproduce la producción: 6/19/7 con 0.766/0.9233; Antioquia (2023)
+  0.9354 Alto, Maicao 0.9625 Alto, Oicatá 0.6688 Bajo, Paraguachón 0.6801 Bajo; M1–M3 iguales a `metricas_r2.xlsx` y
+  `metricas_holdout.csv`.
+- A (`A_auc_plata`, `A_reproduccion`): exacta (diferencia máxima 5.6e-17). Grupos étnicos, corregida, 0.8323 → 0.7791
+  (−0.0531, IC95% [−0.0662, −0.0402]); grupos armados 0.8232 → 0.7963 (−0.0269, [−0.0355, −0.0191]).
+- Enmascarados: 12.6 % a nivel nacional; por lugar, 13.2 % (Antioquia), 10.3 % (Maicao), 40.6 % (Oicatá) y 25.0 %
+  (Paraguachón).
+- B (`B_auc_jueces`): ΔAUC corregida de rechazo +0.0070, desplazamiento +0.0041 [+0.0011, +0.0080], conflicto +0.0064
+  [+0.0024, +0.0115] y grupos armados −0.0168 [−0.0435, +0.0049]. La nula gana +0.002 con la misma máscara y el IC95% de la
+  mejora neta incluye el cero en los tres (límite inferior −0.0008, −0.0014, −0.0003).
+- C (`C_unidades`, `C_celdas`): grupos armados (7 celdas) M1 0.7143 → 0.5714 y M2 0.3000 → 0.2857 (IC95%
+  [−0.0429, +0.0429]); 23 celdas M1 0.2609 → 0.2174 y M2 0.1130 → 0.1087 ([−0.0130, +0.0130]). Cobertura con máscara
+  100 %. Con jueces solo cambia una celda: el nº 1 de grupos armados en Chocó (positivo, puntaje social 0.049) sale del top-10.
+- D (`D_brecha_dep`, `D_brecha_lugar`, `D_escala_nula`): Δ brecha media +0.0028 en los 32 departamentos (mediana
+  −0.0003, baja en 19) y +0.0302 en los 4 lugares (baja en 2), sostenida por Atlántico +0.0840, Boyacá +0.0770 y Oicatá
+  +0.1227. La nula casi no cambia: media cruda 0.2142 → 0.2034, proporción > 0.9 5.7 % → 5.5 %, media corregida
+  0.0203 → 0.0193.
+- E (`E_radar_nacional`): Spearman contra el oficial −0.1653 → −0.1712; cortes recalibrados 0.7582/0.9105 (6/18/8), 0
+  anclas rotas; accuracy 0.3438 en las tres configuraciones; Spearman(radar, nº de artículos) +0.884 → +0.889.
+- F (`F_deptos`, `F_indicadores`, `F_celdas_005`): con los cortes vigentes no cambia la clase de ningún departamento;
+  con los recalibrados cambia Meta, por el corte y no por la máscara (su radar pasa de 0.9171 a 0.9169). De 832 celdas
+  departamento × indicador cambian su MAX 51, 10 en más de 0.05 y ninguna pasa a 0. Indicadores más afectados
+  (media de |ΔMAX|): `irregularidad_contractual` 0.0168, `debilidad_institucional` 0.0093,
+  `zonas_proteccion_alimentaria` 0.0057. Los lugares no cambian de clase (Oicatá 0.6688 → 0.6458).
+- Mecanismo (exploratorio, `experimentos/exp_prefiltro_max_mecanismo.py`): de los 225 puestos de top-10 de las 23
+  celdas, la máscara saca 27 artículos, 26 no positivos y 1 positivo; en los juzgados enmascara el 13.2 % de los
+  negativos y el 3.9 % de los positivos de grupos armados (5 de 128).
+- Criterios: C1 pasa (con poca holgura: la brecha baja en 19 de 32 departamentos); **C2 falla** (−0.1653 → −0.1712);
+  **C3 se dispara** (−0.0532 en grupos étnicos) y el bloque C no mejora; **C4 falla** por las tres vías.
+- Sensibilidad (`G_sensibilidad`, `G_sens_B`, `G_sens_C`): con 0.50, 0.65 y 0.75 ninguno pasa los cuatro. C1 falla
+  (Δ brecha de los lugares −0.0007, −0.0021 y −0.0021) y C4 solo pasa por B con mejoras triviales (ΔAUC +0.0009 a
+  +0.0043). No hay candidato para un experimento aparte.
+
+**Decisión:** RECHAZADO (NO REINTEGRAR) con umbral 0.85. El pre-filtro sigue fuera de `src/`, que no se toca. El
+comentario de `src/Transformer_optimo.py:168-175` sigue siendo cierto; se propone añadirle una línea («reevaluado bajo
+MAX el 2026-09-28: sigue rechazado, ver el log») pero no se aplica. Lectura completa en
+`experimentos/RESULTADOS_prefiltro_max.md`; informe para el jefe: `informes/11_informe_prefiltro_social_max.md`.
+
+**Cierra:** «el pre-filtro social podría ayudar bajo MAX»: medido, no cambia ninguna clase con los cortes vigentes,
+no mejora la cabeza del ranking con jueces y cuesta AUC contra plata (reproducido exacto). Tampoco hace falta
+volver a probar los umbrales 0.50, 0.65 y 0.75 (no pasan C1). No reintentar sin evidencia nueva medida.
+
+**Abre:**
+- Los falsos positivos de la cabeza del ranking son artículos socialmente relevantes (pasan el filtro con puntajes de
+  0.99), así que un filtro general de relevancia no puede corregirlos: es la misma causa que se midió en la ronda 1
+  (el NLI confirma la forma de la frase, no su objeto).
+- El artefacto de tamaño de MAX (Spearman(radar, nº de artículos) +0.88) no se toca con este filtro.
+- La referencia sigue siendo el límite: 13 celdas con positivos, 21 de 26 indicadores sin referencia y Oicatá sin
+  positivos de ningún indicador.

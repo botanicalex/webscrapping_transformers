@@ -1,0 +1,17 @@
+1. {'umbral': 0.85, 'celdas': 23, 'puestos_top10': 225, 'articulos_sacados': 27, 'sacados_positivos': 1, 'sacados_no_positivos': 26}
+2. juzgados 759, enmascarados 88 (11.6%)
+                      indicador  positivos  positivos_enmascarados  frac_positivos_enmascarados  negativos  negativos_enmascarados  frac_negativos_enmascarados
+exclusion_beneficios_economicos          0                       0                        0.000        759                      88                        0.116
+               rechazo_proyecto          8                       0                        0.000        751                      88                        0.117
+         desplazamiento_forzado         29                       0                        0.000        730                      88                        0.121
+          conflicto_territorial         34                       0                        0.000        725                      88                        0.121
+       presencia_grupos_armados        128                       5                        0.039        631                      83                        0.132
+3. positivos de grupos armados enmascarados: 5
+       lugar  rango_sin_mascara  score  score_social
+      Maicao                 48  0.863         0.827
+      Maicao                 64  0.822         0.803
+      Maicao                 20  0.955         0.653
+       Chocó                  1  0.990         0.049
+Cundinamarca                 11  0.885         0.598
+
+Guardado -> experimentos/resultados/exp_prefiltro_max_mecanismo.xlsx

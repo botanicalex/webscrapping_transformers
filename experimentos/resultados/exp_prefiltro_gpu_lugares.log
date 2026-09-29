@@ -1,0 +1,30 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790651401.136138   24592 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790651409.999117   24592 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+NLI cargado | device=cuda
+  id2label   : {0: 'entailment', 1: 'neutral', 2: 'contradiction'}
+  entailment=0  neutral=1  contradiction=2
+
+[0] Verificacion bloqueante contra produccion V2 (presencia_grupos_armados)...
+Verificacion V2 'presencia_grupos_armados': max|dif| = 9.77e-07 -> OK
+    (82 s)
+
+[1] Puntuando 1647 articulos: HIPOTESIS_SOCIAL y NULA_TEST
+    social: 'Hay un conflicto, una afectación o un riesgo que afecta a una comunidad.'
+    nula  : 'En este territorio hay colonias de osos polares.'
+    social listo (144 s)
+    nula lista (207 s)
+
+[2] Antioquia (2023) contra el pkl nacional, unido por url...
+    Antioquia en lugares: 494 | presentes en el nacional: 494
+    max|dif| score_social_v2 : 2.92e-06  OK
+    max|dif| ent_NULA_TEST   : 1.33e-05  OK
+    max|dif| neu_NULA_TEST   : 1.34e-05  OK
+
+[3] NULA_TEST contra ABSURDO_TOTAL del pkl de atomicas (mismo texto)...
+    max|dif| ent: 0.00e+00  neu: 0.00e+00  OK
+
+Proporcion que pasa el filtro por umbral (descriptivo): 0.50: 94.0%, 0.65: 92.5%, 0.75: 91.0%, 0.85: 88.1%
+
+Guardado -> datos/scores/scores_prefiltro_lugares.pkl (1647, 4) (207 s)

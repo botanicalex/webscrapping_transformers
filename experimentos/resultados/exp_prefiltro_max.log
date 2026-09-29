@@ -1,0 +1,104 @@
+Cargando datos...
+  nacional 11439 | lugares 1647 | juzgados 940
+
+=== S. Sanidad (bloqueante) ===
+  [OK] S1 clasificacion nacional sin mascara con 0.766/0.9233: {'Bajo': 6, 'Medio': 19, 'Alto': 7} (esperado 6/19/7)
+  [OK] S1 elegir_cortes(sin mascara) = cortes vigentes: (np.float64(0.766), np.float64(0.9233)) (esperado (0.766, 0.9233))
+  [OK] S2 Antioquia (2023): radar y clase: 0.9354 Alto (esperado 0.9354 Alto)
+  [OK] S2 Antioquia (2023): MAX de los 26 indicadores: max|dif|=0.0e+00 (esperado 0)
+  [OK] S2 Municipio Maicao: radar y clase: 0.9625 Alto (esperado 0.9625 Alto)
+  [OK] S2 Municipio Maicao: MAX de los 26 indicadores: max|dif|=0.0e+00 (esperado 0)
+  [OK] S2 Municipio Oicatá: radar y clase: 0.6688 Bajo (esperado 0.6688 Bajo)
+  [OK] S2 Vereda Paraguachón: radar y clase: 0.6801 Bajo (esperado 0.6801 Bajo)
+  [OK] S2 Antioquia (2023) = Antioquia nacional (n articulos): 494 / 494 (esperado iguales)
+  [OK] S2 radar Antioquia (2023) vs Antioquia nacional: |dif|=7.1e-06 (esperado < 2e-4)
+  [OK] S2 score_social_v2 Antioquia lugares vs nacional (por url): max|dif|=2.9e-06 (esperado < 1e-4)
+  [OK] S3 score de atomicas vs produccion en los 5 indicadores: max|dif|=5.4e-07 (esperado < 1e-4)
+  [OK] S4 M1/M2/M3/MAX sin mascara, exclusion_beneficios_economicos: M1_n=0 M2=0.0 viol=4 max_ok=True (esperado M1_n=0 M2=0.0 viol=4)
+  [OK] S4 M1/M2/M3/MAX sin mascara, rechazo_proyecto: M1_n=0 M2=0.0 viol=2 max_ok=True (esperado M1_n=0 M2=0.0 viol=2)
+  [OK] S4 M1/M2/M3/MAX sin mascara, desplazamiento_forzado: M1_n=0 M2=0.05 viol=1 max_ok=True (esperado M1_n=0 M2=0.05 viol=1)
+  [OK] S4 M1/M2/M3/MAX sin mascara, conflicto_territorial: M1_n=1 M2=0.075 viol=1 max_ok=True (esperado M1_n=1 M2=0.075 viol=1)
+  [OK] S4 M1/M2/M3/MAX sin mascara, presencia_grupos_armados: M1_n=2 M2=0.175 viol=0 max_ok=True (esperado M1_n=2 M2=0.175 viol=0)
+  [OK] S4 holdout Cauca: n, n>0, npos, M1, M2, max: n=598 n>0=427 npos=18 M1=True M2=0.7 max=0.996 (esperado n=598 n>0=427 npos=18 M1=True M2=0.7 max=0.996)
+  [OK] S4 holdout Chocó: n, n>0, npos, M1, M2, max: n=148 n>0=100 npos=16 M1=True M2=0.5 max=0.9905 (esperado n=148 n>0=100 npos=16 M1=True M2=0.5 max=0.9905)
+  [OK] S4 holdout Cundinamarca: n, n>0, npos, M1, M2, max: n=371 n>0=164 npos=6 M1=True M2=0.2 max=0.9931 (esperado n=371 n>0=164 npos=6 M1=True M2=0.2 max=0.9931)
+  [OK] S4 cobertura sin mascara (top-k todo juzgado): min=1.0 (esperado 1.0)
+
+=== A. Reproduccion exacta del A/B del 2026-08-31 (umbral 0.85, semilla 20260831) ===
+  [OK] A auc_sin: max|dif| = 5.55e-17 (tol 1e-09)
+  [OK] A auc_con: max|dif| = 0.00e+00 (tol 1e-09)
+  [OK] A retencion_positivos: max|dif| = 0.00e+00 (tol 1e-09)
+  [OK] A delta: max|dif| = 6.94e-18 (tol 5e-05)
+  [OK] A ic95_low: max|dif| = 6.94e-18 (tol 5e-05)
+  [OK] A ic95_high: max|dif| = 3.47e-18 (tol 5e-05)
+  [OK] A media_cruda: max|dif| = 5.55e-17 (tol 1e-09)
+  [OK] A prop09_cruda: max|dif| = 6.94e-18 (tol 1e-09)
+  [OK] A media_corregida: max|dif| = 3.47e-18 (tol 1e-09)
+  [OK] A n_pos: max|dif| = 0.00e+00 (tol 0)
+  [OK] A n_neg: max|dif| = 0.00e+00 (tol 0)
+
+Sanidad y reproduccion de A: OK
+
+Juzgados en lugares o holdout: 759 | positivos: exclusion_be=0, rechazo_proy=8, desplazamien=29, conflicto_te=34, presencia_gr=128
+
+=== Umbral principal 0.85: B-F y decision ===
+  sensibilidad u=0.5 ...
+  sensibilidad u=0.65 ...
+  sensibilidad u=0.75 ...
+
+--- A (score corregido) ---
+   tipo                              indicador  auc_sin  auc_con   delta  ic95_low  ic95_high
+   real              grupos_etnicos_existentes   0.8323   0.7791 -0.0531   -0.0662    -0.0402
+   real               presencia_grupos_armados   0.8232   0.7963 -0.0269   -0.0355    -0.0191
+absurdo NULA_TEST_vs_grupos_etnicos_existentes   0.4988   0.5007  0.0019   -0.0011     0.0044
+absurdo  NULA_TEST_vs_presencia_grupos_armados   0.5117   0.5139  0.0022   -0.0002     0.0043
+
+--- B (score corregido; nula) ---
+                      indicador  n_pos  n_neg  auc_sin  auc_con   delta  ic95_low  ic95_high  delta_nula  neta_ic95_low pasa_C4
+exclusion_beneficios_economicos      0    759      NaN      NaN     NaN       NaN        NaN         NaN            NaN     NaN
+               rechazo_proyecto      8    751   0.8191   0.8261  0.0070    0.0014     0.0146      0.0020        -0.0008   False
+         desplazamiento_forzado     29    730   0.8481   0.8522  0.0041    0.0011     0.0080      0.0021        -0.0014   False
+          conflicto_territorial     34    725   0.7932   0.7996  0.0064    0.0024     0.0115      0.0021        -0.0003   False
+       presencia_grupos_armados    128    631   0.8214   0.8046 -0.0168   -0.0435     0.0049      0.0024        -0.0452   False
+
+--- C (unidades de decision) ---
+                   unidad metrica  elegible  sin_mascara  con_mascara_cota_inf  con_mascara_cota_sup  delta_cota_inf  ic95_low  ic95_high  delta_nula  neta_ic95_low  cobertura_con  pasa_C4
+grupos_armados (7 celdas)      M1      True       0.7143                0.5714                0.5714         -0.1429   -0.1429     0.0000         0.0        -0.1429            1.0    False
+grupos_armados (7 celdas)      M2      True       0.3000                0.2857                0.2857         -0.0143   -0.0429     0.0429         0.0        -0.0429            1.0    False
+        todas (23 celdas)      M1      True       0.2609                0.2174                0.2174         -0.0435   -0.0435     0.0000         0.0        -0.0435            1.0    False
+        todas (23 celdas)      M2      True       0.1130                0.1087                0.1087         -0.0043   -0.0130     0.0130         0.0        -0.0130            1.0    False
+C descriptivo: {'celdas_con_positivos': 13, 'M1plus_sin': 0.4615, 'M1plus_con_low': 0.3846, 'M2plus_sin': 0.2, 'M2plus_con_low': 0.1923, 'M3_viol_sin_20lugares': 8, 'M3_viol_con_20lugares': 8, 'M3_viol_sin_23': 8, 'M3_viol_con_23': 8}
+
+--- E ---
+      radar       cortes  corte_bajo_medio  corte_medio_alto  n_Medio  n_Alto  n_Bajo  anclas_rotas anclas_rotas_lista  accuracy  spearman
+sin mascara     vigentes            0.7660            0.9233       19       7       6             0                       0.3438   -0.1653
+con mascara     vigentes            0.7660            0.9233       19       7       6             0                       0.3438   -0.1712
+con mascara recalibrados            0.7582            0.9105       18       8       6             0                       0.3438   -0.1712
+Spearman(radar, n articulos): {'radar_sin': 0.884, 'radar_con': 0.889, 'nula_sin': 0.736, 'nula_con': 0.714}
+
+--- F --- enmascarado nacional 12.6%; lugares Antioquia (2023) 13.2%, Municipio Maicao 10.3%, Municipio Oicatá 40.6%, Vereda Paraguachón 25.0%
+cambian de clase: 0 (vigentes) / 1 (recalibrados); celdas que cambian: 51; |dMAX|>0.05: 10; a cero: 0
+                                   media_abs_dMAX  celdas_abs_dMAX_gt_0.05  celdas_que_pasan_a_0  MAX_medio_sin  MAX_medio_con
+indicador                                                                                                                     
+irregularidad_contractual                  0.0168                        2                     0         0.7417         0.7249
+debilidad_institucional                    0.0093                        2                     0         0.6638         0.6545
+zonas_proteccion_alimentaria               0.0057                        1                     0         0.9005         0.8948
+deficit_participacion_comunitaria          0.0057                        2                     0         0.4897         0.4840
+exclusion_servicios_derechos               0.0039                        1                     0         0.9790         0.9750
+
+--- Decision ---
+                                                  criterio  pasa                                                                                                                                                               numero_clave
+          C1 control absurdo (brecha real − nula bajo MAX)  True                                                        Δ brecha media +0.0028 en los 32 departamentos (mediana -0.0003; baja en 19) y +0.0302 en los 4 lugares (baja en 2)
+                 C2 radar nacional con cortes recalibrados False                                                                                   cortes 0.7582/0.9105, anclas rotas 0, Spearman -0.1653 sin máscara → -0.1712 con máscara
+C3 caída de AUC corregida > 0.04 exige mejora del bloque C False disparada; ΔAUC corregida: A grupos_etnicos_existentes -0.0532, A presencia_grupos_armados -0.0269, B desplazamiento_forzado +0.0041, B conflicto_territorial +0.0064, ...
+                   C4 mejora distinguible, neta de la nula False          vía C (M1/M2, cota inferior): no; vía B: no; vía E (ΔSpearman -0.006 frente a +0.15): no; el mayor cambio de C es todas (23 celdas) M2 -0.0043 [-0.0130, +0.0130]
+                                   VEREDICTO (umbral 0.85) False                                                                                                                                                              NO REINTEGRAR
+
+--- Sensibilidad ---
+ umbral  pct_enmascarado_nacional  A_dAUC_cor_grupos_etnicos  D_dBrecha_media_dep  D_dBrecha_media_lugar  E_spearman_con E_cortes_recal  F_cambian_clase_recal    C1    C2    C3    C4  REINTEGRAR
+   0.50                    0.0650                    -0.0211               0.0019                -0.0007         -0.1639  0.7627/0.9233                      0 False  True  True  True       False
+   0.65                    0.0827                    -0.0288               0.0018                -0.0021         -0.1639  0.7627/0.9233                      0 False  True  True  True       False
+   0.75                    0.1014                    -0.0386               0.0011                -0.0021         -0.1635  0.7582/0.9105                      1 False  True  True  True       False
+   0.85                    0.1261                    -0.0532               0.0028                 0.0302         -0.1712  0.7582/0.9105                      1  True False False False       False
+
+Guardado -> experimentos/resultados/exp_prefiltro_max.xlsx y experimentos/RESULTADOS_prefiltro_max.md
