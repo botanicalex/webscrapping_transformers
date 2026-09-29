@@ -1951,3 +1951,12 @@ cribado y 1 no cumple con jueces. `src/` no cambia; los 24 indicadores sin lista
 (`informes/14_informe_prefiltro_etapa2_cierre.md`). **Cierra:** estas 11 listas con esta redacción y la extensión del pre-filtro por
 indicador a los 26 con este modelo y esta referencia (no se reintenta sin evidencia nueva medida). **Abre:** nada nuevo; siguen la fusión,
 el push/merge y exclusión de beneficios.
+
+## [2026-09-29] Decisiones del usuario tras cerrar la etapa 2
+
+- **Fusión y push:** no. Los decide el jefe; la rama sigue solo en local. `experimentos/` no va a producción.
+- **Exclusión de beneficios:** se deja como está. La revisión con el jefe de los Excel por lugar decidirá qué indicadores retirar.
+- **No se hacen:** la re-puntuación de los 32 departamentos, la ampliación de la referencia ni la fusión del corpus re-scrapeado.
+- **Entregable para el jefe:** los Excel de la corrida de producción del 2026-09-29 (`resultados/tablas_lugares_max_prefiltro_2026-09-29/`:
+  Antioquia (2023), Maicao, Oicatá, Paraguachón y el resumen), generados con el `src/` actual (sin cambios desde `d249bba`) sobre
+  `datos/corpus/df_corpus_5lugares.pkl` (sha256 `b4ccb0e6…`, sin regenerar).
