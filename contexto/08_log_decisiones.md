@@ -1869,3 +1869,17 @@ combinado contra producción actual (Spearman DANE ≥ −0.0913, tamaño ≤ +0
 **Pendiente:** confirmación expresa del usuario de las 6 listas (regla 15) antes de la F1.
 **Confirmación del usuario (2026-09-29):** las 6 listas de `LISTAS_TRAMO_1` quedan confirmadas como excepción a la regla 15, con el
 alcance del pre-registro (solo entran a `src/` las que pasen §3–§6 y tras nueva aprobación). Se lanza la F1.
+
+## [2026-09-29] Pre-filtro por indicador, etapa 2 — F1 y F2 (juicio) HECHAS; reasentamiento y daños ambientales «no medibles»
+
+**F1** (`6708fb8`, subagente): ninguna lista supera el techo de apertura (tramo: reasentamiento 0.0048, amenaza a líderes 0.2260,
+amenaza/intimidación 0.1057, protesta 0.0959, violación de DDHH 0.2046, daños ambientales 0.0694; las 11 de solo apertura ≤ 0.2369;
+producción: desplazamiento 0.0626, grupos armados 0.1220; `juicio_prefiltro_e2/aperturas.csv`). GPU 11.7 min, verificación de
+producción 9.77e-07, sanidad de lugares 0; `datos/scores/scores_prefiltro_e2.pkl` (nuevo, no versionado). Pool 356 url en 9 lotes.
+**F2:** `juez-c` y `juez-d`, 3 instancias cada uno. **Desviación operativa:** una instancia de `juez-c` recortó 26 premisas de los
+lotes 04–05 a 1.500 caracteres; se re-juzgaron los dos lotes completos con una instancia nueva (premisas completas) y se
+sobrescribieron sus salidas. Consolidación `experimentos/exp_prefiltro_e2_consolidar.py` → `etiquetas.csv`, `consolidacion.csv`.
+Kappa en el pool (SÍ frente a {NO, DUDOSO}): reasentamiento 0.786, amenaza a líderes 0.898, amenaza/intimidación 0.761, protesta
+0.949, violación de DDHH 0.753, daños ambientales 0.849 (ninguno < 0.4). SÍ/SÍ en el pool: 4, 10, 30, 42, 13, 3. Cobertura 100 %.
+**Decisión (por §3 del pre-registro):** `reasentamiento` y `danos_ambientales` quedan **«no medibles»** (< 5 SÍ/SÍ) y pasan sin
+filtro; a la F3 van `amenaza_lideres`, `amenaza_intimidacion`, `protesta_social` y `violacion_derechos_humanos`.

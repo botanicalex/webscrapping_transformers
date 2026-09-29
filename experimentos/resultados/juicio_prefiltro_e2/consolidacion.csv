@@ -1,0 +1,7 @@
+indicador,kappa_todo,kappa_pool,si_c_pool,si_d_pool,si_si_pool,n_pool,cobertura_min,no_medible,kappa_baja
+reasentamiento,0.797,0.786,6,4,4,73,1.0,True,False
+amenaza_lideres,0.851,0.898,12,10,10,99,1.0,False,False
+amenaza_intimidacion,0.764,0.761,39,32,30,100,1.0,False,False
+protesta_social,0.977,0.949,43,43,42,79,1.0,False,False
+violacion_derechos_humanos,0.747,0.753,20,13,13,111,1.0,False,False
+danos_ambientales,0.922,0.849,3,4,3,62,1.0,True,False
