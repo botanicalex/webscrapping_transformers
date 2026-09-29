@@ -1918,3 +1918,16 @@ absurdo o por el Spearman con el tamaño, que se calculan sin jueces (los jueces
 Condición C (control absurdo, 4 comparaciones) y R (radar con la lista sola: 0 anclas, DANE ≥ −0.0913, tamaño ≤ +0.8640). Sin
 sobrevivientes → cierre de la etapa 2 sin jueces; con sobrevivientes → parada y fase de jueces (`juez-e`/`juez-f`) solo para ellas.
 Nada calculado todavía salvo las tasas de apertura ya conocidas.
+
+## [2026-09-29] Pre-filtro por indicador, etapa 2, tramo 2 — F1 (cribado sin jueces) HECHA: sobrevive solo `zonas_proteccion_alimentaria`
+
+**F1** (`560fa9f`, subagente; `experimentos/exp_prefiltro_e2_t2{,_gpu}.py` → `experimentos/resultados/exp_prefiltro_e2_t2.xlsx`,
+`experimentos/RESULTADOS_prefiltro_e2_t2.md`). GPU 20.8 min, verificación de producción 9.77e-07, pkl nuevo
+`datos/scores/scores_prefiltro_e2_t2.pkl`. Sanidad S1–S5 OK (17/17); S3: C y R reproducen el tramo 1 y descartan sus 4 listas.
+**Resultado (hojas `C_control`, `R_radar`, `K_cribado`):** 9 de 11 fallan C; `exclusion_servicios_derechos` pasa C y falla R (tamaño
+0.8680); `resistencia_territorial` y `conflictos_socioambientales` pasan R (la primera mejora: DANE −0.0663, tamaño 0.8545) pero
+fallan C (total, lugares −0.0574 y −0.0942). **Sobrevive `zonas_proteccion_alimentaria`:** C pasa en las 4 comparaciones
+(+0.1993, +0.0507, +0.0609, +0.1298); R pasa por igualdad (Spearman DANE −0.091276 y tamaño 0.864003, idénticos a producción:
+el orden de los 32 no cambia; máx |Δ radar| 0.0194, no es empate según §6 del tramo 1; cortes 0.7516/0.9233, 6/19/7, 0 anclas).
+**Decisión (por §4 del pre-registro):** parada; la fase de jueces para `zonas_proteccion_alimentaria` espera la confirmación del
+usuario del codebook. Las otras 10 listas quedan cerradas (pasan sin filtro; no se reintentan sin evidencia nueva medida).
