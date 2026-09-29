@@ -1,0 +1,19 @@
+Inicio 2026-09-29 11:15:59
+NLI cargado | device=cuda
+  id2label   : {0: 'entailment', 1: 'neutral', 2: 'contradiction'}
+  entailment=0  neutral=1  contradiction=2
+
+[0] Verificacion bloqueante contra produccion V2 (presencia_grupos_armados)...
+Verificacion V2 'presencia_grupos_armados': max|dif| = 9.77e-07 -> OK
+    (70 s)
+
+[1] Lugares 1647 + holdout 1117 {'Cauca': 598, 'Cundinamarca': 371, 'Chocó': 148}
+    reasentamiento__gemela listo: 'Se realizó un reasentamiento o reubicación de osos polares.' (1.8 min; acumulado 2.9 min)
+    amenaza_lideres__gemela listo: 'Hubo amenazas o agresiones contra osos polares.' (1.8 min; acumulado 4.7 min)
+    amenaza_intimidacion__gemela listo: 'Hubo amenazas, intimidación u hostigamiento contra osos polares.' (1.8 min; acumulado 6.4 min)
+    protesta_social__gemela listo: 'Hubo una protesta, manifestación, bloqueo o paro de osos polares.' (1.8 min; acumulado 8.2 min)
+    violacion_derechos_humanos__gemela listo: 'Se denunciaron violaciones de los derechos de los osos polares.' (1.8 min; acumulado 10.0 min)
+    danos_ambientales__gemela listo: 'Hubo daños ambientales, contaminación o pérdida de biodiversidad por los osos polares.' (1.8 min; acumulado 11.7 min)
+
+Guardado -> datos/scores/scores_prefiltro_e2.pkl (2764, 15)
+TOTAL 11.7 min
