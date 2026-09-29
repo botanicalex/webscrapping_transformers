@@ -1,0 +1,21 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790669032.536870   39468 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1790669035.337990   39468 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+NLI cargado | device=cuda
+  id2label   : {0: 'entailment', 1: 'neutral', 2: 'contradiction'}
+  entailment=0  neutral=1  contradiction=2
+
+[0] Verificacion bloqueante contra produccion V2 (presencia_grupos_armados)...
+Verificacion V2 'presencia_grupos_armados': max|dif| = 9.77e-07 -> OK
+    (70 s)
+
+[1] Holdout: 1117 articulos {'Cauca': 598, 'Cundinamarca': 371, 'Chocó': 148}
+    presencia_grupos_armados__vig_abs listo: 'En este territorio hay presencia de osos polares.' (113 s)
+    conflicto_territorial__vig_abs listo: 'Hay una disputa por el control, el uso o la propiedad de una colonia de osos polares.' (155 s)
+    desplazamiento_forzado__vig_abs listo: 'Hubo un desplazamiento forzado o éxodo de comunidades por los osos polares.' (197 s)
+
+[2] Grupos armados vig_abs contra el pkl nacional (por url)...
+    max|dif| ent 9.83e-06  neu 7.00e-06  OK
+
+Guardado -> datos/scores/scores_prefiltro_indicador_holdout.pkl (1117, 8) (197 s)
