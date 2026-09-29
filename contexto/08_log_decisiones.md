@@ -1931,3 +1931,9 @@ fallan C (total, lugares −0.0574 y −0.0942). **Sobrevive `zonas_proteccion_a
 el orden de los 32 no cambia; máx |Δ radar| 0.0194, no es empate según §6 del tramo 1; cortes 0.7516/0.9233, 6/19/7, 0 anclas).
 **Decisión (por §4 del pre-registro):** parada; la fase de jueces para `zonas_proteccion_alimentaria` espera la confirmación del
 usuario del codebook. Las otras 10 listas quedan cerradas (pasan sin filtro; no se reintentan sin evidencia nueva medida).
+
+**Confirmación del usuario (2026-09-29):** codebook de `zonas_proteccion_alimentaria` confirmado tal como se propuso (SÍ: cultivos,
+siembras, cosechas o producción agropecuaria, pecuaria o pesquera de alimentos en el territorio; NO: precios o abastecimiento sin
+producción local, cultivos ilícitos, entrega de mercados o ayudas, gastronomía, anuncios genéricos, jardinería ornamental; DUDOSO:
+premisa cortada). Agentes nuevos `.claude/agents/juez-e.md` (sonnet) y `juez-f.md` (opus); `juez-a`–`juez-d` sin tocar. Premisa de
+los lotes = premisa visible recortada con la hipótesis del indicador. Se lanza la fase de jueces (§4 del pre-registro del tramo 2).
