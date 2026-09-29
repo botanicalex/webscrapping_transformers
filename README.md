@@ -97,22 +97,27 @@ tras cualquier cambio en el núcleo.
 1. Cada artículo se evalúa contra las **26 hipótesis V2** con el modelo NLI, dando una
    probabilidad de entailment (`ent_`) y de neutralidad (`neu_`) por hipótesis.
 2. Se descuenta el sesgo "sí-decidor" por artículo y se calcula el score corregido:
-   `clip(clip(ent − sesgo, 0) * (1 − neu), 0, 1)`.
+   `clip(clip(ent − sesgo, 0) * (1 − neu), 0, 1)`. Dos indicadores llevan además un
+   **pre-filtro por indicador** (2026-09-29): `presencia_grupos_armados` y
+   `desplazamiento_forzado` multiplican ese score por 1 si una lista de palabras de su objeto
+   aparece en la premisa que ve el NLI y por 0 si no (`PREFILTRO_OBJETO` en
+   `src/Transformer_optimo.py`, sin columnas nuevas); los otros 24 no se filtran.
 3. Por departamento y por indicador, se toma el **MAX** entre todos los artículos de ese
    departamento (`exportar_indicadores_transformers_por_departamento` en
    `src/Transformer_optimo.py`; agregación de esta rama, requisito de negocio — la decisión
    técnica del historial del proyecto era P75, ver `contexto/08_log_decisiones.md`).
 4. El radar final es el **promedio simple de los 26 indicadores** (sin pesos, sin z-score,
    sin terciles).
-5. Se clasifica con **cortes fijos** `Bajo < 0.766 <= Medio < 0.9233 <= Alto`
+5. Se clasifica con **cortes fijos** `Bajo < 0.7572 <= Medio < 0.9233 <= Alto`
    (`CORTE_BAJO_MEDIO_RADAR`/`CORTE_MEDIO_ALTO_RADAR` en `src/config_pipeline.py`,
    recalibrados para la escala MAX — ver `explicacion_alexa.md`).
 
 ## Notas de rendimiento
 
 - 11.439 artículos × 26 hipótesis ≈ 125 min de GPU.
-- El pre-filtro social fue **rechazado** (2026-08-31) y ya no corre: los 26 indicadores se
-  puntúan sobre todos los artículos.
+- El pre-filtro social **general** fue **rechazado** (2026-08-31; reevaluado bajo MAX y rechazado
+  otra vez el 2026-09-28) y no corre. Lo que sí corre es el pre-filtro **por indicador** de grupos
+  armados y desplazamiento (2026-09-29); los 26 indicadores se puntúan sobre todos los artículos.
 - `datos/scores/scores_v2.pkl` (5 lugares) y `scores_v2_32deptos.pkl` (nacional) permiten
   recalcular correcciones, umbrales y agregaciones **sin GPU**. Mirar ahí antes de puntuar
   nada de nuevo.

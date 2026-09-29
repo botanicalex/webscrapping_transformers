@@ -105,12 +105,17 @@ python src/test_integracion.py                      # verificar que todo sigue f
    este territorio", etc.) con el modelo NLI, que da una probabilidad de que el texto
    respalde cada una (`ent_`) y una probabilidad de neutralidad (`neu_`).
 2. Se descuenta un sesgo "sí-decidor" estimado con 4 hipótesis nulas de calibración, y se
-   calcula el score corregido: `clip(clip(ent − sesgo, 0) * (1 − neu), 0, 1)`.
+   calcula el score corregido: `clip(clip(ent − sesgo, 0) * (1 − neu), 0, 1)`. Desde el
+   2026-09-29, dos indicadores (`presencia_grupos_armados` y `desplazamiento_forzado`) multiplican
+   ese score por 1 si una lista de palabras de su objeto aparece en la premisa que ve el NLI y por 0
+   si no (pre-filtro por indicador; los otros 24 no se filtran).
 3. Por departamento y por cada uno de los 26 indicadores, se toma el valor **MÁXIMO** entre
    todos los artículos de ese departamento (`grupo[c].max()`).
 4. El radar final es el **promedio simple de los 26 indicadores** — sin pesos, sin
    z-score, sin terciles.
-5. Se clasifica con **cortes fijos**: `Bajo < 0.766 <= Medio < 0.9233 <= Alto`. Estos
+5. Se clasifica con **cortes fijos**: `Bajo < 0.7572 <= Medio < 0.9233 <= Alto` (0.766 hasta el
+   2026-09-28; se recalibró al adoptar el pre-filtro por indicador, sin cambiar la clase de ningún
+   departamento). Estos
    cortes se recalibraron específicamente para la escala MAX (los que traía la rama
    `pruebas`, 0.2969/0.3527, estaban calibrados para P75 y no significan nada aquí — un
    umbral solo tiene sentido para la distribución con la que se calibró). Se leyeron de
@@ -118,8 +123,8 @@ python src/test_integracion.py                      # verificar que todo sigue f
    oficial del DANE, y se verificaron después contra un conjunto de departamentos que "no
    deberían" salir Alto o Bajo por juicio externo (ninguno se rompió). Con esos cortes: 6
    departamentos Bajo, 19 Medio, 7 Alto; accuracy contra el DANE 34.4%; Spearman contra el
-   valor oficial continuo −0.1653 (calculado offline desde
-   `datos/scores/scores_v2_32deptos.pkl`, sin usar GPU).
+   valor oficial continuo −0.0913 con el pre-filtro por indicador (−0.1653 sin él; calculado
+   offline desde `datos/scores/scores_v2_32deptos.pkl`, sin usar GPU).
 
 ## La decisión de MAX
 

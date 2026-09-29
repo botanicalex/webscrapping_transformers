@@ -6,7 +6,13 @@ En orden de valor. Cada entrada dice qué desbloquea y qué cuesta.
 
 ## 00. Plan 5 indicadores bajo MAX — segunda ronda y fusión (2026-09-23)
 
-Rama `hipotesis-5ind-max`. La compuerta de grupos armados (F8) se revirtió: solo se permite
+**Actualización 2026-09-29:** el pre-filtro social general se rechazó también bajo MAX (informe 11) y
+se promovió a `src/` el **pre-filtro por indicador** de grupos armados y desplazamiento (excepción a
+la regla 15 confirmada por el usuario; cortes 0.7572/0.9233; informe 12). Queda la **etapa 2**: los
+otros 21 indicadores (17 listas propuestas y 4 abstractos, `experimentos/PLAN_prefiltro_indicador_etapa2.md`),
+sin pre-registrar.
+
+Rama `hipotesis-5ind-max` (estado al 2026-09-23). La compuerta de grupos armados (F8) se revirtió: solo se permite
 cambiar hipótesis (regla 15 de `CLAUDE.md`); `src/` = `radar-max_Septiembre`, cortes
 0.766/0.9233. **Segunda ronda cerrada (2026-09-23):** solo reescritura de hipótesis de los 5
 indicadores, 0 finalistas (mejor M2 0.38 frente a 0.60); los 5 conservan su hipótesis vigente

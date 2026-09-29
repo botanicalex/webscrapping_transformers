@@ -1,4 +1,4 @@
-# 11 — Relevo: plan 5 indicadores bajo MAX (estado al 2026-09-23, ronda 2 cerrada)
+# 11 — Relevo: plan 5 indicadores bajo MAX (estado al 2026-09-29: pre-filtro por indicador promovido)
 
 Documento de traspaso entre conversaciones. **Leerlo entero antes de actuar.** Resume lo que
 una conversación nueva necesita para seguir sin redescubrir nada; el detalle y la evidencia
@@ -10,10 +10,17 @@ están en los archivos que cita.
   `hipotesis-5ind-max` (desde `radar-max_Septiembre` = 71072a1, lo desplegado). Todo commiteado
   en local; **sin push ni merge**. `Presentacion/` (sin trackear) es del usuario: no tocarlo ni
   añadirlo.
+- **Desde el 2026-09-29 `src/` lleva el pre-filtro por indicador** (`PREFILTRO_OBJETO` en
+  `src/Transformer_optimo.py`): las listas congeladas de grupos armados y desplazamiento aplicadas a la premisa
+  visible del par con la hipótesis de cada indicador, sin columnas nuevas; cortes **0.7572/0.9233**; clases 6/19/7;
+  `test_integracion` 16/16; radar con 26. Excepción a la regla 15 confirmada por el usuario (alcance solo esas
+  listas). Pre-registro `experimentos/PREREG_prefiltro_indicador.md`, resultados
+  `experimentos/RESULTADOS_prefiltro_indicador.md`, plan `experimentos/PLAN_implementacion_prefiltro_indicador.md`,
+  equivalencia `experimentos/exp_prefiltro_indicador_equivalencia.py`; informe `informes/12_informe_prefiltro_por_indicador.md`.
+  Antes (2026-09-28) el pre-filtro social general se rechazó bajo MAX (informe 11).
 - Ronda 1 (fases 0–8 de `experimentos/PLAN_5ind_MAX.md`) cerrada. **La F8 se revirtió el
-  2026-09-23** (commit e1546fb) por la regla 15: `src/` es idéntico a `radar-max_Septiembre`,
-  cortes `Bajo < 0.766 <= Medio < 0.9233 <= Alto`, `test_integracion` 10/10, clases 6/19/7.
-  Radar con 26. Informe `informes/03_informe_reversion_f8.md`.
+  2026-09-23** (commit e1546fb) por la regla 15 (entonces `src/` era idéntico a `radar-max_Septiembre`,
+  cortes 0.766/0.9233, `test_integracion` 10/10). Informe `informes/03_informe_reversion_f8.md`.
 - **Ronda 2: pre-registro `experimentos/PREREG_5ind_MAX_r2.md` CONGELADO** (revisado por
   `orquesta-lead`, 12 correcciones adoptadas). **Fase A HECHA (2026-09-23):** ninguna de las 25
   candidatas pasa los criterios 1–5 (ninguna llega a M2 0.60; la mejor es P2 de grupos armados,
@@ -22,13 +29,15 @@ están en los archivos que cita.
   **Fase A aprobada por el usuario; ronda 2 CERRADA:** los 5 conservan su hipótesis vigente, la
   fase B no se ejecuta y `src/` no cambia. Revisión final de `orquesta-lead`: APROBADO, 0
   bloqueantes, 7 menores adoptados. Informe `informes/04_informe_ronda2_solo_hipotesis.md`.
-- Etiquetas locales: `base-26ind-radar-max` (71072a1), `base-26ind-f5` (cb336fa),
+- Etiquetas locales: `base-26ind-prefiltro-indicador-pre` (3835672, último commit con `src/` sin el pre-filtro
+  por indicador), `base-26ind-radar-max` (71072a1), `base-26ind-f5` (cb336fa),
   `base-26ind-f7` (705a557), `base-26ind-f8-compuerta` (85db4e1, versión con la compuerta,
   revertida), `prueba-modelo-nli-rechazado` (27a39a1, historial de la prueba del modelo NLI,
   cuya rama se borró).
-- Informes para el jefe/profesora: **`informes/`** (01 a 09; índice en `informes/README.md`;
+- Informes para el jefe/profesora: **`informes/`** (01 a 12; índice en `informes/README.md`;
   el 05 es el consolidado del plan; 06–07, la prueba del modelo NLI; 08, exclusión; 09, avances
-  de la rama para el jefe). El siguiente es el 10.
+  de la rama para el jefe; 10, resumen consolidado 01–09; 11, pre-filtro social general (rechazado);
+  12, pre-filtro por indicador (promovido)). **El siguiente es el 13.**
 
 ## 2. Innegociables (del usuario)
 
@@ -77,6 +86,10 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
    en la etiqueta `prueba-modelo-nli-rechazado` y su documentación y resultados, aquí (log,
    informes 06–07, `PREREG_modelo_nli.md`, scripts `exp_modelo_nli_*`, relevo 12 como registro).
    El usuario **rechazó** consultar a la profesora (tarea 0 del backlog): no proponerlo de nuevo.
+5. **Etapa 2 del pre-filtro por indicador** (los otros 21 indicadores): solo hay un borrador
+   (`experimentos/PLAN_prefiltro_indicador_etapa2.md`, 17 listas propuestas y 4 abstractos, escrito sin mirar
+   puntajes ni jueces). Nada pre-registrado; exigiría referencia de jueces por indicador y, por la regla 15,
+   pre-registro y confirmación expresa del usuario para cada lista nueva.
 
 ## 5. Ronda 2 — resumen del pre-registro congelado
 
@@ -131,9 +144,12 @@ de cortes de `b060b3b`, verifica las 12 anclas); `exp_5ind_max_f8_equivalencia.p
 (`NLIScorer().score(textos, hip, batch_size=32, max_length=512, devolver_todo=True)`).
 `hipotesis_v2.TODAS` es un **dict** (usar `list(V2.TODAS)` para columnas).
 
-**Producción** (`src/`): = `radar-max_Septiembre` (sin compuerta desde la reversión); hipótesis
-en `src/Transformer_optimo.py`, cortes en `src/config_pipeline.py`. Validar con
-`python src/test_integracion.py` (10 tests, sin GPU) y `experimentos/exp_5ind_max_f8_reversion.py`.
+**Producción** (`src/`): = `radar-max_Septiembre` + pre-filtro por indicador de grupos armados y desplazamiento
+(desde el 2026-09-29); hipótesis y `PREFILTRO_OBJETO` en `src/Transformer_optimo.py`, cortes 0.7572/0.9233 en
+`src/config_pipeline.py`. Validar con `python src/test_integracion.py` (16 tests, sin GPU) y
+`python experimentos/exp_prefiltro_indicador_equivalencia.py` (offline, contra el experimento). Ojo: un
+`df_procesado` calculado antes de esa fecha no trae el pre-filtro y no debe clasificarse con los cortes nuevos
+(no hay columna que lo delate: regenerarlo). `experimentos/exp_5ind_max_f8_reversion.py` es histórico.
 `src/` no importa de `experimentos/`. `exp_5ind_max_f8_equivalencia.py` es histórico (depende de
 la compuerta revertida).
 
@@ -150,6 +166,8 @@ pre-registro congelado; si la 2a ronda lo cambia, hay que crear agentes nuevos (
 
 ## 7. Siguiente paso exacto
 
+0. (2026-09-29) Pre-filtro por indicador: etapa 1 promovida y documentada; lo pendiente es la etapa 2 (§4.5) y las
+   decisiones de §4. Leer las entradas [2026-09-28] y [2026-09-29] del log y los informes 11 y 12.
 1. Leer `CLAUDE.md` (regla 15), este documento, `experimentos/PREREG_5ind_MAX_r2.md`,
    `experimentos/RESULTADOS_5ind_MAX_r2.md` y las entradas [2026-09-23] del log.
 2. Fase A hecha: scripts `exp_5ind_max_r2_atomicas.py` (GPU), `exp_5ind_max_r2_pool.py

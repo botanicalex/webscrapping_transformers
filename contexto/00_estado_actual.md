@@ -4,6 +4,13 @@
 
 Es el primer documento a leer al retomar. Responde: dónde estamos, qué corre, qué no.
 
+> **Actualización 2026-09-29 (rama `hipotesis-5ind-max`).** `src/` lleva ahora el **pre-filtro por
+> indicador** (grupos armados y desplazamiento; `PREFILTRO_OBJETO`, excepción a la regla 15 confirmada
+> por el usuario) y los cortes `Bajo < 0.7572 <= Medio < 0.9233 <= Alto`; clases 6/19/7, `test_integracion`
+> 16/16. El pre-filtro social general se rechazó también bajo MAX (informe 11). Detalle: informe 12,
+> `contexto/08_log_decisiones.md` [2026-09-29] y `contexto/11_relevo_5ind_MAX.md`. Lo que sigue en esta
+> nota, del 2026-09-23, describe el estado ANTERIOR (`src/` idéntico a `radar-max_Septiembre`).
+>
 > **Actualización 2026-09-23 (rama `hipotesis-5ind-max`).** Esta rama parte de
 > `radar-max_Septiembre` (agregación **MAX**, no P75 como dice el resto de este documento, que
 > describe `pruebas`/`master` al 2026-09-01). `src/` es idéntico al de `radar-max_Septiembre`

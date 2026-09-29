@@ -64,6 +64,13 @@ optimizar indicadores — hay un techo estructural y una decisión de diseño pe
     varias frases ni restas de confusores) ni se agregan columnas a la salida. Regla del
     usuario del 2026-09-23; por ella se revirtió la compuerta de grupos armados de la F8 del
     plan 5ind MAX (`contexto/08_log_decisiones.md` [2026-09-23]).
+    **Única excepción (2026-09-29, confirmada por el usuario): el pre-filtro por indicador.**
+    Una lista de palabras de objeto por indicador (hoy solo `presencia_grupos_armados` y
+    `desplazamiento_forzado`; `PREFILTRO_OBJETO` en `src/Transformer_optimo.py`), exigida en la
+    premisa visible del par y calculada por dentro de `procesar()`, sin columnas nuevas. Alcance:
+    solo esas listas congeladas (las de la ronda 1); una lista nueva (etapa 2), una compuerta ad hoc,
+    un `min` o una resta de confusores siguen prohibidos sin pre-registro y confirmación expresa
+    del usuario (`contexto/08_log_decisiones.md` [2026-09-29]).
 
 ## Estado técnico
 
@@ -84,14 +91,21 @@ decisión técnica del historial, que fue P75 por rango más cercano; ver
 `contexto/08_log_decisiones.md` y `explicacion_alexa.md`).
 
 **Los tres están corregidos EN PRODUCCIÓN desde el 2026-08-31.** `src/` en `pruebas`/`master`
-corre P75; **en esta rama corre MAX**: hipótesis V2, **sin pre-filtro social** (rechazado:
-cuesta AUC), sesgo descontado, MAX por departamento, cortes fijos recalibrados sobre esa
-escala `Bajo < 0.766 <= Medio < 0.9233 <= Alto`, y la clasificación oficial del DANE leída de
+corre P75; **en esta rama corre MAX**: hipótesis V2, **sin pre-filtro social general** (rechazado:
+cuesta AUC; reevaluado y rechazado otra vez bajo MAX el 2026-09-28) pero **con pre-filtro por
+indicador** en `presencia_grupos_armados` y `desplazamiento_forzado` (2026-09-29, ver regla 15),
+sesgo descontado, MAX por departamento, cortes fijos recalibrados sobre esa escala
+`Bajo < 0.7572 <= Medio < 0.9233 <= Alto`, y la clasificación oficial del DANE leída de
 su columna (antes se recalculaba con terciles propios — era un bug).
 
-**Rama `hipotesis-5ind-max`:** `src/` es idéntico al de `radar-max_Septiembre`. La compuerta
-léxica de `presencia_grupos_armados` promovida en la F8 (2026-09-22, cortes 0.7574/0.9233) se
-**revirtió el 2026-09-23** por la regla 15; cortes de nuevo 0.766/0.9233 (clasificación 6/19/7).
+**Rama `hipotesis-5ind-max`:** hasta el 2026-09-29 `src/` era idéntico al de `radar-max_Septiembre`.
+La compuerta léxica de `presencia_grupos_armados` promovida en la F8 (2026-09-22, cortes
+0.7574/0.9233) se **revirtió el 2026-09-23** por la regla 15. El **2026-09-29** se promovió el
+**pre-filtro por indicador** (etapa 1, pre-registro `experimentos/PREREG_prefiltro_indicador.md`,
+informe 12): las listas congeladas de grupos armados y desplazamiento, sin columnas nuevas, y cortes
+**0.7572/0.9233** (clasificación 6/19/7; Spearman contra el DANE −0.1653 → −0.0913; `test_integracion`
+16/16). Conflicto territorial, rechazo y exclusión de beneficios quedan sin filtro (no cumplieron la
+regla de inclusión). Antes, el pre-filtro social general se rechazó también bajo MAX (informe 11).
 La prueba de un modelo NLI alternativo (`vicgalle/xlm-roberta-large-xnli-anli`, solo pruebas)
 terminó el 2026-09-23 con el modelo **rechazado** (informe 07; etiqueta `prueba-modelo-nli-rechazado`).
 
@@ -100,7 +114,9 @@ conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos
 queda en cero en P75 a escala nacional — la etiqueta "tres muertos" es del corpus de 5
 lugares); re-puntuar los 32
 departamentos con el código de `src/` ya promovido (~4 h GPU, nunca se corrió a escala
-nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos.
+nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos; la **etapa 2** del pre-filtro por indicador (17
+listas propuestas y 4 indicadores abstractos en `experimentos/PLAN_prefiltro_indicador_etapa2.md`, sin
+pre-registrar).
 
 ## Mapa
 

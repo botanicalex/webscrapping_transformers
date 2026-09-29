@@ -16,6 +16,9 @@ Pasos:
      de sys.argv[1] al importar; se fija antes de importar y se comprueba despues).
   5. Comprueba que el sha256 del corpus no cambio.
 
+Corre lo que haya en src/ en ese momento: el 2026-09-28, sin pre-filtro por indicador; el 2026-09-29, con el de grupos
+armados y desplazamiento (carpeta de salida como primer argumento, relativa a la raiz).
+
 Ejecutar desde la raiz del worktree, en segundo plano y con log:
   PYTHONIOENCODING=utf-8 python -u experimentos/exp_prefiltro_correr_lugares.py \
       > experimentos/resultados/exp_prefiltro_correr_lugares.log 2>&1
@@ -31,7 +34,9 @@ import pandas as pd
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CORPUS = os.path.join(RAIZ, "datos", "corpus", "df_corpus_5lugares.pkl")
-SALIDA_REL = os.path.join("resultados", "tablas_lugares_max_2026-09-28")
+# Carpeta de salida (relativa a la raiz): primer argumento; por defecto la de la corrida del 2026-09-28, con src/ sin
+# pre-filtro por indicador. Nunca puede ser resultados/tablas_lugares_max (corrida del 1-sep) ni una carpeta con contenido.
+SALIDA_REL = sys.argv[1] if len(sys.argv) > 1 else os.path.join("resultados", "tablas_lugares_max_2026-09-28")
 SALIDA = os.path.join(RAIZ, SALIDA_REL)
 PRODUCCION_1SEP = os.path.join(RAIZ, "resultados", "tablas_lugares_max")
 
