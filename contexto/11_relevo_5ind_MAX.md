@@ -30,6 +30,12 @@ están en los archivos que cita.
   (pre-registro `experimentos/PREREG_prefiltro_indicador_e2_t2.md`, 26618f8; condición C = control absurdo y R = radar con la lista sola).
   Sobrevive solo `zonas_proteccion_alimentaria` (560fa9f); con jueces nuevos `juez-e`/`juez-f` (kappa 0.72, 9 SÍ/SÍ) falla (a) +0.136 y
   (b) +0.067 (343db57): NO ADOPTAR. Ninguna lista nueva en toda la etapa 2; `src/` sin cambios. Informe 14.
+- **Discriminación por indicador (2026-09-29, descriptivo, c9da821):** `experimentos/exp_indicadores_discriminacion.py` →
+  `experimentos/resultados/exp_indicadores_discriminacion.xlsx`. 4 indicadores PLANO (derechos_vulnerados, exclusion_beneficios_economicos,
+  exclusion_servicios_derechos, conflicto_activo): retirarlos no cambia el orden, las clases (6/19/7) ni la accuracy (0.344), solo los
+  cortes (0.7148/0.9105). 24 de 26 con Spearman ≤ 0 con el DANE; todos correlacionan con el tamaño (+0.41 a +0.84).
+- **Entregado al usuario para su jefe:** los Excel de `resultados/tablas_lugares_max_prefiltro_2026-09-29/` (Antioquia (2023), Maicao,
+  Oicatá, Paraguachón y resumen; `src/` actual, corpus sha256 `b4ccb0e6…`) y el xlsx de discriminación.
 - Ronda 1 (fases 0–8 de `experimentos/PLAN_5ind_MAX.md`) cerrada. **La F8 se revirtió el
   2026-09-23** (commit e1546fb) por la regla 15 (entonces `src/` era idéntico a `radar-max_Septiembre`,
   cortes 0.766/0.9233, `test_integracion` 10/10). Informe `informes/03_informe_reversion_f8.md`.
@@ -85,14 +91,12 @@ En `contexto/08_log_decisiones.md`, entradas [2026-09-22] y [2026-09-23]:
 
 ## 4. Pendiente de decisión del usuario
 
-1. **Fusión a `radar-max_Septiembre`: EN ESPERA** (2026-09-24). El usuario le muestra antes la
-   rama a su jefe (informe 09); no fusionar hasta que lo diga. ¿Entra `experimentos/`? Tras la reversión, `src/` y los
-   entregables ya coinciden con esa rama. Las reglas 5–6 de `CLAUDE.md` siguen diciendo que no
-   hay `experimentos/`.
-2. Push/merge de `hipotesis-5ind-max`.
-3. Qué hacer con `exclusion_beneficios_economicos`, que resultó «no medible» (§5 del
-   pre-registro r2). Sigue en el radar con su frase vigente; no se retira salvo que lo diga el
-   usuario.
+1. **Fusión y push/merge: NO** hasta que lo decida el jefe del usuario (2026-09-29). `experimentos/` no va a producción.
+2. **Qué indicadores retirar:** lo decide la reunión con el jefe (2026-09-30) mirando los Excel por lugar y la tabla de discriminación.
+   Candidatos objetivos: los 4 PLANO. Exclusión de beneficios se deja como está hasta esa reunión. Si se retiran indicadores, hay que
+   recalibrar los cortes (regla 2) y registrar la excepción a «26 indicadores».
+3. **Descartado por el usuario (2026-09-29):** re-puntuar los 32 departamentos, ampliar la referencia y fusionar el corpus re-scrapeado.
+   Tampoco se discute la agregación (MAX): el P75 mejoraba el Spearman con el DANE (+0.42) pero es decisión del jefe.
 4. **Prueba de otro modelo NLI: CERRADA, modelo RECHAZADO** (2026-09-23).
    `xlm-roberta-large-xnli-anli` no cumple los criterios 1–5 en la etapa 2 (informe 07,
    `experimentos/RESULTADOS_modelo_nli.md`). La rama y el worktree se borraron; su historial está
@@ -176,8 +180,11 @@ pre-registro congelado; si la 2a ronda lo cambia, hay que crear agentes nuevos (
 
 ## 7. Siguiente paso exacto
 
-0. (2026-09-29, cierre) Etapa 2 CERRADA sin listas nuevas (informes 13 y 14). Siguiente: esperar las decisiones del usuario de §4
-   (fusión, push/merge, exclusión); no proponer más listas de pre-filtro sin evidencia nueva medida. Antes (etapa 1, `f30549e`): Leer las entradas [2026-09-28] y [2026-09-29] del log y los informes 11 y 12.
+0. (2026-09-29, cierre de sesión) Etapa 2 CERRADA (informes 13–14) y tabla de discriminación hecha. Siguiente: esperar el resultado
+   de la reunión con el jefe (qué indicadores retirar; fusión). Si pide retirar indicadores: proponer (sin ejecutar) el cambio en `src/`
+   con cortes recalibrados, tests y recorrida de los 4 lugares con `experimentos/exp_prefiltro_correr_lugares.py`. La otra palanca
+   medible que queda es la dependencia del tamaño del corpus (Spearman +0.864), p. ej. MAX sobre muestras de tamaño fijo, solo si el
+   jefe la acepta. No proponer más listas ni frases. Antes (etapa 1, `f30549e`): Leer las entradas [2026-09-28] y [2026-09-29] del log y los informes 11 y 12.
    Motivo de fondo: la jefa quiere un pre-filtro que se aplique a TODOS los indicadores; el general (una sola pregunta NLI)
    no sirve porque los falsos positivos de la cabeza son específicos de cada indicador (informe 11 y diagnóstico: los
    artículos que fijan el MAX no se distinguen del corpus por territorio, sesgo ni fecha). La etapa 2 es el camino a los 26.
