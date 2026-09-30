@@ -1960,3 +1960,17 @@ el push/merge y exclusión de beneficios.
 - **Entregable para el jefe:** los Excel de la corrida de producción del 2026-09-29 (`resultados/tablas_lugares_max_prefiltro_2026-09-29/`:
   Antioquia (2023), Maicao, Oicatá, Paraguachón y el resumen), generados con el `src/` actual (sin cambios desde `d249bba`) sobre
   `datos/corpus/df_corpus_5lugares.pkl` (sha256 `b4ccb0e6…`, sin regenerar).
+
+## [2026-09-29] Cuánto discrimina cada indicador (producción actual, 32 departamentos) — DESCRIPTIVO, insumo para la reunión con el jefe
+
+**Pedido del usuario:** una tabla objetiva para decidir qué indicadores retirar. Criterios fijados antes de calcular en
+`experimentos/exp_indicadores_discriminacion.py` (commit anterior al cálculo); salida `experimentos/resultados/exp_indicadores_discriminacion.xlsx`
+y `experimentos/RESULTADOS_indicadores_discriminacion.md`. Offline, sin GPU; sanidad 5/5 (base = producción).
+**Evidencia:** 4 indicadores PLANO (amplitud P90−P10 < 0.05 y mediana ≥ 0.95): `derechos_vulnerados`, `exclusion_beneficios_economicos`,
+`exclusion_servicios_derechos`, `conflicto_activo`. Retirarlos (R1) no cambia el orden de los 32 (Spearman DANE −0.0913 y tamaño +0.8640
+idénticos), ni las clases (6/19/7) ni la accuracy (0.344); solo los cortes (0.7148/0.9105). 24 de 26 indicadores tienen Spearman ≤ 0 con
+el DANE; los otros dos (grupos armados +0.009, desplazamiento +0.003) están en cero. Todos correlacionan con el tamaño (+0.41 a +0.84).
+Retirar uno solo mueve el Spearman DANE como mucho 0.055 (grupos armados, a peor) y el de tamaño como mucho −0.044
+(`debilidad_institucional`): ruido con n = 32. R2 (circular) deja 2 indicadores y no admite cortes.
+**Lectura:** retirar los 4 planos simplifica sin costo ni ganancia medible; ningún subconjunto de indicadores alinea el radar con el DANE.
+Decisión de retirar: del usuario y su jefe. `src/` no cambia.
