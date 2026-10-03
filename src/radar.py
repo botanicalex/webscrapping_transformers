@@ -24,27 +24,35 @@ class CalculadorRadar:
         'Vanguardia': 'Santander', 'Trochando Sin Fronteras': 'Arauca', 'Enlace Television': 'Santander', 'Corrillos': 'Santander'
     }
 
-    BLOQUES_PCA = {
-        'bloque_A': ['violacion_derechos_humanos', 'irregularidad_contractual', 'conflicto_territorial'],
-        'bloque_B': ['presencia_grupos_armados', 'amenaza_lideres', 'amenaza_intimidacion', 'conflictos_socioambientales'],
-        'bloque_C': ['debilidad_institucional', 'conflicto_activo', 'incentivos_economicos_inequitativos'],
-        'bloque_D': ['desplazamiento_forzado', 'reasentamiento', 'poblacion_afectada',
-                     'zonas_proteccion_alimentaria', 'dano_territorios', 'exclusion_servicios_derechos', 'grupos_etnicos_existentes',
-                     'danos_ambientales', 'derechos_vulnerados', 'resistencia_territorial'],
-        'bloque_E': ['deficit_participacion_comunitaria',
-                     'exclusion_comunidades', 'movimientos_sociales', 'rechazo_proyecto', 'protesta_social', 'exclusion_beneficios_economicos'],
+    # 4 bloques de 5 indicadores (2026-10-03, contexto/08_log_decisiones.md). Solo
+    # descriptivos, para el artículo y el dashboard: radar_propio sigue siendo el
+    # promedio simple de los 20 indicadores y los bloques no entran en la clasificación.
+    BLOQUES = {
+        'bloque_conflicto_armado_derechos': ['presencia_grupos_armados', 'amenaza_lideres', 'amenaza_intimidacion',
+                                             'desplazamiento_forzado', 'violacion_derechos_humanos'],
+        'bloque_territorio_ambiente': ['conflicto_territorial', 'conflictos_socioambientales', 'danos_ambientales',
+                                       'dano_territorios', 'resistencia_territorial'],
+        'bloque_gobernanza_participacion': ['irregularidad_contractual', 'debilidad_institucional',
+                                            'deficit_participacion_comunitaria', 'protesta_social', 'movimientos_sociales'],
+        'bloque_poblacion_condiciones_vida': ['exclusion_servicios_derechos', 'poblacion_afectada', 'grupos_etnicos_existentes',
+                                              'zonas_proteccion_alimentaria', 'reasentamiento'],
     }
 
     VARS_INVERTIR: set = set()  # todos los indicadores tienen hipótesis de déficit/riesgo
 
+    # 20 indicadores. Retirados el 2026-10-03 (reunión con el jefe): rechazo_proyecto,
+    # exclusion_beneficios_economicos, incentivos_economicos_inequitativos, conflicto_activo,
+    # derechos_vulnerados, exclusion_comunidades.
     COLUMNAS_BINARIAS = [
-        'deficit_participacion_comunitaria', 'incentivos_economicos_inequitativos', 'debilidad_institucional', 'danos_ambientales', 'conflictos_socioambientales',
+        'deficit_participacion_comunitaria', 'debilidad_institucional', 'danos_ambientales', 'conflictos_socioambientales',
         'desplazamiento_forzado', 'reasentamiento', 'protesta_social', 'amenaza_intimidacion', 'conflicto_territorial',
-        'rechazo_proyecto', 'derechos_vulnerados', 'violacion_derechos_humanos', 'conflicto_activo', 'resistencia_territorial', 'exclusion_comunidades',
-        'exclusion_servicios_derechos', 'movimientos_sociales', 'poblacion_afectada', 'exclusion_beneficios_economicos', 'irregularidad_contractual',
+        'violacion_derechos_humanos', 'resistencia_territorial',
+        'exclusion_servicios_derechos', 'movimientos_sociales', 'poblacion_afectada', 'irregularidad_contractual',
         'zonas_proteccion_alimentaria', 'dano_territorios', 'presencia_grupos_armados', 'amenaza_lideres',
         'grupos_etnicos_existentes',
     ]
+
+    COLUMNAS_SALIDA = ['departamento', 'n_articulos', *BLOQUES, 'radar_propio', 'categoria_riesgo']
 
     # Cortes fijos Bajo/Medio/Alto del radar V2 -- ver config_pipeline.py
     # (fuente unica, la comparten radar.py y metricas_y_calculo_de_error.py
@@ -72,16 +80,14 @@ class CalculadorRadar:
 
         df_sub = pd.DataFrame(index=df_tasas.index)
         df_sub['n_articulos'] = n_articulos_serie.reindex(df_sub.index)
-        for b, variables in self.BLOQUES_PCA.items():
+        for b, variables in self.BLOQUES.items():
             v = [x for x in variables if x in df_tasas.columns]
             df_sub[b] = df_tasas[v].mean(axis=1) * 100.0 if v else 0.0
 
-        df_sub['corrupcion_score'] = df_sub[['bloque_A', 'bloque_B', 'bloque_C']].mean(axis=1)
-        df_sub['vulneracion_score'] = df_sub[['bloque_D', 'bloque_E']].mean(axis=1)
         df_sub['radar_propio'] = radar_raw.round(4)
         df_sub['categoria_riesgo'] = self._categoria_cortes_fijos(df_sub['radar_propio'])
         out = df_sub.reset_index().rename(columns={'index': 'departamento'})
-        return out[['departamento', 'n_articulos', 'bloque_A', 'bloque_B', 'bloque_C', 'bloque_D', 'bloque_E', 'corrupcion_score', 'vulneracion_score', 'radar_propio', 'categoria_riesgo']].sort_values('radar_propio', ascending=False)
+        return out[self.COLUMNAS_SALIDA].sort_values('radar_propio', ascending=False)
 
     def calcular_desde_indicadores(
         self,
@@ -125,7 +131,7 @@ class CalculadorRadar:
         (`exportar_indicadores_transformers_por_departamento`), que ya trae el
         MAX por indicador y departamento — una fila por departamento, así que
         el groupby/mean de `_preparar_tasas_indicadores` es un no-op. Aquí solo
-        se promedia entre los 26 indicadores (sin pesos) y se clasifica con
+        se promedia entre los 20 indicadores (sin pesos) y se clasifica con
         cortes fijos, sin calibración z-score (ver `CORTE_BAJO_MEDIO`/
         `CORTE_MEDIO_ALTO` — están calibrados sobre la escala MAX de esta
         rama, no sobre la escala z-score, que además es monótona y no
@@ -140,16 +146,14 @@ class CalculadorRadar:
 
         df_sub = pd.DataFrame(index=df_tasas.index)
         df_sub['n_articulos'] = n_articulos.reindex(df_sub.index)
-        for b, variables in self.BLOQUES_PCA.items():
+        for b, variables in self.BLOQUES.items():
             v = [x for x in variables if x in df_tasas.columns]
             df_sub[b] = df_tasas[v].mean(axis=1) * 100.0 if v else 0.0
 
-        df_sub['corrupcion_score'] = df_sub[['bloque_A', 'bloque_B', 'bloque_C']].mean(axis=1)
-        df_sub['vulneracion_score'] = df_sub[['bloque_D', 'bloque_E']].mean(axis=1)
         df_sub['radar_propio'] = radar_raw.round(4)
         df_sub['categoria_riesgo'] = self._categoria_cortes_fijos(df_sub['radar_propio'])
         out = df_sub.reset_index().rename(columns={'index': 'departamento'})
-        return out[['departamento', 'n_articulos', 'bloque_A', 'bloque_B', 'bloque_C', 'bloque_D', 'bloque_E', 'corrupcion_score', 'vulneracion_score', 'radar_propio', 'categoria_riesgo']].sort_values('radar_propio', ascending=False)
+        return out[self.COLUMNAS_SALIDA].sort_values('radar_propio', ascending=False)
 
     @classmethod
     def _categoria_cortes_fijos(cls, s: pd.Series) -> pd.Series:
@@ -333,7 +337,7 @@ def ejecutar_radar_bloques(
     nombre_experimento_inicial: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Corre el radar (camino bloques: MAX por indicador + promedio de 26,
+    Corre el radar (camino bloques: MAX por indicador + promedio de 20,
     cortes fijos) y registra cada corrida como una columna EXPERIMENTO_N en
     `archivo_comparacion_excel`, para que `metricas_y_calculo_de_error.py`
     pueda compararla contra el radar oficial DANE.

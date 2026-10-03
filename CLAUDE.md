@@ -110,6 +110,10 @@ regla de inclusión). Antes, el pre-filtro social general se rechazó también b
 La prueba de un modelo NLI alternativo (`vicgalle/xlm-roberta-large-xnli-anli`, solo pruebas)
 terminó el 2026-09-23 con el modelo **rechazado** (informe 07; etiqueta `prueba-modelo-nli-rechazado`).
 
+**2026-10-03:** se retiraron 6 indicadores por decisión del jefe (quedan **20**; donde este archivo dice 26, léase 20
+para producción). Salida del radar con 4 bloques de 5 (`CalculadorRadar.BLOQUES`, solo descriptivos) y cortes
+recalibrados **0.7138/0.905** (clases 6/19/7 iguales; `08_log_decisiones.md` [2026-10-03]).
+
 **Abierto:** ampliar el estándar de plata (cubre 2 de 26 — es la mayor debilidad, todas las
 conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos_ambientales`
 queda en cero en P75 a escala nacional — la etiqueta "tres muertos" es del corpus de 5

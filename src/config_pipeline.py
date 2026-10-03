@@ -91,11 +91,17 @@ MIN_ARTICULOS_RESPALDO = 50
 # y ninguna de las 12 anclas se rompe -- ver contexto/08_log_decisiones.md
 # [2026-09-29].
 #
+# Recalibrado de nuevo el 2026-10-03 (regla 2) al retirar 6 indicadores (quedan
+# 20): mismo procedimiento (experimentos/exp_retiro_6ind_cortes.py, sanidad con
+# 26 -> 0.7572/0.9233); 0.7572 -> 0.7138, 0.9233 -> 0.905. La clasificacion de
+# los 32 no cambia (6/19/7) y ninguna ancla se rompe -- ver
+# contexto/08_log_decisiones.md [2026-10-03].
+#
 # Vive aqui (no en radar.py) para que metricas_y_calculo_de_error.py pueda
 # usar el mismo corte sin crear un import circular con radar.py (que ya
 # importa metricas_y_calculo_de_error).
-CORTE_BAJO_MEDIO_RADAR = 0.7572
-CORTE_MEDIO_ALTO_RADAR = 0.9233
+CORTE_BAJO_MEDIO_RADAR = 0.7138
+CORTE_MEDIO_ALTO_RADAR = 0.905
 
 # ── Rutas (relativas a la raiz de desarrollo/) ───────────────────────────────
 RUTA_CORPUS_PKL = "datos/corpus"        # entrada: df_corpus_*.pkl

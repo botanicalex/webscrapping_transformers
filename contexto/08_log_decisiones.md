@@ -1974,3 +1974,21 @@ Retirar uno solo mueve el Spearman DANE como mucho 0.055 (grupos armados, a peor
 (`debilidad_institucional`): ruido con n = 32. R2 (circular) deja 2 indicadores y no admite cortes.
 **Lectura:** retirar los 4 planos simplifica sin costo ni ganancia medible; ningún subconjunto de indicadores alinea el radar con el DANE.
 Decisión de retirar: del usuario y su jefe. `src/` no cambia.
+
+## [2026-10-03] Retiro de 6 indicadores (26 -> 20), bloques 4x5 en la salida y cortes recalibrados — PROMOVIDO a `src/`
+
+**Decisión del usuario y su jefe (reunión):** se retiran `rechazo_proyecto`, `exclusion_beneficios_economicos`,
+`incentivos_economicos_inequitativos`, `conflicto_activo`, `derechos_vulnerados` y `exclusion_comunidades` (no hay proyecto concreto
+que rechazar ni beneficios que repartir; demasiado generales o redundantes; falsos positivos altos). Quedan 20.
+**Bloques:** los `bloque_A..E` + `corrupcion_score`/`vulneracion_score` de la salida del radar se reemplazan por 4 bloques de 5
+(`CalculadorRadar.BLOQUES`): conflicto armado y derechos, territorio y ambiente, gobernanza y participación, población y condiciones
+de vida. Son descriptivos (artículo y dashboard): `radar_propio` sigue siendo el promedio simple de los 20 y es lo único que clasifica.
+Se eligió 4x5 sobre la propuesta A–E porque A–E dejaba un bloque de 1 indicador y otro de 9. **Cambian las columnas de
+`radar_departamentos.csv/pkl`: hay que avisar al front.**
+**Cortes (regla 2):** `experimentos/exp_retiro_6ind_cortes.py` (offline, sin GPU, mismo `elegir_cortes`): sanidad con 26 devuelve
+0.7572/0.9233; con 20 devuelve **0.7138/0.905**, 0 anclas rotas. Clases 6/19/7 iguales, 0 departamentos cambian de clase, accuracy
+0.344 igual; Spearman DANE −0.0913 → −0.0861, tamaño +0.8640 → +0.8750 (`experimentos/resultados/exp_retiro_6ind_cortes.csv`).
+**Cambios:** `src/radar.py` (20 indicadores, `BLOQUES`, `COLUMNAS_SALIDA`), `src/Transformer_optimo.py` (6 hipótesis fuera: el NLI
+deja de puntuarlas; `score_dim*` sin los retirados; base del radar con las columnas nuevas), `src/config_pipeline.py` (cortes),
+`src/test_integracion.py` (16/16). Los `experimentos/` antiguos que leen `BLOQUES_PCA` o `bloque_A..E` no se tocan (históricos).
+**Abre:** avisar al front del cambio de columnas; cualquier `df_procesado` anterior trae las 6 columnas retiradas (se ignoran, no rompen).

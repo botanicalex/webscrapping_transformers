@@ -1,5 +1,10 @@
 # 03 — Los 26 indicadores
 
+> **2026-10-03: en producción quedan 20.** Se retiraron `rechazo_proyecto`, `exclusion_beneficios_economicos`,
+> `incentivos_economicos_inequitativos`, `conflicto_activo`, `derechos_vulnerados` y `exclusion_comunidades`. Los 20 se
+> agrupan en 4 bloques de 5 (`CalculadorRadar.BLOQUES`, solo descriptivos). Lo que sigue describe los 26 originales;
+> ver `08_log_decisiones.md` [2026-10-03].
+
 **Las cadenas exactas viven en el código, no aquí**, para que no diverjan:
 
 - `experimentos/hipotesis_base.py` → **V0**, las 26 hipótesis históricas (producción hasta
