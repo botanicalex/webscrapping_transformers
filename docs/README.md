@@ -101,7 +101,9 @@ https://botanicalex.github.io/webscrapping_transformers/busqueda_pipeline.html?a
 ```
 
 Con ese link:
-- El autocompletado del campo *Territorio* consulta `GET {api}/lugares?q=...` (DIVIPOLA).
+- El autocompletado del campo *Territorio* consulta `GET {api}/lugares?q=...` contra una
+  tabla local congelada en el repo (`src/municipios_colombia.py`), no contra DIVIPOLA —
+  esa dependencia de red se sacó (ver `src/api.py`).
 - El botón **Analizar** llama a `POST {api}/analizar` y muestra el radar real.
 
 ---

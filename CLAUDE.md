@@ -1,7 +1,7 @@
 # Radar de riesgo territorial — Colombia (32 departamentos)
 
 Prensa regional → NLI (`MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7`)
-sobre 26 hipótesis → agregación por lugar → clase Bajo/Medio/Alto.
+sobre 20 hipótesis → agregación por lugar → clase Bajo/Medio/Alto.
 
 **Radar ALTO = zona difícil o inviable para implementar proyectos** (conflicto activo,
 grupos armados, ausencia de Estado). No es un índice de "cuánto pasa", es uno de
@@ -38,11 +38,12 @@ optimizar indicadores — hay un techo estructural y una decisión de diseño pe
    configuración): solo son comparables mediciones con el mismo contenido absurdo.
 4. **`NULA_TEST` no entra jamás en la calibración del sesgo.** Para eso están las 4 de
    `NULAS_CALIBRACION`. Mezclarlas destruye la única evaluación honesta que queda.
-5. **En esta rama no existe `experimentos/`** (se eliminó en la poda). Las 26 hipótesis V2
-   viven únicamente en `src/Transformer_optimo.py`; no hay copia V0 aquí.
+5. **En esta rama no existe `experimentos/`** (se eliminó en la poda). Las 20 hipótesis V2
+   viven únicamente en `src/Transformer_optimo.py`; no hay copia V0 aquí (6 de las 26
+   originales se retiraron el 2026-10-03 — ver `08_log_decisiones.md`).
 6. **En esta rama no existe `nli_core`** (se eliminó con `experimentos/`), así que la
    verificación `verificar_contra_produccion_v2()` no aplica aquí. Para validar cambios,
-   correr `python src/test_integracion.py` (10 tests, sin GPU).
+   correr `python src/test_integracion.py` (16 tests, sin GPU).
 7. **Un experimento aísla UNA variable.** Dos cambios a la vez no se pueden atribuir.
 8. **No repetir GPU.** Puntuar los 32 departamentos son ~4 h. Se guardan `ent_` y `neu_`
    **sin enmascarar** en un pkl y todo el análisis posterior se hace sobre el pkl.
@@ -79,15 +80,20 @@ decisión técnica del historial, que fue P75 por rango más cercano; ver
 `contexto/08_log_decisiones.md` y `explicacion_alexa.md`).
 
 **Los tres están corregidos EN PRODUCCIÓN desde el 2026-08-31.** `src/` en `pruebas`/`master`
-corre P75; **en esta rama corre MAX**: hipótesis V2, **sin pre-filtro social** (rechazado:
-cuesta AUC), sesgo descontado, MAX por departamento, cortes fijos recalibrados sobre esa
-escala `Bajo < 0.766 <= Medio < 0.9233 <= Alto`, y la clasificación oficial del DANE leída de
-su columna (antes se recalculaba con terciles propios — era un bug).
+corre P75; **en esta rama corre MAX**: hipótesis V2 (**20 vigentes** — se retiraron 6 el
+2026-10-03, ver `contexto/08_log_decisiones.md` y `contexto/03_indicadores.md`), **sin
+pre-filtro social** (rechazado: cuesta AUC), sesgo descontado, MAX por departamento, cortes
+fijos recalibrados sobre esa escala `Bajo < 0.7138 <= Medio < 0.905 <= Alto` (recalibrados
+el 2026-10-03 al pasar de 26 a 20 indicadores), y la clasificación oficial del DANE leída de
+su columna (antes se recalculaba con terciles propios — era un bug). La salida del radar
+también trae **4 bloques con nombre** (`CalculadorRadar.BLOQUES`: conflicto armado y
+derechos, territorio y ambiente, gobernanza y participación, población y condiciones de
+vida) — descriptivos para el artículo y el dashboard, no entran en la clasificación.
 
-**Abierto:** ampliar el estándar de plata (cubre 2 de 26 — es la mayor debilidad, todas las
+**Abierto:** ampliar el estándar de plata (cubre 2 de 20 — es la mayor debilidad, todas las
 conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos_ambientales`
 queda en cero en P75 a escala nacional — la etiqueta "tres muertos" es del corpus de 5
-lugares); re-puntuar los 32
+lugares; no remedido con MAX+20 a escala nacional); re-puntuar los 32
 departamentos con el código de `src/` ya promovido (~4 h GPU, nunca se corrió a escala
 nacional desde producción); fusionar el corpus re-scrapeado de 3 departamentos.
 
@@ -109,7 +115,8 @@ Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`).
 - `contexto/00_estado_actual.md` — qué corre hoy, qué no, en qué se estaba trabajando.
 - `contexto/01_objetivo_y_radar.md` — el radar oficial DANE y cómo se calcula la accuracy.
 - `contexto/02_pipeline.md` — flujo end-to-end y contrato de cada etapa.
-- `contexto/03_indicadores.md` — las 26 hipótesis, V0 y V2 lado a lado.
+- `contexto/03_indicadores.md` — los 20 indicadores vigentes y la historia V0 → V2 →
+  retiro de 6 (2026-10-03).
 - `contexto/04_hallazgos_revision_nli.md` — **tablas completas de los 6 experimentos.**
   Leer antes de tocar hipótesis, calibración o agregación.
 - `contexto/05_scraping.md` — cómo funciona la búsqueda por nombre y sus trampas.

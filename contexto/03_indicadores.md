@@ -1,31 +1,47 @@
-# 03 — Los 26 indicadores
+# 03 — Los 20 indicadores
+
+> **[2026-10-04] Esta rama (`integracion-front-back`) no tiene `experimentos/`** (poda,
+> regla 5 de `CLAUDE.md`), así que `experimentos/hipotesis_base.py` (V0) e
+> `hipotesis_v2.py` (V2, las 26 de agosto) —citados más abajo por su valor histórico— **no
+> existen aquí**. La fuente de verdad de las hipótesis vigentes es, sin excepción,
+> `src/Transformer_optimo.py`; `src/radar.py` (`CalculadorRadar.COLUMNAS_BINARIAS`) es la
+> lista canónica de los 20 nombres. El resto de este documento describe la historia
+> completa (V0 → V2 → retiro de 6) tal como se investigó; lo que cambió de estado se anota
+> en línea.
 
 **Las cadenas exactas viven en el código, no aquí**, para que no diverjan:
 
 - `experimentos/hipotesis_base.py` → **V0**, las 26 hipótesis históricas (producción hasta
-  el 2026-08-31). De solo lectura.
+  el 2026-08-31). Histórico — no existe en esta rama.
 - `experimentos/hipotesis_v2.py` → **V2**, las 26 reescritas tras la revisión de agosto.
-  Validadas en los 2 indicadores con estándar de plata. **En producción desde el
-  2026-08-31** (`src/Transformer_optimo.py`, verificadas byte a byte antes de promover).
-- `src/radar.py` → `CalculadorRadar.COLUMNAS_BINARIAS`, la lista canónica de nombres.
+  Validadas en los 2 indicadores con estándar de plata. Histórico — no existe en esta rama;
+  su contenido vigente (ya con los 6 retirados el 2026-10-03) vive en
+  `src/Transformer_optimo.py`, verificado por `python src/test_integracion.py`.
+- `src/radar.py` → `CalculadorRadar.COLUMNAS_BINARIAS`, la lista canónica de los 20 nombres
+  vigentes.
 
 ## Composición
 
+**[2026-10-03] Se retiraron 6** (decisión del usuario y su jefe, detalle y evidencia en
+`08_log_decisiones.md` [2026-10-03]): `rechazo_proyecto`, `exclusion_beneficios_economicos`,
+`incentivos_economicos_inequitativos`, `conflicto_activo`, `derechos_vulnerados`,
+`exclusion_comunidades`. La composición original (26 = 5 eventos + 5 posturas + 16
+generales) queda así:
+
 **5 eventos** — hechos que ocurrieron: `desplazamiento_forzado`, `reasentamiento`,
-`protesta_social`, `amenaza_intimidacion`, `conflicto_territorial`.
+`protesta_social`, `amenaza_intimidacion`, `conflicto_territorial`. Ninguno retirado.
 
-**5 posturas** — posición de actores: `rechazo_proyecto`, `derechos_vulnerados`,
-`conflicto_activo`, `resistencia_territorial`, `exclusion_comunidades`.
+**1 postura** (antes 5; se retiraron 4 de las 5) — posición de actores:
+`resistencia_territorial`.
 
-**16 generales** — `deficit_participacion_comunitaria`,
-`incentivos_economicos_inequitativos`, `debilidad_institucional`, `danos_ambientales`,
-`conflictos_socioambientales`, `violacion_derechos_humanos`, `exclusion_servicios_derechos`,
-`grupos_etnicos_existentes`, `movimientos_sociales`, `poblacion_afectada`,
-`exclusion_beneficios_economicos`, `irregularidad_contractual`,
+**14 generales** (antes 16; se retiraron 2) — `deficit_participacion_comunitaria`,
+`debilidad_institucional`, `danos_ambientales`, `conflictos_socioambientales`,
+`violacion_derechos_humanos`, `exclusion_servicios_derechos`, `grupos_etnicos_existentes`,
+`movimientos_sociales`, `poblacion_afectada`, `irregularidad_contractual`,
 `zonas_proteccion_alimentaria`, `dano_territorios`, `presencia_grupos_armados`,
 `amenaza_lideres`.
 
-Todos son **NLI**. Cero NER, cero zero-shot.
+Total vigente: **20**. Todos son **NLI**. Cero NER, cero zero-shot.
 
 ## Historia
 
@@ -36,8 +52,10 @@ Todos son **NLI**. Cero NER, cero zero-shot.
 - `grupos_etnicos_existentes` se **migró de NER a NLI**, y con eso se eliminó el redundante
   `existencia_grupos_etnicos`. Igual con `grupos_armados_existentes`, cubierto por
   `presencia_grupos_armados`.
-- Quedan **26**. `VARS_INVERTIR` está vacío: todos tienen hipótesis de déficit/riesgo, así
-  que más alto siempre es peor.
+- Quedan **26** (ver "Composición" arriba para el estado posterior). `VARS_INVERTIR` está
+  vacío: todos tienen hipótesis de déficit/riesgo, así que más alto siempre es peor.
+- **2026-10-03:** se retiran 6 más (reunión usuario + jefe, no un hallazgo de discriminación
+  — ver `08_log_decisiones.md`). Quedan **20**.
 
 ## La transformación V0 → V2
 
@@ -62,6 +80,9 @@ El porqué y las mediciones están en `04_hallazgos_revision_nli.md`.
 
 ## Solapamientos conocidos
 
+**[2026-10-03] Ambos indicadores de este primer solapamiento se retiraron** — el
+diagnóstico de abajo (seguían midiendo lo mismo) es, en retrospectiva, parte de por qué.
+
 **`incentivos_economicos_inequitativos` vs `exclusion_beneficios_economicos`.** Eran casi el
 mismo enunciado. Se diferenciaron a mano (agosto): el primero mide *reparto desigual*, el
 segundo *exclusión total*. **El cambio no funcionó**: la correlación entre ambos pasó de
@@ -69,7 +90,8 @@ segundo *exclusión total*. **El cambio no funcionó**: la correlación entre am
 
 **`exclusion_comunidades` vs `deficit_participacion_comunitaria`.** También se solapan. En
 V2 se separaron: el primero es la *exigencia* de ser incluido, el segundo la *ausencia* de
-proceso participativo. Sin medir todavía.
+proceso participativo. Sin medir todavía — y ya no se va a medir: `exclusion_comunidades`
+se retiró el 2026-10-03; `deficit_participacion_comunitaria` sigue vigente.
 
 ## Los tres indicadores muertos
 
@@ -105,9 +127,9 @@ distinto de "daños". Corregido en V2; el efecto aislado no se midió.
 
 **CERRADO 2026-08-31: RECHAZADO y retirado de producción.** Con la escala V2 se probó el
 umbral 0.85 (AUC por indicador + control absurdo): cuesta AUC de forma clara en los 2
-indicadores con estándar de plata (−0.053 y −0.027, IC95% excluye cero). Hoy los 26
-indicadores se puntúan sobre todos los artículos. Detalle en `08_log_decisiones.md`
-[2026-08-31].
+indicadores con estándar de plata (−0.053 y −0.027, IC95% excluye cero). Hoy los 20
+indicadores vigentes se puntúan sobre todos los artículos. Detalle en
+`08_log_decisiones.md` [2026-08-31].
 
 Histórico (V0): una hipótesis NLI aparte (`HIPOTESIS_SOCIAL`) con umbral 0.65; los
 artículos que no la superaban quedaban con sus 26 indicadores en 0. En V0 tenía la

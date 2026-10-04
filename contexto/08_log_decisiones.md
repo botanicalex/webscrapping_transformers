@@ -1034,3 +1034,52 @@ antes.
 **Reabre:** con las 60 etiquetas -> distribucion de `max_26` por clase (3.2) -> umbral con
 basura rechazada y buenos perdidos (3.3). Insumos en `contexto/filtro2/` y pendiente en
 `contexto/07_backlog.md` punto 8.
+
+## [2026-10-03] Retiro de 6 indicadores (26 -> 20), bloques 4x5 en la salida y cortes recalibrados — PROMOVIDO a `src/`
+
+**Decisión del usuario y su jefe (reunión):** se retiran `rechazo_proyecto`, `exclusion_beneficios_economicos`,
+`incentivos_economicos_inequitativos`, `conflicto_activo`, `derechos_vulnerados` y `exclusion_comunidades` (no hay proyecto concreto
+que rechazar ni beneficios que repartir; demasiado generales o redundantes; falsos positivos altos). Quedan 20.
+**Bloques:** los `bloque_A..E` + `corrupcion_score`/`vulneracion_score` de la salida del radar se reemplazan por 4 bloques de 5
+(`CalculadorRadar.BLOQUES`): conflicto armado y derechos, territorio y ambiente, gobernanza y participación, población y condiciones
+de vida. Son descriptivos (artículo y dashboard): `radar_propio` sigue siendo el promedio simple de los 20 y es lo único que clasifica.
+Se eligió 4x5 sobre la propuesta A–E porque A–E dejaba un bloque de 1 indicador y otro de 9. **Cambian las columnas de
+`radar_departamentos.csv/pkl`: hay que avisar al front.**
+**Cortes (regla 2):** `experimentos/exp_retiro_6ind_cortes.py` (offline, sin GPU, mismo `elegir_cortes`): sanidad con 26 devuelve
+0.7572/0.9233; con 20 devuelve **0.7138/0.905**, 0 anclas rotas. Clases 6/19/7 iguales, 0 departamentos cambian de clase, accuracy
+0.344 igual; Spearman DANE −0.0913 → −0.0861, tamaño +0.8640 → +0.8750 (`experimentos/resultados/exp_retiro_6ind_cortes.csv`).
+**Cambios:** `src/radar.py` (20 indicadores, `BLOQUES`, `COLUMNAS_SALIDA`), `src/Transformer_optimo.py` (6 hipótesis fuera: el NLI
+deja de puntuarlas; `score_dim*` sin los retirados; base del radar con las columnas nuevas), `src/config_pipeline.py` (cortes),
+`src/test_integracion.py` (16/16). Los `experimentos/` antiguos que leen `BLOQUES_PCA` o `bloque_A..E` no se tocan (históricos).
+**Abre:** avisar al front del cambio de columnas; cualquier `df_procesado` anterior trae las 6 columnas retiradas (se ignoran, no rompen).
+
+> **Nota [2026-10-04, `integracion-front-back`]:** esta entrada se trajo tal cual desde
+> `radar-20ind-bloques` (no estaba en este log, aunque el cambio ya estaba promovido a
+> `src/` desde ese commit — laguna del traslado selectivo que lo integró a esta rama, ver
+> más abajo [2026-10-04]). Las rutas `experimentos/` que cita son históricas de esa rama;
+> no existen aquí (regla 5).
+
+## [2026-10-04] Integración de los 20 indicadores/4 bloques a `integracion-front-back` y ajustes de `api.py`/front
+
+**Qué se trajo:** de `radar-20ind-bloques`, solo los 7 archivos de `src/` con el cambio de
+arriba (`radar.py`, `Transformer_optimo.py`, `config_pipeline.py`, `pipeline_lugares.py`,
+`test_integracion.py`, `generar_max_articulos_por_departamento.py`,
+`generar_tablas_por_departamento.py`), con `git checkout <rama> -- <archivos>` en vez de
+`git merge` — un merge completo arrastraba `experimentos/`, `informes/` y los agentes
+`juez-*` que esta rama ya había podado. Verificado que ninguno de los 7 importa nada de
+`experimentos/`/`informes/` antes de traerlos.
+**Ajustes en `src/api.py` (no existe en `radar-20ind-bloques`, así que Santiago no los
+necesitaba):** `BLOQUES_INDICADORES`/`BLOQUES_META` ya no asumen `bloque_A..E`; leen
+`CalculadorRadar.BLOQUES` dinámicamente, con id corto de badge (CA/TA/GP/PV) y nombre/color
+de presentación nuevos (Santiago solo definió las claves técnicas). Si una clave no está en
+`BLOQUES_META` (bloque agregado o renombrado sin avisar), `_meta_bloque_fallback` deriva
+id/nombre/color en vez de un `KeyError` en producción.
+**Ajustes en `docs/visualizacion_riesgo.html`:** diccionario `NOMBRES` sin los 6 indicadores
+retirados ni los 3 nombres de bloque viejos; el subtítulo "Los N indicadores..." pasó de
+texto fijo a derivarse de `DATOS.bloques` (el "26" quedó expuesto una vez por probar una
+copia local vieja del HTML, no por un segundo hardcodeo — se sacó el número fijo igual).
+**Validado:** `python src/test_integracion.py` (16/16, incluye el corte 0.7138/0.905),
+importación real de `api.py` y render del dashboard en navegador contra un payload con la
+forma exacta de `/analizar` (4 bloques × 5 indicadores).
+**Cierra:** la laguna de la nota de arriba — esta rama ya refleja el cambio del
+2026-10-03 en `src/` y en el log.
