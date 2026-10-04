@@ -152,7 +152,7 @@
 
     <div class="card" style="margin-bottom:18px">
       <h2>Resumen — todos los indicadores</h2>
-      <div class="sub">Los 20 indicadores agrupados por dimensión · score 0–100</div>
+      <div class="sub" id="resumen-sub"></div>
       <button class="btn-excel" onclick="descargarResumen()">⬇ Descargar resumen Excel</button>
       <table class="resumen">
         <thead><tr><th>Dimensión</th><th>Indicador</th><th class="num">Score</th></tr></thead>
@@ -298,6 +298,12 @@ function renderDashboard() {
   });
 
   // ── Tabla resumen ──
+  // Subtitulo con la cantidad real de indicadores (suma de los b.indicadores
+  // de cada bloque que mando la API), no un numero fijo: si vuelve a cambiar
+  // la lista de indicadores, este texto no se desactualiza como paso con "26".
+  const totalIndicadores = DATOS.bloques.reduce((n, b) => n + b.indicadores.length, 0);
+  document.getElementById("resumen-sub").textContent =
+    `Los ${totalIndicadores} indicadores agrupados por dimensión · score 0–100`;
   const tbody = document.getElementById("resumen-body");
   DATOS.bloques.forEach(b => {
     b.indicadores.slice().sort((x, y) => y.score - x.score).forEach(ind => {
@@ -420,7 +426,7 @@ function abrirModal(ind) {
   document.getElementById("modal").classList.add("open");
 }
 
-// Excel del resumen general: una fila por indicador (26), con el artículo de
+// Excel del resumen general: una fila por indicador, con el artículo de
 // mayor score (primero del array, que la API ya ordena descendente).
 function descargarResumen() {
   const rows = [];
