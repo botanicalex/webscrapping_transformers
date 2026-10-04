@@ -44,22 +44,25 @@ van en git por tamaño — se distribuyen aparte.
 El modelo NLI necesita GPU, así que la API corre en Google Colab y se expone a internet
 con un túnel; el front es estático y vive en GitHub Pages.
 
-1. **API en Colab (con GPU):** clonar el repo, `pip install -r requirements.txt`,
-   `playwright install chromium`, y levantar `uvicorn src.api:app --host 0.0.0.0 --port
-   8000`. Uvicorn carga el modelo NLI al arrancar — puede tardar varios minutos.
-2. **Túnel:** hoy se usa **cloudflared** (`cloudflared tunnel --url http://localhost:8000`,
-   sin cuenta) en vez de ngrok — el código conserva nombres y headers de la época de ngrok
-   (`ngrok-skip-browser-warning`) aunque el mecanismo actual sea otro. El túnel imprime una
-   URL pública `https://....trycloudflare.com`; verificar con `/health` antes de usar el
-   front.
-3. **Front:** abrir `busqueda_pipeline.html` (o la copia publicada en GitHub Pages) con esa
-   URL como parámetro `?api=`:
+1. **API en Colab (con GPU):** abrir [`colab_setup.ipynb`](colab_setup.ipynb) —clona el
+   repo, instala dependencias y pre-descarga el modelo— y correr sus celdas en orden. La
+   celda 4 levanta `uvicorn api:app --host 0.0.0.0 --port 8000` **desde dentro de `src/`**
+   (no `uvicorn src.api:app` desde la raíz) y espera a que `/health` responda; puede tardar
+   varios minutos porque ahí se carga el modelo NLI.
+2. **Túnel:** la celda 5 expone esa API con **ngrok** (`pyngrok`, requiere un token gratis
+   de ngrok pegado en la celda) y arma directamente el link del front con el parámetro
+   `?api=` ya puesto — no hace falta armarlo a mano. Las URLs son del estilo
+   `https://....ngrok-free.dev` (no `.trycloudflare.com`).
+3. **Front:** si no se usa el link que imprime la celda 5, abrir
+   `busqueda_pipeline.html` (o la copia publicada en GitHub Pages) con esa URL como
+   parámetro `?api=`:
    ```
-   https://botanicalex.github.io/webscrapping_transformers/busqueda_pipeline.html?api=https://....trycloudflare.com
+   https://botanicalex.github.io/webscrapping_transformers/busqueda_pipeline.html?api=https://....ngrok-free.dev
    ```
 
-Guía completa, con los comandos exactos y las trampas conocidas (URL del túnel que cambia
-cada vez, mixed content HTTPS→HTTP), en [`docs/README.md`](docs/README.md).
+[`docs/README.md`](docs/README.md) describe un túnel con **cloudflared** en vez de ngrok —
+quedó desactualizado frente a `colab_setup.ipynb`, que es lo que se usa hoy. Seguir el
+notebook, no esa guía, hasta que se actualice.
 
 ## Los 20 indicadores, en 4 bloques
 
@@ -106,6 +109,12 @@ en el repo, `/lugares` (autocompletado) y la validación no dependen de ninguna 
   FILTRO 1 solo confirma que el *nombre* del territorio escrito por el usuario es real; no
   hay una segunda pasada que verifique que cada artículo scrapeado trata efectivamente
   sobre ese lugar más allá de que el término de búsqueda aparezca mencionado.
+- **El rango de fechas por defecto del front no es el que se usó para validar el sistema.**
+  `busqueda_pipeline.html` arranca con fin = hoy, inicio = hace un mes; las corridas de
+  referencia para los 4 lugares (Maicao, Oicatá, etc.) scrapearon del 2025-08-01 al
+  2026-08-17 (`src/scrape_lugares.py`, más de un año). Con el rango por defecto, una
+  consulta real va a traer muchos menos artículos que esas corridas de referencia — y con
+  pocos artículos el MAX es más ruidoso (ver el punto de abajo).
 - **La agregación es por máximo (MAX), no por percentil 75 (P75).** Es un requisito de
   negocio de esta rama, no la recomendación técnica del historial del proyecto: el MAX está
   medidamente más dominado por el tamaño del corpus que por la señal real entre lugares

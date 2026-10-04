@@ -1,5 +1,12 @@
 # Radar de Riesgo Social — Front de consulta
 
+> **[2026-10-04] Desactualizado: esta guía describe un túnel cloudflared que ya no es el
+> que se usa.** Lo vigente hoy es [`colab_setup.ipynb`](../colab_setup.ipynb) con
+> **ngrok** (celda 5, URLs `https://....ngrok-free.dev`) — ver el README de la raíz,
+> sección "Cómo levantarlo". El resto de este documento (de dónde sale `?api=`, el aviso de
+> mixed content HTTPS→HTTP, etc.) sigue siendo válido conceptualmente; solo el mecanismo de
+> túnel y los comandos de esta sección cambiaron.
+
 `busqueda_pipeline.html` es la interfaz de consulta (HTML + JS vanilla, sin build).
 Se publica por **GitHub Pages** desde esta carpeta `docs/` y habla con la **API**
 (`src/api.py`, FastAPI) a través de un túnel HTTPS.
