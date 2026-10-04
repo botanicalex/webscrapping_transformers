@@ -397,6 +397,27 @@ intentó con SSE/BackgroundTasks (revertida en `ec986f1`; ver entrada 9). Rehace
 romper el modelo de ejecución del scraping (threadpool síncrono, lock de Playwright, imports
 diferidos)— es el trabajo pendiente real.
 
+**[2026-10-04] Confirmado: `/analizar` no rechaza una segunda llamada concurrente.** El
+endpoint ([`src/api.py`](../src/api.py), `@app.post("/analizar")`) no chequea
+`_estado_actual["fase"]` antes de arrancar — no hay ningún `if fase != "idle": return 409`.
+Como el estado es una sola global sin `job_id` (ver arriba), dos análisis corriendo a la vez
+se pisarían: el que termine después sobrescribe `_estado_actual`/`_ultimo_resultado` del
+otro, y el front que estaba esperando el primero podría terminar mostrando el resultado del
+segundo (o viceversa). No se reprodujo en vivo, es lectura de código — pero el riesgo es
+real porque el botón "Reintentar" de la pantalla de error, hasta este cambio, siempre
+relanzaba `/analizar` completo sin importar si el análisis original seguía vivo.
+
+**Mitigado parcialmente en el front (mismo día):** en `docs/busqueda_pipeline.html`, cuando
+el error viene de la recuperación (tope de 60 s sin `/progreso`, o 5 fallos seguidos
+pidiendo `/ultimo_resultado` ya con `fase == "idle"`), "Reintentar" ya no relanza
+`/analizar` — vuelve a entrar en modo recuperación (`entrarRecuperacion()` +
+`iniciarLoading()`), que solo vuelve a sondear `/progreso`/`/ultimo_resultado`. Reduce la
+ventana en la que se podría disparar una segunda corrida sin necesidad, pero no la cierra:
+sigue sin haber guard del lado del servidor, así que dos pestañas, o un "Nueva consulta"
+manual mientras el análisis previo sigue vivo, todavía pueden pisarse. El guard real
+(rechazar `/analizar` si `fase != "idle"`, o la arquitectura de jobs de arriba) sigue
+pendiente.
+
 ---
 
 ## Trabajo perdido que conviene rehacer

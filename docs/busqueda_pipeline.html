@@ -278,6 +278,12 @@
     // el resultado con /ultimo_resultado. Ver contexto/07_backlog.md.
     var recuperando = false, recuperacionDisparada = false;
     var fallosProgreso = 0, intentosUltimoResultado = 0, consultaEnCurso = null;
+    // Qué hace "Reintentar" en la pantalla de error. Por defecto relanza el
+    // analisis completo; mostrarErrorRecuperacion la reemplaza cuando conviene
+    // reintentar solo la recuperacion (ver backlog: no hay guard contra dos
+    // /analizar simultaneos, asi que relanzar sin necesidad puede pisar el
+    // resultado del analisis que se estaba intentando recuperar).
+    var accionReintentar = function () { analizar(false); };
     var MAX_FALLOS_RECONEXION = 60;   // ~60 s sin /progreso => se da por perdido
 
     var $ = function (id) { return document.getElementById(id); };
@@ -409,7 +415,13 @@
           // En recuperación: si /progreso tampoco responde, contar hacia el tope (60 s).
           if (recuperando && ++fallosProgreso >= MAX_FALLOS_RECONEXION) {
             detenerLoading();
-            mostrarErrorRecuperacion("Se perdió la conexión y no se pudo recuperar el análisis.");
+            // No se sabe si el analisis original sigue vivo o ya termino: volver
+            // a intentar la recuperacion (no relanzar) para no arriesgar un
+            // segundo /analizar corriendo a la vez (ver backlog 07).
+            mostrarErrorRecuperacion(
+              "No se pudo recuperar el resultado del análisis. Puedes intentarlo de nuevo.",
+              function () { intentosUltimoResultado = 0; entrarRecuperacion(); iniciarLoading(); }
+            );
           }
         });
     }
@@ -617,7 +629,7 @@
       recuperando = true; recuperacionDisparada = false; fallosProgreso = 0;
       // El loading sigue vivo (no se detiene pollId/animId); tickLoading espera el
       // "idle" y recupera. Texto explícito para que se vea que no se colgó.
-      $("loading-etapa").textContent = "Reconectando… el análisis sigue en el servidor";
+      $("loading-etapa").textContent = "El análisis continúa, espera un momento";
     }
 
     // ¿El resultado guardado corresponde a la consulta que este front lanzó? Compara
@@ -661,13 +673,23 @@
             recuperacionDisparada = false;
           } else {
             detenerLoading();
-            mostrarErrorRecuperacion("Se perdió la conexión y no se pudo recuperar el análisis.");
+            // El servidor ya llego a "idle" (el analisis termino): reintentar
+            // solo la descarga, no relanzar el analisis completo.
+            mostrarErrorRecuperacion(
+              "No se pudo recuperar el resultado del análisis. Puedes intentarlo de nuevo.",
+              function () { intentosUltimoResultado = 0; entrarRecuperacion(); iniciarLoading(); }
+            );
           }
         });
     }
 
-    function mostrarErrorRecuperacion(msg) {
+    // `accion`, si se pasa, es lo que hace "Reintentar" en vez de relanzar el
+    // analisis completo (ver declaracion de accionReintentar). "Nueva consulta"
+    // (btn-nueva-error) nunca se oculta: es la unica salida para empezar de
+    // cero si ese reintento tambien falla.
+    function mostrarErrorRecuperacion(msg, accion) {
       recuperando = false;
+      accionReintentar = accion || function () { analizar(false); };
       $("error-msg").textContent = msg;
       $("estado-error").classList.remove("warn");
       $("err-title").textContent = "No se pudo completar el análisis";
@@ -688,7 +710,7 @@
 
     // ── Eventos ───────────────────────────────────────────────────────────────
     btnAnalizar.addEventListener("click", function () { analizar(false); });
-    $("btn-reintentar").addEventListener("click", function () { analizar(false); });
+    $("btn-reintentar").addEventListener("click", function () { accionReintentar(); });
     $("btn-buscar-igual").addEventListener("click", function () { analizar(true); });
     $("btn-forzar-error").addEventListener("click", function () { analizar(true); });
     $("btn-nueva-error").addEventListener("click", nuevaConsulta);
