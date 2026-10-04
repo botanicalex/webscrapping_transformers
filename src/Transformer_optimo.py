@@ -3,6 +3,7 @@ import glob
 import argparse
 from typing import Dict, List, Tuple
 import re
+import unicodedata
 import pandas as pd
 import numpy as np
 import torch
@@ -31,6 +32,63 @@ def _ruta_modelo_local(nombre_modelo: str) -> str:
         if os.path.isdir(ruta):
             return ruta
     return nombre_modelo
+
+
+# ------------------------------------------------------------------
+# Pre-filtro POR INDICADOR (adoptado el 2026-09-29 tras el pre-registro
+# experimentos/PREREG_prefiltro_indicador.md; ver contexto/08_log_decisiones.md
+# [2026-09-29]). Excepcion a la regla 15 confirmada por el usuario: listas de
+# palabras por indicador, calculadas por dentro y SIN columnas nuevas.
+# Cada indicador de PREFILTRO_OBJETO exige que su objeto aparezca en la
+# premisa que VE el NLI con la hipotesis de ese indicador (cuerpo recortado a
+# 512 - 3 - tokens(hipotesis), en minusculas y sin tildes): si aparece, el
+# score corregido se conserva; si no, se multiplica por 0. Los indicadores sin
+# lista pasan sin filtro. Corta los falsos positivos de "vecino semantico" que
+# con MAX fijaban el indicador (en grupos armados: homicidios, porte ilegal de
+# armas, combos, hurtos; sin "combo", "banda", "Los Costenos" ni "Tren de
+# Aragua" a proposito, son delincuencia comun segun el codebook). Las dos
+# listas son copias literales de REGEX_F5 de experimentos/hipotesis_5ind_max.py
+# (congeladas en la ronda 1; src/ no importa de experimentos/) y estan escritas
+# en minusculas y sin tildes. Conflicto territorial, rechazo de proyectos y
+# exclusion de beneficios NO entran: no cumplieron la regla de inclusion del
+# pre-registro (control absurdo y M3 en conflicto; ganancia < 0.20 en los otros).
+# ------------------------------------------------------------------
+PREFILTRO_OBJETO = {
+    "desplazamiento_forzado": (
+        r"desplaz|\bhuy(o|e|en|eron|endo)\b|\bhuir\b|exodo"
+        r"|abandonar(on)? sus (casas|hogares|tierras|veredas)"
+    ),
+    "presencia_grupos_armados": (
+        r"\beln\b|farc|disidencia|clan del golfo|\bagc\b|\begc\b|autodefensas|\bacsn\b|pachenca"
+        r"|paramilitar|guerrill|segunda marquetalia|estado mayor central|\bemc\b"
+        r"|\bfrente \d+|\bfrentes? (guerriller|disidente|de las farc|del eln)"
+    ),
+}
+_RE_PREFILTRO = {ind: re.compile(rx) for ind, rx in PREFILTRO_OBJETO.items()}
+
+
+def normalizar(txt: str) -> str:
+    """Minusculas y sin tildes (NFKD), el formato en que estan escritas las listas."""
+    return unicodedata.normalize("NFKD", str(txt).lower()).encode("ascii", "ignore").decode("ascii")
+
+
+def premisa_visible(textos: List[str], tokenizer, hipotesis: str, max_length: int = 512) -> List[str]:
+    """
+    La parte de cada texto que el NLI ve junto a `hipotesis`. _nli_batch
+    trunca el par a max_length con 'longest_first', que recorta solo la
+    premisa: quedan max_length - 3 (tokens especiales) - tokens(hipotesis).
+    """
+    if not textos:
+        return []
+    n = max_length - 3 - len(tokenizer(hipotesis, add_special_tokens=False)["input_ids"])
+    ids = tokenizer([str(t) for t in textos], add_special_tokens=False)["input_ids"]
+    return [tokenizer.decode(x[:n], skip_special_tokens=True) for x in ids]
+
+
+def compuerta_objeto(premisas: List[str], indicador: str) -> np.ndarray:
+    """1.0 si la premisa nombra el objeto del indicador (su lista de PREFILTRO_OBJETO), 0.0 si no."""
+    rx = _RE_PREFILTRO[indicador]
+    return np.array([1.0 if rx.search(normalizar(p)) else 0.0 for p in premisas], dtype=float)
 
 
 class CargadorCorpus:
@@ -113,6 +171,7 @@ class PipelineTransformers:
         # identicas a V0 -- solo cambia el texto de la hipotesis.
         # ------------------------------------------------------------------
         self.eventos = {
+            # Score multiplicado por su compuerta de objeto (PREFILTRO_OBJETO) en procesar().
             "desplazamiento_forzado": "Hubo un desplazamiento forzado o éxodo de comunidades.",
             "reasentamiento": "Se realizó un reasentamiento o reubicación de población.",
             "protesta_social": "Hubo una protesta, manifestación, bloqueo o paro.",
@@ -120,19 +179,16 @@ class PipelineTransformers:
             "conflicto_territorial": "Hay una disputa por el control, el uso o la propiedad de un territorio.",
         }
 
+        # Retirados el 2026-10-03 (reunión con el jefe, contexto/08_log_decisiones.md):
+        # rechazo_proyecto, derechos_vulnerados, conflicto_activo, exclusion_comunidades,
+        # incentivos_economicos_inequitativos, exclusion_beneficios_economicos.
         self.posturas = {
-            "rechazo_proyecto": "Hay oposición de comunidades o autoridades a un proyecto.",
-            "derechos_vulnerados": "Se vulneraron los derechos de una comunidad.",
-            "conflicto_activo": "Hay un conflicto activo en este territorio.",
             "resistencia_territorial": "Hay resistencia comunitaria en defensa del territorio o el medio ambiente.",
-            # EXIGENCIA de inclusión (se diferencia de deficit_participacion_comunitaria)
-            "exclusion_comunidades": "Las comunidades exigen ser consultadas o incluidas en las decisiones.",
         }
 
         self.indicadores = {
             # AUSENCIA de proceso participativo
             "deficit_participacion_comunitaria": "No hubo consulta ni participación de la comunidad en un proyecto o decisión.",
-            "incentivos_economicos_inequitativos": "El reparto de compensaciones o regalías de un proyecto fue desigual.",
             "debilidad_institucional": "Las instituciones carecen de recursos o de capacidad para cumplir su función.",
             "danos_ambientales": "Hubo daños ambientales, contaminación o pérdida de biodiversidad.",
             "conflictos_socioambientales": "Hay un conflicto por el uso del territorio, el agua o los recursos naturales.",
@@ -141,10 +197,10 @@ class PipelineTransformers:
             "grupos_etnicos_existentes": "En este territorio hay comunidades étnicas o pueblos indígenas.",
             "movimientos_sociales": "Hay movilizaciones u organizaciones sociales activas.",
             "poblacion_afectada": "Hay comunidades o familias afectadas.",
-            "exclusion_beneficios_economicos": "Una comunidad quedó excluida de los beneficios económicos de un proyecto.",
             "irregularidad_contractual": "Hubo irregularidades o corrupción en contratos públicos.",
             "zonas_proteccion_alimentaria": "Hay cultivos, tierras de siembra o producción de alimentos.",
             "dano_territorios": "Hubo destrucción, ocupación ilegal o despojo de territorios.",
+            # Score multiplicado por su compuerta de objeto (PREFILTRO_OBJETO) en procesar().
             "presencia_grupos_armados": "En este territorio hay presencia de grupos armados ilegales.",
             "amenaza_lideres": "Hubo amenazas o agresiones contra líderes sociales.",
         }
@@ -154,7 +210,7 @@ class PipelineTransformers:
         # que puntúan alto contra CUALQUIER hipótesis, incluidas las
         # imposibles (contexto/04_hallazgos_revision_nli.md). Se estima ese
         # sesgo con 4 hipótesis nulas de dominios variados y se descuenta de
-        # los 26 indicadores reales (ver procesar()). Una 5ª nula
+        # los 20 indicadores reales (ver procesar()). Una 5ª nula
         # ("hay colonias de osos polares") queda reservada para evaluar el
         # control absurdo honestamente y NUNCA entra aquí (regla del proyecto).
         # ------------------------------------------------------------------
@@ -166,12 +222,17 @@ class PipelineTransformers:
         ]
 
         # ------------------------------------------------------------------
-        # Pre-filtro de relevancia social: RETIRADO (2026-08-31).
+        # Pre-filtro de relevancia social GENERAL: RETIRADO (2026-08-31).
         # Costaba AUC de forma clara y estadísticamente significativa en los
         # 2 indicadores con estándar de plata (-0.053 y -0.027, IC95% excluye
         # cero) sin que el control absurdo lo explicara — ver
-        # contexto/08_log_decisiones.md [2026-08-31]. Los 26 indicadores se
-        # puntúan sobre TODOS los artículos, sin descartar ninguno antes.
+        # contexto/08_log_decisiones.md [2026-08-31]. Reevaluado bajo MAX el
+        # 2026-09-28 y sigue rechazado ([2026-09-28]). Los 20 indicadores se
+        # puntúan sobre TODOS los artículos.
+        # Lo que sí existe es un pre-filtro POR INDICADOR (PREFILTRO_OBJETO,
+        # al inicio del módulo): solo presencia_grupos_armados y
+        # desplazamiento_forzado exigen su objeto en la premisa visible, y se
+        # aplica en procesar() ([2026-09-29]). Los otros 18 no se filtran.
         # ------------------------------------------------------------------
 
         # --- NER/entidades desactivado (2026-06-24) ---
@@ -348,23 +409,37 @@ class PipelineTransformers:
                 df[col] = 0.0
 
         # 1. Sesgo "si-decidor" por articulo: media de las 4 nulas de
-        #    calibracion (V2, ver __init__). Se descuenta de los 26
+        #    calibracion (V2, ver __init__). Se descuenta de los 20
         #    indicadores reales mas abajo -- nunca se usa la nula reservada.
         print(f"[batch] Calibrando sesgo por articulo (4 nulas)...")
         sesgo_nulas = [self._nli_batch(textos, h, batch_size) for h in self.nulas_calibracion]
         sesgo = np.mean(sesgo_nulas, axis=0)
         df["sesgo"] = np.round(sesgo, 6)
 
-        # 2. NLI en batch sobre TODOS los articulos (sin pre-filtro, ver
-        #    __init__), aplicando la formula corregida V2:
+        # 2. NLI en batch sobre TODOS los articulos (sin pre-filtro social
+        #    general, ver __init__), aplicando la formula corregida V2:
         #    clip(clip(ent - sesgo, 0) * (1 - neu), 0, 1)
+        #    y, en los indicadores de PREFILTRO_OBJETO, multiplicada por la
+        #    compuerta de su objeto (0 si la premisa que ve el NLI no lo nombra).
         todos = {**self.eventos, **self.posturas, **self.indicadores}
         n_hip = len(todos)
+        # Una compuerta por indicador con lista, sobre la premisa que el NLI ve
+        # con la hipotesis de ESE indicador. No se guarda en df: la salida no
+        # gana columnas.
+        compuertas = {}
+        for ind in PREFILTRO_OBJETO:
+            if ind in todos:
+                compuertas[ind] = compuerta_objeto(
+                    premisa_visible(textos, self.tokenizer_nli, todos[ind]), ind)
+                abre = float(compuertas[ind].mean()) if N else 0.0
+                print(f"[batch] Pre-filtro {ind}: su objeto esta en la premisa en {abre:.1%} de {N} articulos")
         for i_hip, (clave, hipotesis) in enumerate(todos.items(), 1):
             ent, neu = self._nli_batch(textos, hipotesis, batch_size, devolver_neutral=True)
             ent = np.asarray(ent, dtype=float)
             neu = np.asarray(neu, dtype=float)
             corregido = np.clip(np.clip(ent - sesgo, 0, None) * (1 - neu), 0, 1)
+            if clave in compuertas:
+                corregido = corregido * compuertas[clave]
             df[clave] = np.round(corregido, 6)
             if i_hip % 5 == 0 or i_hip == n_hip:
                 print(f"[batch] NLI hipotesis {i_hip}/{n_hip} completada ({N} articulos)")
@@ -374,11 +449,11 @@ class PipelineTransformers:
         return df
 
     def _crear_scores_dimension(self, df: pd.DataFrame) -> None:
-        dim1 = ["irregularidad_contractual","exclusion_comunidades","deficit_participacion_comunitaria","conflicto_activo"]
+        dim1 = ["irregularidad_contractual","deficit_participacion_comunitaria"]
         dim2 = ["debilidad_institucional"]
-        dim3 = ["incentivos_economicos_inequitativos","protesta_social","rechazo_proyecto","exclusion_servicios_derechos","movimientos_sociales","poblacion_afectada","exclusion_beneficios_economicos"]
+        dim3 = ["protesta_social","exclusion_servicios_derechos","movimientos_sociales","poblacion_afectada"]
         dim4 = ["danos_ambientales","conflictos_socioambientales","reasentamiento","conflicto_territorial","resistencia_territorial","dano_territorios"]
-        dim5 = ["desplazamiento_forzado","amenaza_intimidacion","violacion_derechos_humanos","derechos_vulnerados","presencia_grupos_armados","amenaza_lideres"]
+        dim5 = ["desplazamiento_forzado","amenaza_intimidacion","violacion_derechos_humanos","presencia_grupos_armados","amenaza_lideres"]
         for c in dim1 + dim2 + dim3 + dim4 + dim5:
             if c not in df.columns:
                 df[c] = 0.0
@@ -523,11 +598,10 @@ def exportar_radar_base_por_departamento(df_procesado: pd.DataFrame, salida: str
     df['departamento'] = df['departamento'].astype(str).str.strip()
     df_base = df.groupby('departamento').size().reset_index(name='n_articulos')
     df_base = df_base.sort_values('departamento').reset_index(drop=True)
-    for col in ['bloque_A', 'bloque_B', 'bloque_C', 'bloque_D', 'bloque_E', 'corrupcion_score', 'vulneracion_score', 'radar_propio']:
+    for col in [*CalculadorRadar.BLOQUES, 'radar_propio']:
         df_base[col] = np.nan
     df_base['categoria_riesgo'] = "None"
-    columnas = ['departamento', 'n_articulos', 'bloque_A', 'bloque_B', 'bloque_C', 'bloque_D', 'bloque_E', 'corrupcion_score', 'vulneracion_score', 'radar_propio', 'categoria_riesgo']
-    df_base = df_base[columnas]
+    df_base = df_base[CalculadorRadar.COLUMNAS_SALIDA]
     ruta_radar_pkl = os.path.join(salida, "radar_departamentos.pkl")
     ruta_radar_csv = os.path.join(salida, "radar_departamentos.csv")
     df_base.to_pickle(ruta_radar_pkl)

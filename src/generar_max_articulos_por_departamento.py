@@ -6,7 +6,7 @@ produjo ese maximo. Sin GPU: lee un df_procesado ya calculado.
 Reglas:
   - Clasificacion del depto = categoria por los CORTES FIJOS de esta rama
     (CORTE_BAJO_MEDIO_RADAR/CORTE_MEDIO_ALTO_RADAR en config_pipeline.py,
-    calibrados sobre la escala MAX) sobre el radar MAX (promedio de los 26
+    calibrados sobre la escala MAX) sobre el radar MAX (promedio de los 20
     maximos del depto).
   - Solo se muestran los valores/titulos si el depto es Alto o Medio.
   - Si el depto es Bajo, sus 2 columnas quedan en blanco.

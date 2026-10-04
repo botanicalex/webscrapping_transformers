@@ -15,6 +15,12 @@ Checklist de aceptación:
   [8] ValidadorPrecondiciones.etapa_corpus acepta el corpus sintético
   [9] ValidadorPrecondiciones.etapa_salida_no_vacia acepta df_procesado y radar
   [10] evaluar_criterio_parada ejecuta y retorna bool sin excepción
+  [11] las listas de PREFILTRO_OBJETO son las congeladas y solo hay dos indicadores
+  [12] cada compuerta abre con su objeto y no sin él
+  [13] la compuerta solo mira la premisa que ve el NLI con la hipótesis de ese indicador
+  [14] procesar() multiplica solo desplazamiento y grupos armados por su compuerta (NLI simulado)
+  [15] procesar() no agrega columnas de compuerta y el radar sigue con 20 indicadores
+  [16] cortes del radar recalibrados: 0.7138/0.905
 
 Restricciones de versión respetadas:
   pandas==2.3.3, numpy==2.3.4, openpyxl==3.1.5, matplotlib==3.10.7,
@@ -26,6 +32,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import glob
+import importlib.util
 import json
 import os
 import sys
@@ -401,6 +408,184 @@ class TestIntegracionPipeline(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# Pre-filtro por indicador (presencia_grupos_armados y desplazamiento_forzado)
+# ---------------------------------------------------------------------------
+
+class _TokenizadorPalabras:
+    """Tokenizador de juguete (un token por palabra, sin especiales) para
+    probar premisa_visible sin cargar el tokenizador del NLI."""
+
+    def __call__(self, textos, add_special_tokens=False):
+        if isinstance(textos, str):
+            return {"input_ids": textos.split()}
+        return {"input_ids": [t.split() for t in textos]}
+
+    def decode(self, ids, skip_special_tokens=True):
+        return " ".join(ids)
+
+
+# Copias literales de las listas congeladas (experimentos/hipotesis_5ind_max.py, REGEX_F5).
+_LISTA_DESPLAZAMIENTO = (
+    r"desplaz|\bhuy(o|e|en|eron|endo)\b|\bhuir\b|exodo"
+    r"|abandonar(on)? sus (casas|hogares|tierras|veredas)"
+)
+_LISTA_GRUPOS_ARMADOS = (
+    r"\beln\b|farc|disidencia|clan del golfo|\bagc\b|\begc\b|autodefensas|\bacsn\b|pachenca"
+    r"|paramilitar|guerrill|segunda marquetalia|estado mayor central|\bemc\b"
+    r"|\bfrente \d+|\bfrentes? (guerriller|disidente|de las farc|del eln)"
+)
+# Copias de las hipótesis V2 de PipelineTransformers (eventos e indicadores).
+_HIP_DESPLAZAMIENTO = "Hubo un desplazamiento forzado o éxodo de comunidades."
+_HIP_GRUPOS_ARMADOS = "En este territorio hay presencia de grupos armados ilegales."
+_MODELO_NLI = "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7"
+_COLUMNAS_DIMENSION = [
+    "score_dim1_gobernanza",
+    "score_dim2_capacidad_institucional",
+    "score_dim3_vulneracion_socioeconomica",
+    "score_dim4_vulnerabilidad_territorial",
+    "score_dim5_derechos_humanos_conflicto",
+]
+
+
+def _pipeline_simulado():
+    """PipelineTransformers sin cargar modelos: el NLI simulado da 0.9 a toda hipótesis
+    y 0.1 a la nula, así que el score corregido de un artículo abierto es 0.8."""
+    pipe = object.__new__(tf.PipelineTransformers)
+    pipe.tokenizer_nli = _TokenizadorPalabras()
+    pipe.eventos = {"desplazamiento_forzado": "Hubo desplazamiento forzado de familias"}   # 5 palabras
+    pipe.posturas = {"resistencia_territorial": "Hay resistencia territorial."}
+    pipe.indicadores = {"presencia_grupos_armados": "Hay grupos armados."}                # 3 palabras
+    pipe.nulas_calibracion = ["nula"]
+
+    def _nli_simulado(textos, hipotesis, batch_size=32, devolver_neutral=False):
+        ent = [0.1 if hipotesis == "nula" else 0.9] * len(textos)
+        return (ent, [0.0] * len(textos)) if devolver_neutral else ent
+
+    pipe._nli_batch = _nli_simulado
+    return pipe
+
+
+class TestPrefiltroPorIndicador(unittest.TestCase):
+
+    def test_11_listas_congeladas_y_solo_dos_indicadores(self) -> None:
+        self.assertEqual(sorted(tf.PREFILTRO_OBJETO), ["desplazamiento_forzado", "presencia_grupos_armados"])
+        self.assertEqual(tf.PREFILTRO_OBJETO["desplazamiento_forzado"], _LISTA_DESPLAZAMIENTO)
+        self.assertEqual(tf.PREFILTRO_OBJETO["presencia_grupos_armados"], _LISTA_GRUPOS_ARMADOS)
+        self.assertTrue(set(tf.PREFILTRO_OBJETO) <= set(tf.CalculadorRadar.COLUMNAS_BINARIAS))
+        # Si existe experimentos/ (rama de pruebas), también coinciden con las listas de la ronda 1.
+        ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                            "experimentos", "hipotesis_5ind_max.py")
+        if os.path.isfile(ruta):
+            spec = importlib.util.spec_from_file_location("hipotesis_5ind_max_test", ruta)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            for ind, rx in tf.PREFILTRO_OBJETO.items():
+                self.assertEqual(rx, mod.REGEX_F5[ind])
+
+    def test_12_compuertas_abren_con_el_objeto_y_no_sin_el(self) -> None:
+        ga_abren = [
+            "Hostigamiento del ELN en zona rural",
+            "Las disidencias de las Farc reclutan menores",
+            "Combates con el Clan del Golfo",
+            "El frente 36 opera en el norte",
+            "Presencia de las Autodefensas Conquistadoras",
+        ]
+        ga_no = [
+            "Capturan a integrantes de un combo en Medellín",
+            "Banda de hurto de celulares desarticulada",
+            "Capturado por porte ilegal de arma de fuego",
+            "Hombre asesinado a tiros por sicarios",
+            "Operativo contra el Tren de Aragua",
+        ]
+        des_abren = [
+            "Más de 200 familias sufrieron desplazamiento forzado",
+            "Las familias huyeron de la vereda por los combates",
+            "Éxodo de campesinos hacia la cabecera municipal",
+            "Los habitantes abandonaron sus hogares tras las amenazas",
+            "Población desplazada llega a Quibdó",
+        ]
+        des_no = [
+            "Inauguraron el nuevo parque del municipio",
+            "Migrantes venezolanos llegaron a Maicao",
+            "El alcalde anunció la construcción de un acueducto",
+            "La selección ganó el partido de anoche",
+            "Capturan a integrantes de un combo en Medellín",
+        ]
+        self.assertEqual(tf.compuerta_objeto(ga_abren, "presencia_grupos_armados").tolist(), [1.0] * 5)
+        self.assertEqual(tf.compuerta_objeto(ga_no, "presencia_grupos_armados").tolist(), [0.0] * 5)
+        self.assertEqual(tf.compuerta_objeto(des_abren, "desplazamiento_forzado").tolist(), [1.0] * 5)
+        self.assertEqual(tf.compuerta_objeto(des_no, "desplazamiento_forzado").tolist(), [0.0] * 5)
+        # Cada lista mira solo lo suyo.
+        self.assertEqual(tf.compuerta_objeto(["Las familias huyeron de la vereda"], "presencia_grupos_armados").tolist(), [0.0])
+        self.assertEqual(tf.compuerta_objeto(["Hostigamiento del ELN en zona rural"], "desplazamiento_forzado").tolist(), [0.0])
+
+    def test_13_compuerta_solo_mira_la_premisa_visible(self) -> None:
+        tok = _TokenizadorPalabras()
+        # max_length 10 - 3 especiales - 3 de la hipótesis = 4 palabras visibles
+        textos = ["uno dos tres cuatro ELN", "ELN dos tres cuatro cinco"]
+        premisas = tf.premisa_visible(textos, tok, "hay grupos armados", max_length=10)
+        self.assertEqual(premisas, ["uno dos tres cuatro", "ELN dos tres cuatro"])
+        self.assertEqual(tf.compuerta_objeto(premisas, "presencia_grupos_armados").tolist(), [0.0, 1.0])
+        # Con el tokenizador real (si está descargado) la premisa es la del par que arma _nli_batch
+        # (truncation=True, max_length=512): solo el tokenizador, sin el modelo.
+        ruta_modelo = tf._ruta_modelo_local(_MODELO_NLI)
+        if os.path.isdir(ruta_modelo):
+            from transformers import AutoTokenizer
+            tok_real = AutoTokenizer.from_pretrained(ruta_modelo)
+            reales = [" ".join(["Hubo una reunión del concejo municipal."] * 150) + " El ELN hostigó.",
+                      "Hostigamiento del ELN en la vereda.", ""]
+            for hip in (_HIP_GRUPOS_ARMADOS, _HIP_DESPLAZAMIENTO):
+                for texto, esperado in zip(reales, tf.premisa_visible(reales, tok_real, hip)):
+                    ids = tok_real(texto, hip, truncation=True, max_length=512)["input_ids"]
+                    premisa = tok_real.decode(ids[1:ids.index(tok_real.sep_token_id)], skip_special_tokens=True)
+                    self.assertEqual(premisa, esperado)
+            self.assertEqual(
+                tf.compuerta_objeto(tf.premisa_visible(reales, tok_real, _HIP_GRUPOS_ARMADOS),
+                                    "presencia_grupos_armados").tolist(), [0.0, 1.0, 0.0])
+
+    def test_14_procesar_multiplica_solo_los_dos_indicadores_con_su_premisa(self) -> None:
+        pipe = _pipeline_simulado()
+        df = pd.DataFrame({"texto": [
+            "Hostigamiento del ELN en la vereda",
+            "Las familias huyeron de la vereda",
+            "Un combo robó celulares en el barrio",
+            # 504 palabras + "desplazamiento eln": con la hipótesis de desplazamiento (5 palabras) el NLI
+            # ve 504 y no alcanza su objeto; con la de grupos armados (3 palabras) ve 506 y sí ve «eln».
+            "x " * 504 + "desplazamiento eln",
+        ]})
+        out = pipe.procesar(df)
+        np.testing.assert_allclose(out["presencia_grupos_armados"], [0.8, 0.0, 0.0, 0.8])
+        np.testing.assert_allclose(out["desplazamiento_forzado"], [0.0, 0.8, 0.0, 0.0])
+        np.testing.assert_allclose(out["resistencia_territorial"], [0.8, 0.8, 0.8, 0.8])
+
+    def test_15_procesar_no_agrega_columnas_de_compuerta(self) -> None:
+        pipe = _pipeline_simulado()
+        df = pd.DataFrame({"texto": ["Hostigamiento del ELN en la vereda", "Las familias huyeron de la vereda"]})
+        out = pipe.procesar(df)
+        nuevas = set(out.columns) - set(df.columns)
+        permitidas = set(tf.CalculadorRadar.COLUMNAS_BINARIAS) | {"sesgo"} | set(_COLUMNAS_DIMENSION)
+        self.assertLessEqual(nuevas, permitidas)
+        self.assertFalse([c for c in out.columns if "compuerta" in c.lower() or "prefiltro" in c.lower()])
+        self.assertEqual(len(tf.CalculadorRadar.COLUMNAS_BINARIAS), 20)
+        # Cada uno de los 20 está en exactamente un bloque de 5.
+        en_bloques = [c for v in tf.CalculadorRadar.BLOQUES.values() for c in v]
+        self.assertEqual(sorted(en_bloques), sorted(tf.CalculadorRadar.COLUMNAS_BINARIAS))
+        self.assertTrue(all(len(v) == 5 for v in tf.CalculadorRadar.BLOQUES.values()))
+
+    def test_16_cortes_del_radar_recalibrados(self) -> None:
+        self.assertEqual(tf.cfg.CORTE_BAJO_MEDIO_RADAR, 0.7138)
+        self.assertEqual(tf.cfg.CORTE_MEDIO_ALTO_RADAR, 0.905)
+        df = _corpus_sintetico()
+        valor = {"Antioquia": 0.91, "Caldas": 0.71, "Chocó": 0.72}
+        for col in tf.CalculadorRadar.COLUMNAS_BINARIAS:
+            df[col] = df["departamento"].map(valor).astype(float)
+        r = tf.CalculadorRadar().calcular(df).set_index("departamento")
+        self.assertEqual(r.loc["Antioquia", "categoria_riesgo"], "Alto")
+        self.assertEqual(r.loc["Chocó", "categoria_riesgo"], "Medio")   # con el corte anterior (0.7572) sería Bajo
+        self.assertEqual(r.loc["Caldas", "categoria_riesgo"], "Bajo")
+
+
+# ---------------------------------------------------------------------------
 # Checklist de aceptación impresa al final
 # ---------------------------------------------------------------------------
 
@@ -415,6 +600,12 @@ _CHECKLIST = [
     ("ValidadorPrecondiciones corpus OK",                       "test_08"),
     ("ValidadorPrecondiciones salidas NLP y radar OK",          "test_09"),
     ("evaluar_criterio_parada retorna bool sin excepción",      "test_10"),
+    ("Pre-filtro: listas congeladas y solo dos indicadores",    "test_11"),
+    ("Pre-filtro: cada compuerta abre con su objeto y no sin él", "test_12"),
+    ("Pre-filtro: solo mira la premisa visible del indicador",  "test_13"),
+    ("procesar() multiplica solo los dos indicadores",          "test_14"),
+    ("procesar() no agrega columnas de compuerta",              "test_15"),
+    ("Cortes del radar 0.7138/0.905",                           "test_16"),
 ]
 
 
@@ -441,7 +632,10 @@ def _imprimir_checklist(resultado: unittest.TestResult) -> None:
 
 if __name__ == "__main__":
     loader = unittest.TestLoader()
-    suite = loader.loadTestsFromTestCase(TestIntegracionPipeline)
+    suite = unittest.TestSuite([
+        loader.loadTestsFromTestCase(TestIntegracionPipeline),
+        loader.loadTestsFromTestCase(TestPrefiltroPorIndicador),
+    ])
     runner = unittest.TextTestRunner(verbosity=2)
     resultado = runner.run(suite)
     _imprimir_checklist(resultado)

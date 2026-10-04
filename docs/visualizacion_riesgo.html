@@ -152,7 +152,7 @@
 
     <div class="card" style="margin-bottom:18px">
       <h2>Resumen — todos los indicadores</h2>
-      <div class="sub">Los 26 indicadores agrupados por dimensión · score 0–100</div>
+      <div class="sub">Los 20 indicadores agrupados por dimensión · score 0–100</div>
       <button class="btn-excel" onclick="descargarResumen()">⬇ Descargar resumen Excel</button>
       <table class="resumen">
         <thead><tr><th>Dimensión</th><th>Indicador</th><th class="num">Score</th></tr></thead>
@@ -186,9 +186,6 @@
 // y como NOMBRES es `const`, usarlo antes de esta línea daba TDZ
 // ("Cannot access 'NOMBRES' before initialization").
 const NOMBRES = {
-  "Debilidad Institucional / Economica": "Debilidad Institucional / Económica",
-  "Afectacion Territorial y Poblacional": "Afectación Territorial y Poblacional",
-  "Participacion y Movilizacion Social": "Participación y Movilización Social",
   "violacion_derechos_humanos": "Violación Derechos Humanos",
   "irregularidad_contractual": "Irregularidad Contractual",
   "conflicto_territorial": "Conflicto Territorial",
@@ -197,8 +194,6 @@ const NOMBRES = {
   "amenaza_intimidacion": "Amenaza e Intimidación",
   "conflictos_socioambientales": "Conflictos Socioambientales",
   "debilidad_institucional": "Debilidad Institucional",
-  "conflicto_activo": "Conflicto Activo",
-  "incentivos_economicos_inequitativos": "Incentivos Económicos Inequitativos",
   "desplazamiento_forzado": "Desplazamiento Forzado",
   "reasentamiento": "Reasentamiento",
   "poblacion_afectada": "Población Afectada",
@@ -207,14 +202,10 @@ const NOMBRES = {
   "exclusion_servicios_derechos": "Exclusión Servicios y Derechos",
   "grupos_etnicos_existentes": "Grupos Étnicos Existentes",
   "danos_ambientales": "Daños Ambientales",
-  "derechos_vulnerados": "Derechos Vulnerados",
   "resistencia_territorial": "Resistencia Territorial",
   "deficit_participacion_comunitaria": "Déficit Participación Comunitaria",
-  "exclusion_comunidades": "Exclusión de Comunidades",
   "movimientos_sociales": "Movimientos Sociales",
-  "rechazo_proyecto": "Rechazo al Proyecto",
   "protesta_social": "Protesta Social",
-  "exclusion_beneficios_economicos": "Exclusión Beneficios Económicos",
 };
 function nombreBonito(s) { return NOMBRES[s] || s; }
 

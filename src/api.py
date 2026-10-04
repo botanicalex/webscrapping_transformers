@@ -3,8 +3,8 @@ API FastAPI que conecta el front HTML con el pipeline de Santiago (src/).
 
 NO modifica la logica existente. Reutiliza, tal cual:
   - scrappers.scrape_municipio               (scraping en vivo)
-  - Transformer_optimo.PipelineTransformers  (NLI 26 hipotesis V2)
-  - radar.CalculadorRadar                    (bloques A-E, columnas binarias)
+  - Transformer_optimo.PipelineTransformers  (NLI 20 hipotesis V2)
+  - radar.CalculadorRadar                    (4 bloques descriptivos, columnas binarias)
   - config_pipeline                          (cortes fijos Bajo/Medio/Alto)
 
 Esta capa SOLO orquesta y le da al resultado la forma de JSON que espera el
@@ -67,18 +67,31 @@ UMBRAL_ARTICULO = 0.10
 # Maximo de articulos por indicador que se devuelven al front.
 MAX_ARTICULOS_POR_INDICADOR = 20
 
-# ── Metadatos de los 5 bloques (nombre + color para el front) ────────────────
+# ── Metadatos de los 4 bloques (id corto para el badge, nombre + color para
+# el front). Las claves son las de CalculadorRadar.BLOQUES (radar-20ind-bloques,
+# contexto/08_log_decisiones.md [2026-10-03]); id/nombre/color son de
+# presentacion, no vienen de ahi -- Santiago solo definio las claves tecnicas.
 BLOQUES_META = {
-    "A": {"nombre": "Derechos e Institucionalidad Formal", "color": "#3B82F6"},
-    "B": {"nombre": "Violencia y Actores Armados",         "color": "#EF4444"},
-    "C": {"nombre": "Debilidad Institucional / Economica", "color": "#F59E0B"},
-    "D": {"nombre": "Afectacion Territorial y Poblacional","color": "#8B5CF6"},
-    "E": {"nombre": "Participacion y Movilizacion Social",  "color": "#10B981"},
+    "bloque_conflicto_armado_derechos":  {"id": "CA", "nombre": "Conflicto armado y derechos",      "color": "#EF4444"},
+    "bloque_territorio_ambiente":        {"id": "TA", "nombre": "Territorio y ambiente",             "color": "#10B981"},
+    "bloque_gobernanza_participacion":   {"id": "GP", "nombre": "Gobernanza y participación",        "color": "#F59E0B"},
+    "bloque_poblacion_condiciones_vida": {"id": "PV", "nombre": "Población y condiciones de vida",   "color": "#8B5CF6"},
 }
-# CalculadorRadar.BLOQUES_PCA usa claves 'bloque_A'..'bloque_E'; mapeamos A..E.
-BLOQUES_INDICADORES = {
-    letra: CalculadorRadar.BLOQUES_PCA[f"bloque_{letra}"] for letra in "ABCDE"
-}
+# No asumir cantidad ni nombres de bloques: leer lo que CalculadorRadar.BLOQUES
+# tenga realmente (regla del backlog: api.py no se puede desincronizar de
+# radar.py otra vez).
+BLOQUES_INDICADORES = CalculadorRadar.BLOQUES
+
+
+def _meta_bloque_fallback(clave: str) -> dict:
+    """Si Santiago agrega o renombra un bloque en radar.py sin que BLOQUES_META
+    se actualice, no tumbar /analizar: se deriva un id/nombre de la clave con
+    un color neutro, en vez de un KeyError en produccion."""
+    base = clave[len("bloque_"):] if clave.startswith("bloque_") else clave
+    palabras = [p for p in base.split("_") if p]
+    id_corto = "".join(p[0] for p in palabras[:2]).upper() or clave[:2].upper()
+    nombre = " ".join(palabras).capitalize() if palabras else clave
+    return {"id": id_corto, "nombre": nombre, "color": "#9CA3AF"}
 
 # ── Colores/etiquetas del badge global por categoria ─────────────────────────
 BADGE = {
@@ -518,13 +531,14 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame,
         ]
 
     bloques = []
-    for letra in "ABCDE":
-        cols_b = [c for c in BLOQUES_INDICADORES[letra] if c in max_por_indicador]
+    for clave in BLOQUES_INDICADORES:
+        cols_b = [c for c in BLOQUES_INDICADORES[clave] if c in max_por_indicador]
         score_bloque = int(round((sum(max_por_indicador[c] for c in cols_b) / len(cols_b)) * 100)) if cols_b else 0
+        meta = BLOQUES_META.get(clave) or _meta_bloque_fallback(clave)
         bloques.append({
-            "id": letra,
-            "nombre": BLOQUES_META[letra]["nombre"],
-            "color": BLOQUES_META[letra]["color"],
+            "id": meta["id"],
+            "nombre": meta["nombre"],
+            "color": meta["color"],
             "score": score_bloque,
             "indicadores": [
                 {
@@ -534,7 +548,7 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame,
                     "arts": int(arts_por_indicador.get(c, 0)),
                     "real": bool(arts_por_indicador.get(c, 0) > 0),
                 }
-                for c in BLOQUES_INDICADORES[letra]
+                for c in BLOQUES_INDICADORES[clave]
             ],
         })
 
