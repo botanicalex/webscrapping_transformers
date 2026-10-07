@@ -1,0 +1,16 @@
+[
+ {
+  "id": "R27b",
+  "eje": "robustez nula",
+  "frase": "Los habitantes protestan contra una intervención externa en su territorio.",
+  "nula": "Los habitantes protestan contra una intervención externa en unas colonias de osos polares.",
+  "razon": "misma frase que R27; nula más exigente que conserva «intervención externa»"
+ },
+ {
+  "id": "C21b",
+  "eje": "robustez nula",
+  "frase": "Hay una invasión de predios.",
+  "nula": "Hay una invasión de predios en unas colonias de osos polares.",
+  "razon": "misma frase que C21; nula más exigente que conserva «predios»"
+ }
+]

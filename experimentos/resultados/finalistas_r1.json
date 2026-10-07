@@ -1,0 +1,23 @@
+[
+ {
+  "id": "C21",
+  "eje": "C20: quitar «en disputa»",
+  "frase": "Hay una invasión de predios.",
+  "nula": "Hay una invasión de colonias de osos polares.",
+  "razon": "C20 sin «en disputa»; mide si el calificador de disputa aporta señal o solo satura."
+ },
+ {
+  "id": "R27",
+  "eje": "sin «para defender»",
+  "frase": "Los habitantes protestan contra una intervención externa en su territorio.",
+  "nula": "Los habitantes protestan contra colonias de osos polares en su territorio.",
+  "razon": "Cercana a R05 con el mismo actor y verbo, pero sin «para defender su territorio»; aísla si la finalidad defensiva es lo que acerca a la intención."
+ },
+ {
+  "id": "R30",
+  "eje": "sin territorio (R12)",
+  "frase": "Los habitantes rechazan una hidroeléctrica o un megaproyecto.",
+  "nula": "Los habitantes rechazan colonias de osos polares.",
+  "razon": "Par mínimo de R12: se quita «en su territorio»; aísla si el territorio aporta señal o ruido."
+ }
+]

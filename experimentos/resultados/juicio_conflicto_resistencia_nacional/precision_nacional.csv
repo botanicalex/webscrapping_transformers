@@ -1,0 +1,9 @@
+indicador,id,n_deptos,precision_ambos,precision_alguno,desacuerdos
+conflicto_territorial,V2,32,0.40625,0.46875,4
+conflicto_territorial,C20,32,0.34375,0.34375,1
+conflicto_territorial,C21,32,0.3125,0.3125,0
+conflicto_territorial,JEFE,32,0.3125,0.34375,3
+resistencia_territorial,V2,32,0.25,0.28125,1
+resistencia_territorial,R30,32,0.15625,0.1875,3
+resistencia_territorial,JEFE,32,0.0625,0.0625,0
+resistencia_territorial,R27,32,0.03125,0.0625,2

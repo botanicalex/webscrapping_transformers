@@ -1,0 +1,9 @@
+[
+ {
+  "id": "C20",
+  "eje": "objeto concreto",
+  "frase": "Hay una invasión de predios en disputa.",
+  "nula": "Hay una invasión de colonias de osos polares en disputa.",
+  "razon": "Frase corta y muy específica (invasión de predios); poca estructura genérica que el modelo afirme."
+ }
+]

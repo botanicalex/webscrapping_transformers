@@ -1,0 +1,353 @@
+indicador,id,departamento,idx_corpus,score,titulo,id_art,si
+conflicto_territorial,V2,Amazonas,1481,0.9831475246512464,Presidente Petro escuchará fallo sobre Nicaragua en San Andrés: irá con cúpula militar,a0136,True
+conflicto_territorial,V2,Antioquia,245,0.982044543104041,¿Por qué el municipio de Argelia cambiará su nombre luego de 63 años?,a0183,False
+conflicto_territorial,V2,Arauca,1843,0.990425120239418,"Afectación por artefactos explosivos en 2022, la más alta en seis años: CICR",a0051,False
+conflicto_territorial,V2,Atlántico,1923,0.8572910585987106,Villa Campestre: moradores se niegan a que se lea sus contadores de energía,a0074,False
+conflicto_territorial,V2,Bolívar,3135,0.976451007980774,¡Atención! Bloqueos en carretera Troncal de Occidente,a0120,False
+conflicto_territorial,V2,Boyacá,3542,0.9895077056665896,Avanza la Zona de Reserva Campesina del Paraíso Escondido de Boyacá – Togüí,a0065,False
+conflicto_territorial,V2,Caldas,3841,0.8423580087981115,Memorias de corrupción para tiempos electorales,a0167,False
+conflicto_territorial,V2,Caquetá,4054,0.9663948459905272,Del Yarí a Bogotá,a0179,False
+conflicto_territorial,V2,Casanare,582,0.8920451016556001,Álvaro Uribe tras atentado a militares: 'La seguridad es determinante para la paz',a0063,False
+conflicto_territorial,V2,Cauca,4223,0.995646115168003,Criminales sí estarían pidiendo carnet para ingresar a Bolívar Cauca,a0088,False
+conflicto_territorial,V2,Cesar,5579,0.994550624907706,"Por amenazas, personero de El Copey, Cesar, abandonó el territorio",a0203,True
+conflicto_territorial,V2,Chocó,755,0.9775145060744412,“El Chocó está todo incendiado”: Obispo de Istmina,a0169,False
+conflicto_territorial,V2,Cundinamarca,7056,0.920576691867322,Los días de terror y guerra que en el Sumapaz no quieren revivir,a0046,False
+conflicto_territorial,V2,Córdoba,6752,0.9290293082429764,36 mil familias fueron víctima de desplazamiento forzado en el 2022,a0202,True
+conflicto_territorial,V2,Guainía,805,0.7019568298414836,¿Cómo funcionará el mecanismo de verificación en cese del fuego con el Eln?,a0089,False
+conflicto_territorial,V2,Guaviare,7278,0.8947796734197353,"Pedro Arenas, integra delegación para iniciar diálogos con el EMC de las Farc – Marandua Stereo 100.7 FM Noticias del Guaviare",a0102,False
+conflicto_territorial,V2,Huila,846,0.993090033961828,Las Farc asesinan a niña de cuatro años,a0104,False
+conflicto_territorial,V2,La Guajira,902,0.9471604590559706,El año pasado la “violencia política” le costó la vida a 108 indígenas,a0071,False
+conflicto_territorial,V2,Magdalena,8313,0.9402290642239136,47 personas han sido asesinadas durante el 2023 en Zona Bananera,a0003,False
+conflicto_territorial,V2,Meta,9042,0.9676546627003048,Más de 71 mil hectáreas restituidas a campesinos e indígenas del Meta y Guaviare,a0109,True
+conflicto_territorial,V2,Nariño,10260,0.9913113581492564,'Solo lleva a confundir': general (r) Zapateiro criticó cese al fuego bilateral,a0204,False
+conflicto_territorial,V2,Norte de Santander,919,0.922032317207302,Inadecuada implementación del Acuerdo de Paz disparó la deforestación,a0068,False
+conflicto_territorial,V2,Putumayo,986,0.9788809296475351,Encuentran siete cuerpos en descomposición tras combates entre disidencias de las Farc,a0031,True
+conflicto_territorial,V2,Quindío,10416,0.962139201916092,Mafias se dividen el Quindío para vender ‘drogas’,a0014,False
+conflicto_territorial,V2,Risaralda,10798,0.8931976927811983,"'Ajustes de cuentas' e intolerancia, causas del aumento de los homicidios en Pereira",a0145,True
+conflicto_territorial,V2,San Andrés y Providencia,10956,0.9918248647947367,Las posibilidades que tiene Colombia ante fallo de La Haya por conflicto con Nicaragua,a0035,True
+conflicto_territorial,V2,Santander,11105,0.9773354232476972,El irracional miedo hacia la diversidad sexual en Santander – Corrillos,a0112,False
+conflicto_territorial,V2,Sucre,11195,0.8341931038819727,"""Francia es así, no voy a dejar de ser lo que soy"": así respondió la vicepresidente a la pregunta si es brava o resentida",a0200,False
+conflicto_territorial,V2,Tolima,1240,0.9836519788439146,El horror del conflicto en Tolima que comienza a develar caso de la JEP,a0177,False
+conflicto_territorial,V2,Valle del Cauca,11262,0.9933049221448856,Calima – El Darién está en peligro,a0032,False
+conflicto_territorial,V2,Vaupés,11362,0.9828239399209284,Reportan casi 70 intentos de suicidio en departamento de Vaupés,a0037,False
+conflicto_territorial,V2,Vichada,11434,0.6963385378691929,"Con pancarta, Farc anuncia su presencia en Vichada",a0098,False
+conflicto_territorial,JEFE,Amazonas,1380,0.9864776894026084,¿Un referendo para que departamentos tengan autonomía fiscal? Gobernador electo explica,a0151,False
+conflicto_territorial,JEFE,Antioquia,93,0.9926680106155916,"Estos son todos los candidatos a la Gobernación de Antioquia, conozca su pasado y presente político",a0149,False
+conflicto_territorial,JEFE,Arauca,1806,0.993813235092746,‘Arauca le habla a Colombia’. Gobernador dijo que ese proceso debe ir acompañado de inversión social,a0015,False
+conflicto_territorial,JEFE,Atlántico,2820,0.9821243774107118,¿Quién es el abogado de Nicolás Petro en caso de sanción por cuentas de campaña?,a0006,False
+conflicto_territorial,JEFE,Bolívar,3148,0.9806673038490498,Entre estos diez nombres está el heredero de la silla de Vicente Blel,a0073,False
+conflicto_territorial,JEFE,Boyacá,3542,0.9941467110723808,Avanza la Zona de Reserva Campesina del Paraíso Escondido de Boyacá – Togüí,a0065,False
+conflicto_territorial,JEFE,Caldas,3777,0.951931771554919,Caldas ya cuenta con un borrador de la política pública de paz territorial,a0165,False
+conflicto_territorial,JEFE,Caquetá,4079,0.9917819456882346,'Las mesas de diálogo deben ayudar a que los alcaldes podamos volver': alcalde de Tibú,a0001,False
+conflicto_territorial,JEFE,Casanare,519,0.9685407455666076,"‘La producción de petróleo genera impactos, por eso la comunidad debe estar informada’",a0039,False
+conflicto_territorial,JEFE,Cauca,4223,0.99691892079147,Criminales sí estarían pidiendo carnet para ingresar a Bolívar Cauca,a0088,False
+conflicto_territorial,JEFE,Cesar,5173,0.9963294939420148,Así es la realidad de líderes ambientales amenazados en Colombia: relatos de sobrevivientes,a0114,False
+conflicto_territorial,JEFE,Chocó,755,0.9783448575482566,“El Chocó está todo incendiado”: Obispo de Istmina,a0169,False
+conflicto_territorial,JEFE,Cundinamarca,7149,0.9867638346651996,Dos ejemplos de elegir bien,a0090,False
+conflicto_territorial,JEFE,Córdoba,6752,0.9812095068862796,36 mil familias fueron víctima de desplazamiento forzado en el 2022,a0202,True
+conflicto_territorial,JEFE,Guainía,805,0.9758334263043636,¿Cómo funcionará el mecanismo de verificación en cese del fuego con el Eln?,a0089,False
+conflicto_territorial,JEFE,Guaviare,7243,0.996852911790024,Definen las 8 zonas para avanzar en los diálogos de la ‘paz total’; aún falta la fecha para el comienzo de las conversaciones,a0170,False
+conflicto_territorial,JEFE,Huila,846,0.9963966200406976,Las Farc asesinan a niña de cuatro años,a0104,False
+conflicto_territorial,JEFE,La Guajira,898,0.9489099352362256,Comunidades wayús en La Guajira sufren por la escasez de agua a pesar de decisiones judiciales,a0008,False
+conflicto_territorial,JEFE,Magdalena,7794,0.9682522819958536,Renuncia de Caicedo agita la política del Magdalena,a0124,False
+conflicto_territorial,JEFE,Meta,9042,0.9950428674401076,Más de 71 mil hectáreas restituidas a campesinos e indígenas del Meta y Guaviare,a0109,True
+conflicto_territorial,JEFE,Nariño,10260,0.9943024151984048,'Solo lleva a confundir': general (r) Zapateiro criticó cese al fuego bilateral,a0204,False
+conflicto_territorial,JEFE,Norte de Santander,930,0.9916559272337762,«Debe establecerse una férrea unidad entre la sociedad civil y la Fuerza Pública» – Corrillos,a0085,False
+conflicto_territorial,JEFE,Putumayo,955,0.9956833990420398,"Cuiracuas, los indígenas siona que usan la cartografía para cuidar su territorio",a0133,True
+conflicto_territorial,JEFE,Quindío,10480,0.9876641292716288,"Del 16 al 17 de marzo, el Quindío será sede del encuentro de gobernadores",a0017,False
+conflicto_territorial,JEFE,Risaralda,10750,0.986834405603998,Reportero de EL TIEMPO y otros periodistas quedaron en medio de un hostigamiento,a0092,False
+conflicto_territorial,JEFE,San Andrés y Providencia,10956,0.99445347951598,Las posibilidades que tiene Colombia ante fallo de La Haya por conflicto con Nicaragua,a0035,True
+conflicto_territorial,JEFE,Santander,11105,0.9876785903752116,El irracional miedo hacia la diversidad sexual en Santander – Corrillos,a0112,False
+conflicto_territorial,JEFE,Sucre,11206,0.9938534493510898,JEP concedió libertad condicional al exgobernador de Sucre Salvador Arana,a0020,False
+conflicto_territorial,JEFE,Tolima,1240,0.9964635093050306,El horror del conflicto en Tolima que comienza a develar caso de la JEP,a0177,False
+conflicto_territorial,JEFE,Valle del Cauca,11262,0.9939763922487465,Calima – El Darién está en peligro,a0032,False
+conflicto_territorial,JEFE,Vaupés,11371,0.993969269281362,¿Caos en los bonos de carbono forestales? II,a0146,False
+conflicto_territorial,JEFE,Vichada,11400,0.9092887938772888,Habitantes de Casuarito advierten un paro en la inspección. Dicen que hay compromisos incumplidos,a0060,False
+resistencia_territorial,V2,Amazonas,1469,0.5828922819490827,Una ambición renovada para la región amazónica,a0185,False
+resistencia_territorial,V2,Antioquia,11,0.6941049043909695,“Pusimos a Corantioquia en el corazón de los antioqueños”,a0052,False
+resistencia_territorial,V2,Arauca,1897,0.8107968879539422,1.145 familias requieren asistencia humanitaria inmediata en el departamento de Arauca: Defensoría del Pueblo,a0119,False
+resistencia_territorial,V2,Atlántico,2569,0.814513629334618,"Comunidad bloquea vía La Cordialidad, en Atlántico, por servicio de agua potable",a0040,False
+resistencia_territorial,V2,Bolívar,3218,0.6864149170633369,Empresarios colombianos participaron de la Ruta Barcelona Sostenible,a0189,False
+resistencia_territorial,V2,Boyacá,3477,0.9661631560918088,Historias de nueve comunidades que cuidan el agua en la Región Central,a0154,False
+resistencia_territorial,V2,Caldas,3846,0.6458103405711699,Empresas de servicios públicos en Manizales hablarán sobre sostenibilidad,a0047,False
+resistencia_territorial,V2,Caquetá,4088,0.68402277865588,Las empresas que han abandonado proyectos por bloqueos y temas de seguridad,a0176,True
+resistencia_territorial,V2,Casanare,519,0.95498136801087,"‘La producción de petróleo genera impactos, por eso la comunidad debe estar informada’",a0039,False
+resistencia_territorial,V2,Cauca,4647,0.7162545429096876,Corinteño fue hallado muerto en vía de Toribío,a0042,False
+resistencia_territorial,V2,Cesar,4939,0.483477608082124,Realizaron plantón en rechazo a la muerte violenta de una nutria,a0152,False
+resistencia_territorial,V2,Chocó,677,0.8145358790572316,Habitantes del Pueblo de la Memoria Histórica sueñan con la titulación de sus tierras,a0111,False
+resistencia_territorial,V2,Cundinamarca,6908,0.7625821596820465,"Minambiente frena obras en El Zuque, en Bogotá: nuevo rifirrafe Gobierno - Distrito",a0132,False
+resistencia_territorial,V2,Córdoba,6384,0.8150906810773731,"Darío Mendoza y Fabio Otero, dos candidatos a la Alcaldía de Tierralta que se suman al Nuevo Futuro",a0187,False
+resistencia_territorial,V2,Guainía,803,0.0,A los que sí y a los que no les afectaría el proyecto del impuesto predial,a0002,False
+resistencia_territorial,V2,Guaviare,7363,0.8311404739955797,"Indígenas de Colombia, una conexión ancestral con la madre tierra",a0143,False
+resistencia_territorial,V2,Huila,831,0.8293386143432206,Bloqueos,a0127,False
+resistencia_territorial,V2,La Guajira,903,0.1776908590916988,Comunidades wiwa en La Guajira tendrán reparación colectiva como víctimas del conflicto,a0019,False
+resistencia_territorial,V2,Magdalena,7533,0.6090812562931659,Doble crimen en Aracataca estaría relacionado con un 'ajuste de cuentas',a0115,False
+resistencia_territorial,V2,Meta,9344,0.6327610588185069,Comunidad LGTBIQ+ marchará mañana en Villavicencio,a0126,False
+resistencia_territorial,V2,Nariño,9876,0.6722370070694356,Alerta en Argelia y Nariño:circula panfleto de Clan del Oriente que amenaza a comunidad,a0095,False
+resistencia_territorial,V2,Norte de Santander,940,0.7898174973325816,Doce organizaciones adhirieron al paro indefinido declarado por los parameros – Corrillos,a0034,True
+resistencia_territorial,V2,Putumayo,1066,0.9167090049425204,Estallido social en Los Pozos: expresión de años de reclamos desatendidos,a0056,True
+resistencia_territorial,V2,Quindío,10491,0.6612426482498942,"Este miércoles, ex miembros de la fuerza pública realizarían protestas en el Quindío",a0201,False
+resistencia_territorial,V2,Risaralda,10733,0.624989816025107,Consejo de Estado Colombiano confirmó medida cautelar consistente en la suspensión de la licencia para cazar especies de ranas y aves en Risaralda,a0049,False
+resistencia_territorial,V2,San Andrés y Providencia,10972,0.4337050164404448,La foto de Álvaro Uribe y María Fernanda Cabal nadando en San Andrés,a0066,False
+resistencia_territorial,V2,Santander,11182,0.7186847820926807,Aparece un tercer panfleto amenazando a líderes de Santander por bloquear vías,a0075,True
+resistencia_territorial,V2,Sucre,11199,0.5562347416115443,Alcalde de la Unión Sucre le incumplió a los campesinos,a0058,False
+resistencia_territorial,V2,Tolima,1196,0.5028090641553412,Cortolima pide respetar la vida de jaguar avistado en el Bosque de Galilea,a0153,False
+resistencia_territorial,V2,Valle del Cauca,11262,0.9062928770358109,Calima – El Darién está en peligro,a0032,False
+resistencia_territorial,V2,Vaupés,11376,0.52797498343031,La fractura cultural indígena,a0091,False
+resistencia_territorial,V2,Vichada,11427,0.7702758456095886,Incendio en el centro de Puerto Carreño generó angustia en la ciudadanía,a0171,False
+resistencia_territorial,JEFE,Amazonas,1481,0.9830646569492096,Presidente Petro escuchará fallo sobre Nicaragua en San Andrés: irá con cúpula militar,a0136,False
+resistencia_territorial,JEFE,Antioquia,163,0.994575485653296,¿Hasta cuándo contra ellas? A tres mujeres las asesinaron en un día en Antioquia,a0022,False
+resistencia_territorial,JEFE,Arauca,1809,0.995720488980201,9 menores de edad habrían sido reclutados por el ELN en Arauca en el 2.023: Defensoría,a0159,False
+resistencia_territorial,JEFE,Atlántico,2184,0.9917418034094768,Sujetos irrumpen en retiro espiritual y roban pertenencias de sacerdotes en Atlántico,a0194,False
+resistencia_territorial,JEFE,Bolívar,3135,0.9915608453543254,¡Atención! Bloqueos en carretera Troncal de Occidente,a0120,False
+resistencia_territorial,JEFE,Boyacá,3390,0.996585820211934,Morris se le metió a la sede de Rodrigo Rojas y provocó escándalo,a0025,False
+resistencia_territorial,JEFE,Caldas,3777,0.9831803784927114,Caldas ya cuenta con un borrador de la política pública de paz territorial,a0165,False
+resistencia_territorial,JEFE,Caquetá,4072,0.9763456254928788,'Amenaza a todos los partidos': MOE sobre acciones de grupos armados,a0013,False
+resistencia_territorial,JEFE,Casanare,641,0.9890115618557412,Problemas en el territorio / Análisis de Ricardo Ávila,a0009,False
+resistencia_territorial,JEFE,Cauca,4223,0.9963013810029174,Criminales sí estarían pidiendo carnet para ingresar a Bolívar Cauca,a0088,False
+resistencia_territorial,JEFE,Cesar,5579,0.9946826036688868,"Por amenazas, personero de El Copey, Cesar, abandonó el territorio",a0203,False
+resistencia_territorial,JEFE,Chocó,755,0.9767636072299118,“El Chocó está todo incendiado”: Obispo de Istmina,a0169,False
+resistencia_territorial,JEFE,Cundinamarca,7149,0.9943751106463228,Dos ejemplos de elegir bien,a0090,False
+resistencia_territorial,JEFE,Córdoba,6596,0.9494718167147128,"""Haber formado la Unicórdoba es un aporte transformador a la región y al país"": Jairo Torres Oviedo",a0161,False
+resistencia_territorial,JEFE,Guainía,803,0.980833143106276,A los que sí y a los que no les afectaría el proyecto del impuesto predial,a0002,False
+resistencia_territorial,JEFE,Guaviare,7269,0.9950719524838972,"Derechos Humanos y pueblos indígenas, temas tratados entre ONU y Defensoría – Marandua Stereo 100.7 FM Noticias del Guaviare",a0166,False
+resistencia_territorial,JEFE,Huila,846,0.9957699995091362,Las Farc asesinan a niña de cuatro años,a0104,False
+resistencia_territorial,JEFE,La Guajira,898,0.9481052374172452,Comunidades wayús en La Guajira sufren por la escasez de agua a pesar de decisiones judiciales,a0008,False
+resistencia_territorial,JEFE,Magdalena,7690,0.9773637000185073,Los proyectos 4G de Antioquia en vilo por negativa del Gobierno Petro para terminarlos,a0107,False
+resistencia_territorial,JEFE,Meta,9029,0.982994235444364,Gobernadora electa del Meta se reunió con Petro y Bachelet,a0182,False
+resistencia_territorial,JEFE,Nariño,10260,0.9922478806776422,'Solo lleva a confundir': general (r) Zapateiro criticó cese al fuego bilateral,a0204,False
+resistencia_territorial,JEFE,Norte de Santander,927,0.9965254599280206,“Negar reclutamiento de menores en el ELN es negar una realidad evidente”: Defensor del Pueblo – Corrillos,a0033,False
+resistencia_territorial,JEFE,Putumayo,955,0.9949761509021664,"Cuiracuas, los indígenas siona que usan la cartografía para cuidar su territorio",a0133,True
+resistencia_territorial,JEFE,Quindío,10480,0.9877624834304324,"Del 16 al 17 de marzo, el Quindío será sede del encuentro de gobernadores",a0017,False
+resistencia_territorial,JEFE,Risaralda,10750,0.9915381526026388,Reportero de EL TIEMPO y otros periodistas quedaron en medio de un hostigamiento,a0092,False
+resistencia_territorial,JEFE,San Andrés y Providencia,10993,0.979030319694566,Marcha pacífica terminó en bloqueos y caos en aeropuerto de San Andrés,a0007,False
+resistencia_territorial,JEFE,Santander,11138,0.9953000807706224,Lugares para resignificar y ponerle fin a la indiferencia – Corrillos,a0137,False
+resistencia_territorial,JEFE,Sucre,11206,0.996394142698832,JEP concedió libertad condicional al exgobernador de Sucre Salvador Arana,a0020,False
+resistencia_territorial,JEFE,Tolima,1240,0.9962887577015856,El horror del conflicto en Tolima que comienza a develar caso de la JEP,a0177,False
+resistencia_territorial,JEFE,Valle del Cauca,11262,0.9936668154292144,Calima – El Darién está en peligro,a0032,False
+resistencia_territorial,JEFE,Vaupés,11357,0.9878439822872856,CNE ha anulado inscripción de casi un millón de cédulas para votar: ¿está la suya?,a0012,False
+resistencia_territorial,JEFE,Vichada,11420,0.9897081568506592,"Durante 2022, nueve niños menores de 5 años murieron por desnutrición en Vichada",a0103,False
+conflicto_territorial,C20,Amazonas,1481,0.9814627899538174,Presidente Petro escuchará fallo sobre Nicaragua en San Andrés: irá con cúpula militar,a0136,True
+conflicto_territorial,C20,Antioquia,245,0.9778754040120552,¿Por qué el municipio de Argelia cambiará su nombre luego de 63 años?,a0183,False
+conflicto_territorial,C20,Arauca,1691,0.9331184843489846,“La paz total también es posible si los grupos armados ilegales renuncian a combatir entre ellos mismos”,a0188,True
+conflicto_territorial,C20,Atlántico,2184,0.9843413305653104,Sujetos irrumpen en retiro espiritual y roban pertenencias de sacerdotes en Atlántico,a0194,False
+conflicto_territorial,C20,Bolívar,3135,0.9713592321775634,¡Atención! Bloqueos en carretera Troncal de Occidente,a0120,False
+conflicto_territorial,C20,Boyacá,3465,0.8976284783838165,"24 de julio, natalicio Simón Bolívar, Libertador y padre de la patria",a0067,False
+conflicto_territorial,C20,Caldas,3841,0.7948251947196612,Memorias de corrupción para tiempos electorales,a0167,False
+conflicto_territorial,C20,Caquetá,4079,0.9460168701768572,'Las mesas de diálogo deben ayudar a que los alcaldes podamos volver': alcalde de Tibú,a0001,False
+conflicto_territorial,C20,Casanare,582,0.9034672238015976,Álvaro Uribe tras atentado a militares: 'La seguridad es determinante para la paz',a0063,False
+conflicto_territorial,C20,Cauca,4619,0.9848909215856166,Que se defiendan como puedan,a0018,False
+conflicto_territorial,C20,Cesar,5375,0.9784087756193282,Un menor muerto y dos heridos deja ataque sicarial en El Copey (Cesar),a0029,True
+conflicto_territorial,C20,Chocó,749,0.9648353603181232,Elecciones amenazadas: voces de alcaldes desplazados de sus municipios,a0055,False
+conflicto_territorial,C20,Cundinamarca,7056,0.9493829939346644,Los días de terror y guerra que en el Sumapaz no quieren revivir,a0046,False
+conflicto_territorial,C20,Córdoba,5934,0.7744270822075529,Representante Saray Robayo acompañó campaña de limpieza de playas en los Córdobas,a0000,False
+conflicto_territorial,C20,Guainía,805,0.3223763129351254,¿Cómo funcionará el mecanismo de verificación en cese del fuego con el Eln?,a0089,False
+conflicto_territorial,C20,Guaviare,7269,0.9209252037868624,"Derechos Humanos y pueblos indígenas, temas tratados entre ONU y Defensoría – Marandua Stereo 100.7 FM Noticias del Guaviare",a0166,False
+conflicto_territorial,C20,Huila,846,0.9917535822921087,Las Farc asesinan a niña de cuatro años,a0104,False
+conflicto_territorial,C20,La Guajira,902,0.8216768862078758,El año pasado la “violencia política” le costó la vida a 108 indígenas,a0071,False
+conflicto_territorial,C20,Magdalena,8313,0.9406372029320444,47 personas han sido asesinadas durante el 2023 en Zona Bananera,a0003,False
+conflicto_territorial,C20,Meta,9024,0.973546082682838,Más de 71.000 hectáreas restituidas por URT Meta,a0178,True
+conflicto_territorial,C20,Nariño,10260,0.9787904096006048,'Solo lleva a confundir': general (r) Zapateiro criticó cese al fuego bilateral,a0204,False
+conflicto_territorial,C20,Norte de Santander,913,0.974752339849826,Invasiones y ataques sostenidos en el Cauca ¿quién responde? – Corrillos,a0184,True
+conflicto_territorial,C20,Putumayo,986,0.9802594629217104,Encuentran siete cuerpos en descomposición tras combates entre disidencias de las Farc,a0031,True
+conflicto_territorial,C20,Quindío,10416,0.959698169890844,Mafias se dividen el Quindío para vender ‘drogas’,a0014,False
+conflicto_territorial,C20,Risaralda,10750,0.9892898183206806,Reportero de EL TIEMPO y otros periodistas quedaron en medio de un hostigamiento,a0092,False
+conflicto_territorial,C20,San Andrés y Providencia,10949,0.9740760227587328,¿Y qué hacer ahora con la victoria?,a0024,True
+conflicto_territorial,C20,Santander,11080,0.975730286461536,Rodolfo Hernández: ¿por qué su candidatura está en vilo tras el fallo de la Corte?,a0139,False
+conflicto_territorial,C20,Sucre,11187,0.80624925728443,Asesinan a exjugador de equipo de fútbol de salón en Sincelejo,a0023,False
+conflicto_territorial,C20,Tolima,1206,0.9058115981453282,'Me tienen amenzada': mujer denuncia que sus hermanos no la dejan ver a su papá,a0084,True
+conflicto_territorial,C20,Valle del Cauca,11262,0.991797850110292,Calima – El Darién está en peligro,a0032,False
+conflicto_territorial,C20,Vaupés,11371,0.9253143219378852,¿Caos en los bonos de carbono forestales? II,a0146,False
+conflicto_territorial,C20,Vichada,11389,0.8634782662759668,"Incautaron en Cumaribo más de 9 toneladas de estaño, avaluadas en unos $1.000 millones",a0016,False
+conflicto_territorial,C21,Amazonas,1494,0.7788941670184888,Así será la gran cumbre por la Amazonia en Leticia a la que asistirán Petro y Lula,a0011,False
+conflicto_territorial,C21,Antioquia,344,0.8352128220889669,"Como en ‘Los reyes del mundo’, Gobierno encontró dos fincas para víctimas del Bajo Cauca invadidas por mineros ilegales",a0005,True
+conflicto_territorial,C21,Arauca,1889,0.8772446971113259,Organizaciones se articulan en la región del Catatumbo y el departamento de Arauca con el proyecto “A tu lado”,a0190,False
+conflicto_territorial,C21,Atlántico,2184,0.9708757202458056,Sujetos irrumpen en retiro espiritual y roban pertenencias de sacerdotes en Atlántico,a0194,False
+conflicto_territorial,C21,Bolívar,3135,0.953700691046792,¡Atención! Bloqueos en carretera Troncal de Occidente,a0120,False
+conflicto_territorial,C21,Boyacá,3465,0.8914075741467712,"24 de julio, natalicio Simón Bolívar, Libertador y padre de la patria",a0067,False
+conflicto_territorial,C21,Caldas,3841,0.7951090089726727,Memorias de corrupción para tiempos electorales,a0167,False
+conflicto_territorial,C21,Caquetá,4079,0.9750580889958148,'Las mesas de diálogo deben ayudar a que los alcaldes podamos volver': alcalde de Tibú,a0001,False
+conflicto_territorial,C21,Casanare,582,0.8877008311990241,Álvaro Uribe tras atentado a militares: 'La seguridad es determinante para la paz',a0063,False
+conflicto_territorial,C21,Cauca,4636,0.9684350061899492,Un muerto en guerra de pandillas en Puerto Tejada Cauca,a0164,True
+conflicto_territorial,C21,Cesar,5687,0.9726577181496764,"Tierra, participación y paz",a0155,True
+conflicto_territorial,C21,Chocó,779,0.8583602975036053,Dignidad de las mujeres víctimas de violencia sexual en el conflicto armado,a0180,False
+conflicto_territorial,C21,Cundinamarca,6831,0.9718785474996098,"Páramo de Guacheneque, así trabajan por su restauración y conservación",a0162,False
+conflicto_territorial,C21,Córdoba,5934,0.7772126085820167,Representante Saray Robayo acompañó campaña de limpieza de playas en los Córdobas,a0000,False
+conflicto_territorial,C21,Guainía,804,0.4053906600839744,Tres de cada cuatro niños en Colombia consumen alimentos de paquete,a0096,False
+conflicto_territorial,C21,Guaviare,7464,0.8420787670509583,Comerciantes piden acciones frente a hurtos de menores indígenas Jiw – Marandua Stereo 100.7 FM Noticias del Guaviare,a0054,False
+conflicto_territorial,C21,Huila,812,0.9037988432345224,Ex concejal y conocido ganadero fue asesinado en su finca del municipio de Huila,a0028,False
+conflicto_territorial,C21,La Guajira,897,0.7450588498514193,Secuestro de los padres de Luis Díaz: entre la arrogancia del Eln y la debilidad del gobierno nacional,a0123,False
+conflicto_territorial,C21,Magdalena,8313,0.887876035773916,47 personas han sido asesinadas durante el 2023 en Zona Bananera,a0003,False
+conflicto_territorial,C21,Meta,9024,0.9350735781680956,Más de 71.000 hectáreas restituidas por URT Meta,a0178,True
+conflicto_territorial,C21,Nariño,10010,0.865456623789686,Dolor afro: sicarios asesinaron a lideresa en su casa en vereda de Tumaco,a0097,False
+conflicto_territorial,C21,Norte de Santander,913,0.981492232461425,Invasiones y ataques sostenidos en el Cauca ¿quién responde? – Corrillos,a0184,True
+conflicto_territorial,C21,Putumayo,949,0.9703714170399556,Duro reclamo de congresista de Curules de Paz al Gobierno por asesinato de líder social,a0192,False
+conflicto_territorial,C21,Quindío,10376,0.9677621721068228,El municipio de Córdoba completa seis años sin homicidios,a0043,False
+conflicto_territorial,C21,Risaralda,10750,0.9861276550755792,Reportero de EL TIEMPO y otros periodistas quedaron en medio de un hostigamiento,a0092,False
+conflicto_territorial,C21,San Andrés y Providencia,10979,0.658767034165339,Así fue como una mujer embarazada y un niño fueron abandonados por traficantes de migrantes en un cayo.,a0094,False
+conflicto_territorial,C21,Santander,11080,0.9300462046573617,Rodolfo Hernández: ¿por qué su candidatura está en vilo tras el fallo de la Corte?,a0139,False
+conflicto_territorial,C21,Sucre,11209,0.8254637766854629,Masacre: Asesinaron a tres hombres en un estadero,a0181,False
+conflicto_territorial,C21,Tolima,1240,0.8301976943042453,El horror del conflicto en Tolima que comienza a develar caso de la JEP,a0177,False
+conflicto_territorial,C21,Valle del Cauca,11262,0.9928178133998752,Calima – El Darién está en peligro,a0032,False
+conflicto_territorial,C21,Vaupés,11375,0.7261158670258662,El nuevo arzobispo de Villavicencio condenó los abusos dentro de la iglesia,a0027,False
+conflicto_territorial,C21,Vichada,11398,0.7668763836050818,Asesinato de Ayendi Piña Hinojosa en Puerto Carreño. Esto sabemos,a0106,False
+conflicto_territorial,C26,Amazonas,1494,0.7219462189963382,Así será la gran cumbre por la Amazonia en Leticia a la que asistirán Petro y Lula,a0011,False
+conflicto_territorial,C26,Antioquia,214,0.6870624052000334,Exclusivo: el frente de las disidencias de las Farc y su comandante que quieren volverse del ELN para colarse en la paz total,a0198,False
+conflicto_territorial,C26,Arauca,1629,0.8055383748182309,Personerías de Arauca y Cubará rechaza el asesinato de la Sra. Tulia Carrillo en Tame,a0156,False
+conflicto_territorial,C26,Atlántico,2309,0.9277195234510052,Los esfuerzos de Irlanda por preservar y extender su biodiversidad,a0163,False
+conflicto_territorial,C26,Bolívar,3135,0.8102275952317501,¡Atención! Bloqueos en carretera Troncal de Occidente,a0120,False
+conflicto_territorial,C26,Boyacá,3465,0.8732391743910428,"24 de julio, natalicio Simón Bolívar, Libertador y padre de la patria",a0067,False
+conflicto_territorial,C26,Caldas,3943,0.3599332697513945,La sede Magdalena de la Universidad de Caldas ya cuenta con un Vicerrector,a0036,False
+conflicto_territorial,C26,Caquetá,4180,0.8196830642240948,Dura historia del policía asesinado en Caguán: 'Le repetía que no trabajara más',a0030,False
+conflicto_territorial,C26,Casanare,584,0.5741446511157319,"Ataque con carro bomba a unidad militar de Tame, Arauca: esto es lo que se sabe",a0110,False
+conflicto_territorial,C26,Cauca,4647,0.7129087898117424,Corinteño fue hallado muerto en vía de Toribío,a0042,False
+conflicto_territorial,C26,Cesar,5687,0.9141066065098628,"Tierra, participación y paz",a0155,True
+conflicto_territorial,C26,Chocó,677,0.8773792204003366,Habitantes del Pueblo de la Memoria Histórica sueñan con la titulación de sus tierras,a0111,True
+conflicto_territorial,C26,Cundinamarca,6904,0.5828145744785942,Minambiente pidió frenar obras del Distrito en El Zuque: ¿por qué?,a0041,False
+conflicto_territorial,C26,Córdoba,5934,0.7366677021397179,Representante Saray Robayo acompañó campaña de limpieza de playas en los Córdobas,a0000,False
+conflicto_territorial,C26,Guainía,807,0.2108030970218465,Los diez artículos TIC que tiene el Plan Nacional de Desarrollo,a0064,False
+conflicto_territorial,C26,Guaviare,7457,0.6513133307282079,Nuevo grupo armado en Guaviare serían desertores de las disidencias del frente primero – Marandua Stereo 100.7 FM Noticias del Guaviare,a0101,True
+conflicto_territorial,C26,Huila,812,0.8805931323304482,Ex concejal y conocido ganadero fue asesinado en su finca del municipio de Huila,a0028,False
+conflicto_territorial,C26,La Guajira,897,0.4653822523761218,Secuestro de los padres de Luis Díaz: entre la arrogancia del Eln y la debilidad del gobierno nacional,a0123,False
+conflicto_territorial,C26,Magdalena,8313,0.8928795711498351,47 personas han sido asesinadas durante el 2023 en Zona Bananera,a0003,False
+conflicto_territorial,C26,Meta,9024,0.9589040767138864,Más de 71.000 hectáreas restituidas por URT Meta,a0178,True
+conflicto_territorial,C26,Nariño,9958,0.7053155834024952,Estos son los sitios donde hay explotación de Níquel en Colombia,a0044,False
+conflicto_territorial,C26,Norte de Santander,940,0.7954711543686467,Doce organizaciones adhirieron al paro indefinido declarado por los parameros – Corrillos,a0034,True
+conflicto_territorial,C26,Putumayo,949,0.945188616085855,Duro reclamo de congresista de Curules de Paz al Gobierno por asesinato de líder social,a0192,False
+conflicto_territorial,C26,Quindío,10448,0.5897973560003918,"En 2023, Teatro Azul realiza la XX Temporada de Teatro para la Vida con estudiantes de colegios públicos del Quindío",a0122,False
+conflicto_territorial,C26,Risaralda,10684,0.4459575437169467,Indignante: comunidad indígena habría cazado a dos jaguares en el Chocó,a0121,False
+conflicto_territorial,C26,San Andrés y Providencia,10965,0.6075925289591025,"En medio de polémicas por retrasos en las obras, Providencia reinauguró colegio público",a0157,False
+conflicto_territorial,C26,Santander,11080,0.7176896393547367,Rodolfo Hernández: ¿por qué su candidatura está en vilo tras el fallo de la Corte?,a0139,False
+conflicto_territorial,C26,Sucre,11203,0.3166233449926393,"Monteriano fue ultimado de varios disparos en Galeras, Sucre",a0070,False
+conflicto_territorial,C26,Tolima,1240,0.9260751064939928,El horror del conflicto en Tolima que comienza a develar caso de la JEP,a0177,False
+conflicto_territorial,C26,Valle del Cauca,11257,0.6035540350144185,Día Internacional por la Eliminación de las Violencias hacia las Mujeres,a0076,False
+conflicto_territorial,C26,Vaupés,11368,0.417503664638109,Atención: las razones de accidente aéreo en la selva: cuatro niños siguen desaparecidos,a0116,False
+conflicto_territorial,C26,Vichada,11404,0.4192231849987953,La Fundación Omacha denuncia cacería de toninas en el río Orinoco,a0128,False
+resistencia_territorial,R05,Amazonas,1385,0.3438226911603165,Gaseosas: ¿qué efectos tienen estas bebidas en el cuerpo humano? Aquí le contamos,a0175,False
+resistencia_territorial,R05,Antioquia,79,0.5769558195456959,“Hay intenciones de orquestar una toma hostil en el Metro para darle un manejo politiquero”: Aníbal Gaviria,a0048,False
+resistencia_territorial,R05,Arauca,1629,0.8545734249864628,Personerías de Arauca y Cubará rechaza el asesinato de la Sra. Tulia Carrillo en Tame,a0156,False
+resistencia_territorial,R05,Atlántico,2569,0.8610309688034324,"Comunidad bloquea vía La Cordialidad, en Atlántico, por servicio de agua potable",a0040,False
+resistencia_territorial,R05,Bolívar,3135,0.9833623152761504,¡Atención! Bloqueos en carretera Troncal de Occidente,a0120,False
+resistencia_territorial,R05,Boyacá,3480,0.8618754912077977,Alcaldes de Valderrama piden cita con el Gobernador de Boyacá,a0196,False
+resistencia_territorial,R05,Caldas,3735,0.1972930823565722,Policía capturó a cuatro personas por tala indiscriminada de árboles en Caldas,a0072,False
+resistencia_territorial,R05,Caquetá,4142,0.8937193152885378,"En Colombia, ir a la escuela es un desafío de supervivencia",a0069,False
+resistencia_territorial,R05,Casanare,641,0.6112100478722555,Problemas en el territorio / Análisis de Ricardo Ávila,a0009,False
+resistencia_territorial,R05,Cauca,4376,0.9761996288361866,"Comunidad de El Plateado, sur del Cauca, afectada por fuertes controles del Ejército",a0140,False
+resistencia_territorial,R05,Cesar,4875,0.557228963530833,La película colombiana 'Un varón' busca espacios de exhibición en Estados Unidos,a0093,False
+resistencia_territorial,R05,Chocó,656,0.7219648074973838,Desplazados de Juradó y Carmen de Atrato en Medellín,a0038,False
+resistencia_territorial,R05,Cundinamarca,7056,0.8035704678632777,Los días de terror y guerra que en el Sumapaz no quieren revivir,a0046,False
+resistencia_territorial,R05,Córdoba,5945,0.5802288505728729,Capturados por violencia contra servidor público,a0197,False
+resistencia_territorial,R05,Guainía,803,0.0,A los que sí y a los que no les afectaría el proyecto del impuesto predial,a0002,False
+resistencia_territorial,R05,Guaviare,7202,0.8394651820185639,Pacto Histórico será veedor de la inversión de recursos por nuevas Administraciones – Marandua Stereo 100.7 FM Noticias del Guaviare,a0062,False
+resistencia_territorial,R05,Huila,812,0.8811258538818817,Ex concejal y conocido ganadero fue asesinado en su finca del municipio de Huila,a0028,False
+resistencia_territorial,R05,La Guajira,902,0.2125379643415827,El año pasado la “violencia política” le costó la vida a 108 indígenas,a0071,False
+resistencia_territorial,R05,Magdalena,8969,0.7818344984602099,Derrumbe de muro de contención en sur de Bolívar tiene en riesgo a 100 viviendas,a0191,False
+resistencia_territorial,R05,Meta,9610,0.6791305235562553,¡Macabro! Hombre asesinó a su mamá en San Martín,a0113,False
+resistencia_territorial,R05,Nariño,10253,0.5157124136573324,"Disidencias 'Carlos Patiño', tras secuestro de dos militares en Cauca",a0118,False
+resistencia_territorial,R05,Norte de Santander,940,0.7390462162010059,Doce organizaciones adhirieron al paro indefinido declarado por los parameros – Corrillos,a0034,True
+resistencia_territorial,R05,Putumayo,1066,0.919989249107888,Estallido social en Los Pozos: expresión de años de reclamos desatendidos,a0056,True
+resistencia_territorial,R05,Quindío,10491,0.7077600991047255,"Este miércoles, ex miembros de la fuerza pública realizarían protestas en el Quindío",a0201,False
+resistencia_territorial,R05,Risaralda,10587,0.5727944100213587,Fatal agresión: hombre atacó con machete a su expareja y sus tres hijos en Risaralda,a0026,False
+resistencia_territorial,R05,San Andrés y Providencia,10995,0.7300727502910282,Cómo la 'histórica incomprensión' de Bogotá afectó a las islas de San Andrés,a0108,False
+resistencia_territorial,R05,Santander,11105,0.9661417640792064,El irracional miedo hacia la diversidad sexual en Santander – Corrillos,a0112,False
+resistencia_territorial,R05,Sucre,11209,0.8298931932295532,Masacre: Asesinaron a tres hombres en un estadero,a0181,False
+resistencia_territorial,R05,Tolima,1364,0.7044357152566951,Tolima: hombre habría abusado sexualmente de sus hijas menores de edad,a0141,False
+resistencia_territorial,R05,Valle del Cauca,11326,0.6666839068169335,Acciones legales contra involucrados en video de presunto soborno en Cali,a0083,False
+resistencia_territorial,R05,Vaupés,11375,0.118711140263765,El nuevo arzobispo de Villavicencio condenó los abusos dentro de la iglesia,a0027,False
+resistencia_territorial,R05,Vichada,11434,0.7088698276296609,"Con pancarta, Farc anuncia su presencia en Vichada",a0098,False
+resistencia_territorial,R27,Amazonas,1455,0.6390473852925433,Más de 136.000 toneladas de productos no han transitado por cierres en la vía al Llano,a0193,False
+resistencia_territorial,R27,Antioquia,79,0.5633937869805368,“Hay intenciones de orquestar una toma hostil en el Metro para darle un manejo politiquero”: Aníbal Gaviria,a0048,False
+resistencia_territorial,R27,Arauca,1629,0.8653111675917072,Personerías de Arauca y Cubará rechaza el asesinato de la Sra. Tulia Carrillo en Tame,a0156,False
+resistencia_territorial,R27,Atlántico,2569,0.9779846163922794,"Comunidad bloquea vía La Cordialidad, en Atlántico, por servicio de agua potable",a0040,False
+resistencia_territorial,R27,Bolívar,3135,0.9893327283199064,¡Atención! Bloqueos en carretera Troncal de Occidente,a0120,False
+resistencia_territorial,R27,Boyacá,3480,0.9273937666804558,Alcaldes de Valderrama piden cita con el Gobernador de Boyacá,a0196,False
+resistencia_territorial,R27,Caldas,3735,0.0442877774763708,Policía capturó a cuatro personas por tala indiscriminada de árboles en Caldas,a0072,False
+resistencia_territorial,R27,Caquetá,4056,0.8679783045143123,En la paz total ‘hay que hacer un alto en el camino’: José Félix Lafaurie,a0021,False
+resistencia_territorial,R27,Casanare,567,0.7148949706245559,Puente 'Los Grillos: ¿Quién fue el responsable de su construcción?,a0150,False
+resistencia_territorial,R27,Cauca,4782,0.9938021454549394,"Brayan fue asesinado en El Bordo, sur del Cauca",a0061,False
+resistencia_territorial,R27,Cesar,4953,0.6262687554933822,Envían a la cárcel a presuntos responsables del incendio de la Registraduría de Gamarra,a0130,False
+resistencia_territorial,R27,Chocó,749,0.8868268345596081,Elecciones amenazadas: voces de alcaldes desplazados de sus municipios,a0055,False
+resistencia_territorial,R27,Cundinamarca,7056,0.8628658054393419,Los días de terror y guerra que en el Sumapaz no quieren revivir,a0046,False
+resistencia_territorial,R27,Córdoba,5974,0.7579071258306626,Comunidad de Lorica levanta bloqueo,a0131,False
+resistencia_territorial,R27,Guainía,803,0.0,A los que sí y a los que no les afectaría el proyecto del impuesto predial,a0002,False
+resistencia_territorial,R27,Guaviare,7202,0.8557571944473205,Pacto Histórico será veedor de la inversión de recursos por nuevas Administraciones – Marandua Stereo 100.7 FM Noticias del Guaviare,a0062,False
+resistencia_territorial,R27,Huila,846,0.9841164744106616,Las Farc asesinan a niña de cuatro años,a0104,False
+resistencia_territorial,R27,La Guajira,895,0.0,Con sistema de hélices busca extraer agua potable para abastecer a comunidades de La Guajira,a0059,False
+resistencia_territorial,R27,Magdalena,8969,0.7740063015465557,Derrumbe de muro de contención en sur de Bolívar tiene en riesgo a 100 viviendas,a0191,False
+resistencia_territorial,R27,Meta,9610,0.7361214224601947,¡Macabro! Hombre asesinó a su mamá en San Martín,a0113,False
+resistencia_territorial,R27,Nariño,10253,0.8049141390018406,"Disidencias 'Carlos Patiño', tras secuestro de dos militares en Cauca",a0118,False
+resistencia_territorial,R27,Norte de Santander,907,0.6769578023022789,Indepaz confirmó la masacre número 93 del año – Corrillos,a0199,False
+resistencia_territorial,R27,Putumayo,1066,0.9224615791132555,Estallido social en Los Pozos: expresión de años de reclamos desatendidos,a0056,True
+resistencia_territorial,R27,Quindío,10491,0.7126555700071266,"Este miércoles, ex miembros de la fuerza pública realizarían protestas en el Quindío",a0201,False
+resistencia_territorial,R27,Risaralda,10587,0.5942280976461696,Fatal agresión: hombre atacó con machete a su expareja y sus tres hijos en Risaralda,a0026,False
+resistencia_territorial,R27,San Andrés y Providencia,10993,0.9719332573591366,Marcha pacífica terminó en bloqueos y caos en aeropuerto de San Andrés,a0007,False
+resistencia_territorial,R27,Santander,11125,0.7926313800305106,Atentado en Tibú: estos son los dos policías que murieron en el ataque con explosivos,a0144,False
+resistencia_territorial,R27,Sucre,11209,0.8869900725644658,Masacre: Asesinaron a tres hombres en un estadero,a0181,False
+resistencia_territorial,R27,Tolima,1364,0.7191222323091991,Tolima: hombre habría abusado sexualmente de sus hijas menores de edad,a0141,False
+resistencia_territorial,R27,Valle del Cauca,11326,0.768913894979355,Acciones legales contra involucrados en video de presunto soborno en Cali,a0083,False
+resistencia_territorial,R27,Vaupés,11375,0.616108397815852,El nuevo arzobispo de Villavicencio condenó los abusos dentro de la iglesia,a0027,False
+resistencia_territorial,R27,Vichada,11434,0.7405225001253525,"Con pancarta, Farc anuncia su presencia en Vichada",a0098,False
+resistencia_territorial,R29,Amazonas,1581,0.4235594094180133,Video: encuentran una boa constrictor en una vivienda en el sur de Cali,a0195,False
+resistencia_territorial,R29,Antioquia,303,0.3613724667408666,Gobierno y las bandas del Valle de Aburrá tienen voceros y alistan diálogo,a0105,False
+resistencia_territorial,R29,Arauca,1629,0.8540610205458669,Personerías de Arauca y Cubará rechaza el asesinato de la Sra. Tulia Carrillo en Tame,a0156,False
+resistencia_territorial,R29,Atlántico,2468,0.6798396193674998,Gobernadora y alcaldes del Atlántico se oponen a una nueva caseta de peaje,a0050,False
+resistencia_territorial,R29,Bolívar,3176,0.7633031572212398,Se reactivaría cobro del peaje de Turbaco: conozca quiénes deberían pagar,a0080,False
+resistencia_territorial,R29,Boyacá,3480,0.919292602967387,Alcaldes de Valderrama piden cita con el Gobernador de Boyacá,a0196,False
+resistencia_territorial,R29,Caldas,3664,0.0,Casos de tuberculosis en Caldas superan las cifras del 2022,a0172,False
+resistencia_territorial,R29,Caquetá,4180,0.8052072763890066,Dura historia del policía asesinado en Caguán: 'Le repetía que no trabajara más',a0030,False
+resistencia_territorial,R29,Casanare,510,0.6527798777034876,"Masacre en Casanare: asesinaron a tres migrantes venezolanos, entre ellos una mujer",a0081,False
+resistencia_territorial,R29,Cauca,4733,0.4900531586003384,“El paro no puede continuar”,a0100,False
+resistencia_territorial,R29,Cesar,4939,0.4824814771727191,Realizaron plantón en rechazo a la muerte violenta de una nutria,a0152,False
+resistencia_territorial,R29,Chocó,699,0.4745790893687505,Cuadro de Fernando Botero sobre la masacre de Bojayá,a0086,False
+resistencia_territorial,R29,Cundinamarca,7066,0.8387531518835735,Minería a cielo abierto en Tabio: esto dice la CAR sobre el proyecto,a0129,False
+resistencia_territorial,R29,Córdoba,5974,0.4977049628087784,Comunidad de Lorica levanta bloqueo,a0131,False
+resistencia_territorial,R29,Guainía,803,0.0,A los que sí y a los que no les afectaría el proyecto del impuesto predial,a0002,False
+resistencia_territorial,R29,Guaviare,7157,0.6846076297161966,Alcalde electo Willy Rodríguez anunció para el 29 de diciembre su posesión – Marandua Stereo 100.7 FM Noticias del Guaviare,a0099,False
+resistencia_territorial,R29,Huila,893,0.3741880924310454,"Polémica: rectora en Huila prohíbe celulares, noviazgos, pelo pintado y más",a0168,False
+resistencia_territorial,R29,La Guajira,903,0.1076683660057932,Comunidades wiwa en La Guajira tendrán reparación colectiva como víctimas del conflicto,a0019,False
+resistencia_territorial,R29,Magdalena,8969,0.3617288750453702,Derrumbe de muro de contención en sur de Bolívar tiene en riesgo a 100 viviendas,a0191,False
+resistencia_territorial,R29,Meta,9566,0.5159214745908564,"""Es un cuento chimbo"": gobernador del Meta sobre argumentos del paro en P. Gaitán",a0174,False
+resistencia_territorial,R29,Nariño,9901,0.4837866884852607,"Las mil caras de 'Mordisco', jefe de las disidencias que asesinaron a 4 niños indígenas",a0134,False
+resistencia_territorial,R29,Norte de Santander,907,0.5916088485302665,Indepaz confirmó la masacre número 93 del año – Corrillos,a0199,False
+resistencia_territorial,R29,Putumayo,1066,0.9147069255621416,Estallido social en Los Pozos: expresión de años de reclamos desatendidos,a0056,True
+resistencia_territorial,R29,Quindío,10491,0.671349505503061,"Este miércoles, ex miembros de la fuerza pública realizarían protestas en el Quindío",a0201,False
+resistencia_territorial,R29,Risaralda,10587,0.5635962434635602,Fatal agresión: hombre atacó con machete a su expareja y sus tres hijos en Risaralda,a0026,False
+resistencia_territorial,R29,San Andrés y Providencia,10943,0.4067921772233576,Petro propone dialogar con Ortega: ¿qué negociarán con Nicaragua? Estas son las claves,a0135,False
+resistencia_territorial,R29,Santander,11182,0.7199286269912158,Aparece un tercer panfleto amenazando a líderes de Santander por bloquear vías,a0075,True
+resistencia_territorial,R29,Sucre,11214,0.3293663746499185,Capturan a dos mujeres por vender rifas ilegales en Montería,a0010,False
+resistencia_territorial,R29,Tolima,1206,0.8297626279537046,'Me tienen amenzada': mujer denuncia que sus hermanos no la dejan ver a su papá,a0084,False
+resistencia_territorial,R29,Valle del Cauca,11320,0.5239027377005374,Valle de 4o en ingresos operacionales,a0173,False
+resistencia_territorial,R29,Vaupés,11358,0.3121486682403718,'Estamos en un momento inédito para la educación': Mineducación Aurora Vergara,a0057,False
+resistencia_territorial,R29,Vichada,11407,0.5948673868584741,Paro en Puerto Gaitán (Meta) afecta movilidad hacia el departamento de Vichada,a0082,False
+resistencia_territorial,R30,Amazonas,1619,0.4214086284032119,El medioambiente 2023,a0148,False
+resistencia_territorial,R30,Antioquia,79,0.5390470658968725,“Hay intenciones de orquestar una toma hostil en el Metro para darle un manejo politiquero”: Aníbal Gaviria,a0048,False
+resistencia_territorial,R30,Arauca,1629,0.8564619707973734,Personerías de Arauca y Cubará rechaza el asesinato de la Sra. Tulia Carrillo en Tame,a0156,False
+resistencia_territorial,R30,Atlántico,2593,0.4266610298233491,Comunidad mantiene protesta tras nuevo plazo de suspensión de cobro en Papiros,a0186,False
+resistencia_territorial,R30,Bolívar,3176,0.8118737613914182,Se reactivaría cobro del peaje de Turbaco: conozca quiénes deberían pagar,a0080,False
+resistencia_territorial,R30,Boyacá,3480,0.7610757187852153,Alcaldes de Valderrama piden cita con el Gobernador de Boyacá,a0196,False
+resistencia_territorial,R30,Caldas,3936,0.0444128462295285,En Pácora buscan reabrir la central de beneficio y construir una nueva variante,a0045,False
+resistencia_territorial,R30,Caquetá,4088,0.6791616950578883,Las empresas que han abandonado proyectos por bloqueos y temas de seguridad,a0176,True
+resistencia_territorial,R30,Casanare,567,0.6766981810804328,Puente 'Los Grillos: ¿Quién fue el responsable de su construcción?,a0150,False
+resistencia_territorial,R30,Cauca,4566,0.7002624935692429,Argumentan que Villa Rica debe reclamar derechos al agua,a0077,False
+resistencia_territorial,R30,Cesar,5634,0.5199116614798368,Liberan a conductor de la concesión Río Grande secuestrado en el sur del Cesar,a0125,False
+resistencia_territorial,R30,Chocó,714,0.478097196255665,De Memoria. Algunos recuerdos sueltos sobre los orígenes de la Ley 70 de 1993,a0053,False
+resistencia_territorial,R30,Cundinamarca,7066,0.8195867752733376,Minería a cielo abierto en Tabio: esto dice la CAR sobre el proyecto,a0129,False
+resistencia_territorial,R30,Córdoba,6378,0.4892663425275822,Defensoría del Pueblo presentó acción popular para proteger derechos de comunidades en La Mojana,a0087,False
+resistencia_territorial,R30,Guainía,808,0.0140392755550937,‘La previsión es un factor clave ante la escasez de sangre en Colombia’,a0147,False
+resistencia_territorial,R30,Guaviare,7202,0.7387728620284142,Pacto Histórico será veedor de la inversión de recursos por nuevas Administraciones – Marandua Stereo 100.7 FM Noticias del Guaviare,a0062,False
+resistencia_territorial,R30,Huila,864,0.559160490196739,Habla novia de contralor del Huila que lo denunció por haberla golpeado,a0004,False
+resistencia_territorial,R30,La Guajira,904,0.1919564202663082,"Oneida Pinto, investigada por corrupción, apareció haciendo política en La Guajira",a0158,False
+resistencia_territorial,R30,Magdalena,7533,0.3605677541984002,Doble crimen en Aracataca estaría relacionado con un 'ajuste de cuentas',a0115,False
+resistencia_territorial,R30,Meta,9566,0.5138002468772682,"""Es un cuento chimbo"": gobernador del Meta sobre argumentos del paro en P. Gaitán",a0174,False
+resistencia_territorial,R30,Nariño,10229,0.3689892967292073,No hay mal que por bien no venga,a0160,False
+resistencia_territorial,R30,Norte de Santander,907,0.395308396491158,Indepaz confirmó la masacre número 93 del año – Corrillos,a0199,False
+resistencia_territorial,R30,Putumayo,1066,0.9028947512684748,Estallido social en Los Pozos: expresión de años de reclamos desatendidos,a0056,True
+resistencia_territorial,R30,Quindío,10448,0.436752835620094,"En 2023, Teatro Azul realiza la XX Temporada de Teatro para la Vida con estudiantes de colegios públicos del Quindío",a0122,False
+resistencia_territorial,R30,Risaralda,10842,0.302518922911323,El drama de pereirana con raro tipo de cáncer; aseguran que la EPS no la atiende,a0138,False
+resistencia_territorial,R30,San Andrés y Providencia,10950,0.5513704312147831,La reacción de todos los expresidentes de Colombia sobre el fallo de La Haya,a0142,False
+resistencia_territorial,R30,Santander,11182,0.7197331383527833,Aparece un tercer panfleto amenazando a líderes de Santander por bloquear vías,a0075,True
+resistencia_territorial,R30,Sucre,11202,0.3155675641130143,iMás obras para La Gente! Mejoran movilidad con pavimentación en Los Laureles,a0079,False
+resistencia_territorial,R30,Tolima,1261,0.1918897397766576,"‘Pese a cambio de ministros, la reforma de la salud es la misma’: Andrés Forero",a0117,False
+resistencia_territorial,R30,Valle del Cauca,11320,0.5204647292692279,Valle de 4o en ingresos operacionales,a0173,False
+resistencia_territorial,R30,Vaupés,11374,0.3113223511430463,El camino para conectar el 85 % de Colombia,a0078,False
+resistencia_territorial,R30,Vichada,11407,0.5730561221823061,Paro en Puerto Gaitán (Meta) afecta movilidad hacia el departamento de Vichada,a0082,False

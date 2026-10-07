@@ -2027,3 +2027,30 @@ en brecha). `conflicto_territorial` y `resistencia_territorial` (frases del jefe
 una ronda de optimización de la frase, en conversación nueva con orquestador y subagentes. Ancla:
 `contexto/12_relevo_hipotesis_conflicto_resistencia.md`. `src/` no cambia hasta que haya ganadora aprobada.
 Evidencia: `experimentos/resultados/exp_hipotesis_jefe_18ind.csv`, informe 15.
+
+## [2026-10-07] Optimización de las frases de conflicto y resistencia (relevo 12) — CONTROL RESUELTO, PRECISIÓN NO; pendiente decisión del usuario
+
+**Diseño:** pre-registro `experimentos/PREREG_hipotesis_conflicto_resistencia.md` (con enmienda registrada antes del nacional). 69
+candidatas en 2 rondas (C01–C34, R01–R35; `experimentos/resultados/candidatas_*_r{1,2}.json`), cada una con nula de osos polares del
+mismo formato. Cola única de GPU `experimentos/cola_gpu_conflicto_resistencia.py` (un pkl por candidata en
+`datos/scores/hip_conflicto_resistencia/`); cribado en submuestra de 1.476 arts (50/depto, semilla 20261007); análisis
+`experimentos/analisis_conflicto_resistencia.py` -> `experimentos/resultados/cribado_conflicto_resistencia_{submuestra,nacional}.csv`;
+jueces `experimentos/juicio_conflicto_resistencia.py` (2 jueces ciegos, `resultados/juicio_conflicto_resistencia{,_nacional}/`).
+Verificación bloqueante 9.77e-07.
+**Patrón mecanístico:** satura «disputa/conflicto» + actor genérico, la disyunción «control, uso o propiedad» y «Una comunidad» +
+verbo abstracto (defiende/actúa/se moviliza) + «frente a»; no satura un sustantivo de hecho concreto (invasión de predios) ni
+«Los habitantes» + verbo de protesta (protestan/rechazan).
+**Nacional (11.439 arts), sobrevivientes del control:** C21 «Hay una invasión de predios.»: nula >0.9 2.9 %, corr 0.007, brecha 0.571
+(V2 0.520), MAX por depto mediana 0.979 IQR 0.044 (al borde de saturar). R27 «Los habitantes protestan contra una intervención externa
+en su territorio.»: 0.9 %, brecha 0.504 (V2 0.347), mediana 0.950 IQR 0.116. R30 «Los habitantes rechazan una hidroeléctrica o un
+megaproyecto.»: 0.3 %, brecha 0.603, mediana 0.750 IQR 0.267. C20 «Hay una invasión de predios en disputa.»: falla P3 (0.471) y satura.
+**Jueces sobre el artículo top de cada depto del nacional** (kappa 0.91 conflicto, 0.88 resistencia; `precision_nacional.csv`):
+conflicto V2 0.406, C20 0.344, C21 0.312, jefe 0.312; resistencia V2 0.250, R30 0.156, jefe 0.062, R27 0.031. **Ninguna cumple el
+criterio pre-registrado «precisión ≥ V2».** n = 32: 13 vs 10 artículos (conflicto) no se distingue del ruido; 8 vs 1 (R27) sí.
+**Salvedades:** (1) robustez de la nula: con una nula más exigente (C21b conserva «predios», R27b «intervención externa») la submuestra
+da 7.2 % y 6.5 % > 0.9. (2) V2 tampoco pasa P1 con su propia nula del mismo formato (la de C14: 21.7 % en la submuestra); las
+referencias P2/P3 de V2 usan `NULA_TEST`. (3) C21 lee «invasión» como llegada de migrantes (top de Antioquia y Maicao en lugares).
+**Rechazos:** R27 (pasa el control, pero 21 de 22 tops con score ≥0.9 no son resistencia: el control no basta). C20 (falla P3 y
+satura en el nacional). Todas las candidatas que fallaron P1 en el cribado (listado en `cribado_conflicto_resistencia_submuestra.csv`).
+**Abre:** el usuario decide entre mantener las frases del jefe, C21/R30 (mejor control que el jefe; precisión igual o mayor que el
+jefe, menor que V2) o volver a V2. `src/` sin tocar. Sin push.

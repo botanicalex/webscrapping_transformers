@@ -1,0 +1,142 @@
+[
+ {
+  "id": "C01",
+  "eje": "existencial corta",
+  "frase": "Hay una disputa por la propiedad de unas tierras.",
+  "nula": "Hay una disputa por la propiedad de unas colonias de osos polares.",
+  "razon": "Forma V2 (que pasa el control) con objeto concreto 'tierras'; línea base concreta del eje."
+ },
+ {
+  "id": "C02",
+  "eje": "existencial corta",
+  "frase": "Hay una disputa por el control de un territorio.",
+  "nula": "Hay una disputa por el control de unas colonias de osos polares.",
+  "razon": "V2 sin disyunción y con un solo sustantivo de disputa; menos estructura que afirmar."
+ },
+ {
+  "id": "C03",
+  "eje": "existencial corta",
+  "frase": "Hay un conflicto por el uso de la tierra entre varios actores.",
+  "nula": "Hay un conflicto por el uso de colonias de osos polares entre varios actores.",
+  "razon": "Existencial con 'conflicto' y cierre 'entre varios actores': acerca la intención sin verbo de acción."
+ },
+ {
+  "id": "C04",
+  "eje": "objeto concreto",
+  "frase": "Hay una disputa por los linderos de un predio.",
+  "nula": "Hay una disputa por los linderos de unas colonias de osos polares.",
+  "razon": "'Linderos de un predio' es léxico muy específico; el modelo no lo afirma con contenido genérico."
+ },
+ {
+  "id": "C05",
+  "eje": "objeto concreto",
+  "frase": "Hay una disputa por la titularidad de un baldío o un resguardo.",
+  "nula": "Hay una disputa por la titularidad de unas colonias de osos polares.",
+  "razon": "Disyunción sustantiva (baldío/resguardo) y 'titularidad' exigen contenido agrario real."
+ },
+ {
+  "id": "C06",
+  "eje": "objeto concreto",
+  "frase": "Hay una disputa por la ocupación de predios.",
+  "nula": "Hay una disputa por la ocupación de colonias de osos polares.",
+  "razon": "Ancla en invasión/ocupación de predios, un tipo de conflicto frecuente y específico."
+ },
+ {
+  "id": "C07",
+  "eje": "objeto concreto",
+  "frase": "Hay una disputa por la restitución de tierras despojadas.",
+  "nula": "Hay una disputa por la restitución de colonias de osos polares despojadas.",
+  "razon": "Ancla en restitución, vocabulario jurídico-agrario que no aparece en noticias de otro tema."
+ },
+ {
+  "id": "C08",
+  "eje": "actores nombrados",
+  "frase": "Campesinos y terratenientes disputan la propiedad de unas tierras.",
+  "nula": "Campesinos y terratenientes disputan la propiedad de unas colonias de osos polares.",
+  "razon": "Actores concretos en lugar de 'actores': pide una pareja de partes reconocible, no cualquier agente."
+ },
+ {
+  "id": "C09",
+  "eje": "actores nombrados",
+  "frase": "Comunidades indígenas y colonos disputan tierras del resguardo.",
+  "nula": "Comunidades indígenas y colonos disputan unas colonias de osos polares.",
+  "razon": "Pareja étnica/colono con objeto resguardo; difiere de C08 en actores y objeto."
+ },
+ {
+  "id": "C10",
+  "eje": "actores nombrados",
+  "frase": "Una empresa y una comunidad disputan el uso de unas tierras.",
+  "nula": "Una empresa y una comunidad disputan el uso de unas colonias de osos polares.",
+  "razon": "Pareja empresa-comunidad (conflicto por proyectos) y eje 'uso' en vez de 'propiedad'."
+ },
+ {
+  "id": "C11",
+  "eje": "actores nombrados",
+  "frase": "Grupos armados se disputan el control de un territorio.",
+  "nula": "Grupos armados se disputan el control de unas colonias de osos polares.",
+  "razon": "Variante armada con 'se disputan' recíproco; objeto abstracto para aislar el efecto de actores."
+ },
+ {
+  "id": "C12",
+  "eje": "actor+verbo genérico",
+  "frase": "Dos actores disputan la propiedad de unas tierras.",
+  "nula": "Dos actores disputan la propiedad de unas colonias de osos polares.",
+  "razon": "Forma del jefe recortada con objeto concreto: aísla si el anclaje basta aun con estructura actor+verbo."
+ },
+ {
+  "id": "C13",
+  "eje": "actor+verbo genérico",
+  "frase": "Dos actores se enfrentan por la propiedad de unas tierras.",
+  "nula": "Dos actores se enfrentan por la propiedad de unas colonias de osos polares.",
+  "razon": "Cambia el verbo a 'se enfrentan por', que exige contraparte y objeto de disputa."
+ },
+ {
+  "id": "C14",
+  "eje": "disyunción",
+  "frase": "Hay una disputa por el control, el uso o la propiedad de unas tierras.",
+  "nula": "Hay una disputa por el control, el uso o la propiedad de unas colonias de osos polares.",
+  "razon": "V2 con 'tierras' en lugar de 'territorio': aísla abstracto vs concreto conservando la disyunción."
+ },
+ {
+  "id": "C15",
+  "eje": "disyunción",
+  "frase": "Hay una disputa por la propiedad de un territorio.",
+  "nula": "Hay una disputa por la propiedad de unas colonias de osos polares.",
+  "razon": "V2 sin disyunción y con 'territorio' abstracto: aísla el efecto de quitar la disyunción (comparar con C01)."
+ },
+ {
+  "id": "C16",
+  "eje": "disyunción",
+  "frase": "Hay una disputa por el uso de un territorio.",
+  "nula": "Hay una disputa por el uso de unas colonias de osos polares.",
+  "razon": "Solo 'uso': sentido más cercano a conflictos de uso del suelo que a choques genéricos."
+ },
+ {
+  "id": "C17",
+  "eje": "relacional 'entre'",
+  "frase": "Hay una disputa entre actores por la tierra.",
+  "nula": "Hay una disputa entre actores por unas colonias de osos polares.",
+  "razon": "Pone las partes con 'entre' sin verbo de acción; objeto único 'la tierra'."
+ },
+ {
+  "id": "C18",
+  "eje": "relacional 'entre'",
+  "frase": "Hay un conflicto entre dos partes por la propiedad de unas tierras.",
+  "nula": "Hay un conflicto entre dos partes por la propiedad de unas colonias de osos polares.",
+  "razon": "Existencial más 'dos partes' explícito; acerca el 'dos o más' sin verbo."
+ },
+ {
+  "id": "C19",
+  "eje": "relacional 'entre'",
+  "frase": "Hay un conflicto por tierras entre comunidades y otros actores.",
+  "nula": "Hay un conflicto por colonias de osos polares entre comunidades y otros actores.",
+  "razon": "Mezcla objeto concreto y partes parcialmente nombradas (comunidades); difiere de C17 en nombrar un actor."
+ },
+ {
+  "id": "C20",
+  "eje": "objeto concreto",
+  "frase": "Hay una invasión de predios en disputa.",
+  "nula": "Hay una invasión de colonias de osos polares en disputa.",
+  "razon": "Frase corta y muy específica (invasión de predios); poca estructura genérica que el modelo afirme."
+ }
+]
