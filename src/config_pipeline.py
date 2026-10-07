@@ -106,11 +106,17 @@ MIN_ARTICULOS_RESPALDO = 50
 # conflicto_territorial y resistencia_territorial saturan (MAX por departamento
 # ~0.99 en casi todos), lo que desplaza el nivel del promedio y los cortes.
 #
+# Recalibrado el 2026-10-07 (regla 2) al cambiar las frases de conflicto_territorial
+# («Hay una invasión de predios.») y resistencia_territorial («Los habitantes rechazan
+# una hidroeléctrica o un megaproyecto.»), relevo 12: experimentos/exp_c21_r30_cortes.py,
+# sanidad con las frases del jefe -> 0.6885/0.8916; 0.6885 -> 0.6559, 0.8916 -> 0.8839.
+# Clases 6/19/7 iguales, ningun departamento cambia, ninguna ancla se rompe.
+#
 # Vive aqui (no en radar.py) para que metricas_y_calculo_de_error.py pueda
 # usar el mismo corte sin crear un import circular con radar.py (que ya
 # importa metricas_y_calculo_de_error).
-CORTE_BAJO_MEDIO_RADAR = 0.6885
-CORTE_MEDIO_ALTO_RADAR = 0.8916
+CORTE_BAJO_MEDIO_RADAR = 0.6559
+CORTE_MEDIO_ALTO_RADAR = 0.8839
 
 # ── Rutas (relativas a la raiz de desarrollo/) ───────────────────────────────
 RUTA_CORPUS_PKL = "datos/corpus"        # entrada: df_corpus_*.pkl

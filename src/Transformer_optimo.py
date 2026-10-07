@@ -176,7 +176,8 @@ class PipelineTransformers:
             "reasentamiento": "Se realizó un reasentamiento o reubicación de población.",
             "protesta_social": "Hubo una protesta, manifestación, bloqueo o paro.",
             "amenaza_intimidacion": "Hubo amenazas, intimidación u hostigamiento contra personas.",
-            "conflicto_territorial": "Dos o más actores disputan el control, uso o propiedad de un territorio.",
+            # 2026-10-07 (relevo 12, aprobado por el usuario): la frase del jefe saturaba el control absurdo.
+            "conflicto_territorial": "Hay una invasión de predios.",
         }
 
         # Retirados el 2026-10-03 (reunión con el jefe, contexto/08_log_decisiones.md):
@@ -184,7 +185,8 @@ class PipelineTransformers:
         # incentivos_economicos_inequitativos, exclusion_beneficios_economicos.
         # Retirados el 2026-10-06 (versión de 18): movimientos_sociales y exclusion_servicios_derechos.
         self.posturas = {
-            "resistencia_territorial": "Una comunidad realiza acciones para defender su territorio frente a proyectos, intervenciones o decisiones externas.",
+            # 2026-10-07 (relevo 12, aprobado por el usuario): la frase del jefe saturaba el control absurdo.
+            "resistencia_territorial": "Los habitantes rechazan una hidroeléctrica o un megaproyecto.",
         }
 
         self.indicadores = {

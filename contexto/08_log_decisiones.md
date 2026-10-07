@@ -2054,3 +2054,17 @@ referencias P2/P3 de V2 usan `NULA_TEST`. (3) C21 lee «invasión» como llegada
 satura en el nacional). Todas las candidatas que fallaron P1 en el cribado (listado en `cribado_conflicto_resistencia_submuestra.csv`).
 **Abre:** el usuario decide entre mantener las frases del jefe, C21/R30 (mejor control que el jefe; precisión igual o mayor que el
 jefe, menor que V2) o volver a V2. `src/` sin tocar. Sin push.
+
+## [2026-10-07] C21 y R30 a `src/` (decisión del usuario) — PROMOVIDO en la rama `radar-18ind-c21-r30`
+
+**Decisión del usuario** tras la entrada anterior: adoptar C21 (`conflicto_territorial`: «Hay una invasión de predios.») y R30
+(`resistencia_territorial`: «Los habitantes rechazan una hidroeléctrica o un megaproyecto.»), con la salvedad explícita de que no
+cumplen el criterio pre-registrado «precisión ≥ V2» (diferencia no significativa con n = 32). Solo cambia la frase
+(`src/Transformer_optimo.py`); zonas y los otros 16 sin cambio. Rama nueva `radar-18ind-c21-r30` desde `radar-18ind`.
+**Cortes (regla 2):** `experimentos/exp_c21_r30_cortes.py` -> `experimentos/resultados/exp_c21_r30_cortes.csv`; sanidad con las
+frases del jefe reproduce 0.6885/0.8916; nuevos **0.6559/0.8839**, anclas intactas. Clases 6/19/7 iguales, 0 departamentos cambian,
+accuracy 0.344 igual; Spearman DANE -0.0975 -> -0.1162; tamaño +0.879 -> +0.869. `src/config_pipeline.py`, test 16 actualizado
+(valores sintéticos 0.65/0.67/0.89). `test_integracion` 16/16.
+**Tabla del jefe:** `experimentos/resultados/tabla_antioquia_lugares_c21_r30.{md,xlsx}` (reproduce los valores de hoy del informe 15):
+Antioquia 0.9084 -> 0.8974 Alto; Paraguachón 0.6053 -> 0.5465 Bajo; Maicao 0.9544 -> 0.9406 Alto; Oicatá 0.4891 -> 0.4181 Bajo;
+Güintiva 0 artículos. Ningún lugar cambia de clase. Informe 16. Sin push ni merge.

@@ -20,7 +20,7 @@ Checklist de aceptación:
   [13] la compuerta solo mira la premisa que ve el NLI con la hipótesis de ese indicador
   [14] procesar() multiplica solo desplazamiento y grupos armados por su compuerta (NLI simulado)
   [15] procesar() no agrega columnas de compuerta y el radar sigue con 18 indicadores
-  [16] cortes del radar recalibrados: 0.6885/0.8916
+  [16] cortes del radar recalibrados: 0.6559/0.8839
 
 Restricciones de versión respetadas:
   pandas==2.3.3, numpy==2.3.4, openpyxl==3.1.5, matplotlib==3.10.7,
@@ -573,15 +573,15 @@ class TestPrefiltroPorIndicador(unittest.TestCase):
         self.assertEqual([len(v) for v in tf.CalculadorRadar.BLOQUES.values()], [5, 5, 4, 4])
 
     def test_16_cortes_del_radar_recalibrados(self) -> None:
-        self.assertEqual(tf.cfg.CORTE_BAJO_MEDIO_RADAR, 0.6885)
-        self.assertEqual(tf.cfg.CORTE_MEDIO_ALTO_RADAR, 0.8916)
+        self.assertEqual(tf.cfg.CORTE_BAJO_MEDIO_RADAR, 0.6559)
+        self.assertEqual(tf.cfg.CORTE_MEDIO_ALTO_RADAR, 0.8839)
         df = _corpus_sintetico()
-        valor = {"Antioquia": 0.91, "Caldas": 0.68, "Chocó": 0.70}
+        valor = {"Antioquia": 0.89, "Caldas": 0.65, "Chocó": 0.67}
         for col in tf.CalculadorRadar.COLUMNAS_BINARIAS:
             df[col] = df["departamento"].map(valor).astype(float)
         r = tf.CalculadorRadar().calcular(df).set_index("departamento")
         self.assertEqual(r.loc["Antioquia", "categoria_riesgo"], "Alto")
-        self.assertEqual(r.loc["Chocó", "categoria_riesgo"], "Medio")   # con el corte anterior (0.7138) sería Bajo
+        self.assertEqual(r.loc["Chocó", "categoria_riesgo"], "Medio")   # con el corte anterior (0.6885) sería Bajo
         self.assertEqual(r.loc["Caldas", "categoria_riesgo"], "Bajo")
 
 
@@ -605,7 +605,7 @@ _CHECKLIST = [
     ("Pre-filtro: solo mira la premisa visible del indicador",  "test_13"),
     ("procesar() multiplica solo los dos indicadores",          "test_14"),
     ("procesar() no agrega columnas de compuerta",              "test_15"),
-    ("Cortes del radar 0.6885/0.8916",                           "test_16"),
+    ("Cortes del radar 0.6559/0.8839",                           "test_16"),
 ]
 
 

@@ -121,6 +121,11 @@ hipótesis nuevas del jefe (`conflicto_territorial`, `zonas_proteccion_alimentar
 blanqueo del Excel (valor y título del artículo MAX se muestran aunque el lugar sea Bajo). `test_integracion` 16/16. Donde este archivo dice 26
 o 20, léase 18. Informe 15; `08_log_decisiones.md` [2026-10-06]. Sin push ni merge.
 
+**2026-10-07 (rama `radar-18ind-c21-r30`, desde `radar-18ind`):** aprobado por el usuario, cambian solo dos frases:
+`conflicto_territorial` «Hay una invasión de predios.» y `resistencia_territorial` «Los habitantes rechazan una hidroeléctrica o un
+megaproyecto.» (pasan el control absurdo; precisión de jueces menor que V2, no significativa). Cortes **0.6559/0.8839**, clases 6/19/7 iguales.
+`test_integracion` 16/16. Informe 16; `08_log_decisiones.md` [2026-10-07]. Sin push ni merge.
+
 **Abierto:** ampliar el estándar de plata (cubre 2 de 26 — es la mayor debilidad, todas las
 conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos_ambientales`
 queda en cero en P75 a escala nacional — la etiqueta "tres muertos" es del corpus de 5
