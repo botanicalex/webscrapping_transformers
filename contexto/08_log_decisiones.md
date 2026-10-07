@@ -2019,3 +2019,11 @@ modelo afirma la estructura de la frase sea cual sea el contenido; suman casi un
 choque de camión de gas; `zonas_proteccion_alimentaria` 0.449 por una encuesta de voto; Paraguachón `resistencia_territorial` 0.000 -> 0.995 por una
 expulsión de migrante. **Abre:** el jefe decide mantener las frases o pedir otra redacción, que tendría que pasar el mismo control (informe 15,
 `informes/15_informe_radar_18ind_hipotesis_jefe.md`). Sin push ni merge.
+
+## [2026-10-07] Decisión del usuario tras el informe 15: zonas se queda; conflicto y resistencia a optimizar
+
+**Decisión:** `zonas_proteccion_alimentaria` conserva la frase nueva del jefe (control limpio: nula >0.9 2.5 %, falla solo
+en brecha). `conflicto_territorial` y `resistencia_territorial` (frases del jefe saturadas: brecha 0.005 y 0.041) pasan a
+una ronda de optimización de la frase, en conversación nueva con orquestador y subagentes. Ancla:
+`contexto/12_relevo_hipotesis_conflicto_resistencia.md`. `src/` no cambia hasta que haya ganadora aprobada.
+Evidencia: `experimentos/resultados/exp_hipotesis_jefe_18ind.csv`, informe 15.

@@ -145,6 +145,8 @@ Los scripts de `src/` se corren **desde la raíz** (`python src/x.py`).
 
 ## Contexto bajo demanda — leer solo el que haga falta
 
+- **`contexto/12_relevo_hipotesis_conflicto_resistencia.md` — leer primero al optimizar las frases de
+  `conflicto_territorial` y `resistencia_territorial`** (rama `radar-18ind`, orquestador científico con subagentes).
 - **`contexto/11_relevo_5ind_MAX.md` — leer primero al retomar el plan de 5 indicadores bajo
   MAX** (rama `hipotesis-5ind-max`): estado, decisiones cerradas y pendientes, segunda ronda,
   detalles operativos y siguiente paso exacto.
