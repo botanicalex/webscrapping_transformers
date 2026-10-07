@@ -19,8 +19,8 @@ Checklist de aceptación:
   [12] cada compuerta abre con su objeto y no sin él
   [13] la compuerta solo mira la premisa que ve el NLI con la hipótesis de ese indicador
   [14] procesar() multiplica solo desplazamiento y grupos armados por su compuerta (NLI simulado)
-  [15] procesar() no agrega columnas de compuerta y el radar sigue con 20 indicadores
-  [16] cortes del radar recalibrados: 0.7138/0.905
+  [15] procesar() no agrega columnas de compuerta y el radar sigue con 18 indicadores
+  [16] cortes del radar recalibrados: 0.6885/0.8916
 
 Restricciones de versión respetadas:
   pandas==2.3.3, numpy==2.3.4, openpyxl==3.1.5, matplotlib==3.10.7,
@@ -566,22 +566,22 @@ class TestPrefiltroPorIndicador(unittest.TestCase):
         permitidas = set(tf.CalculadorRadar.COLUMNAS_BINARIAS) | {"sesgo"} | set(_COLUMNAS_DIMENSION)
         self.assertLessEqual(nuevas, permitidas)
         self.assertFalse([c for c in out.columns if "compuerta" in c.lower() or "prefiltro" in c.lower()])
-        self.assertEqual(len(tf.CalculadorRadar.COLUMNAS_BINARIAS), 20)
-        # Cada uno de los 20 está en exactamente un bloque de 5.
+        self.assertEqual(len(tf.CalculadorRadar.COLUMNAS_BINARIAS), 18)
+        # Cada uno de los 18 está en exactamente un bloque (reparto 5/5/4/4).
         en_bloques = [c for v in tf.CalculadorRadar.BLOQUES.values() for c in v]
         self.assertEqual(sorted(en_bloques), sorted(tf.CalculadorRadar.COLUMNAS_BINARIAS))
-        self.assertTrue(all(len(v) == 5 for v in tf.CalculadorRadar.BLOQUES.values()))
+        self.assertEqual([len(v) for v in tf.CalculadorRadar.BLOQUES.values()], [5, 5, 4, 4])
 
     def test_16_cortes_del_radar_recalibrados(self) -> None:
-        self.assertEqual(tf.cfg.CORTE_BAJO_MEDIO_RADAR, 0.7138)
-        self.assertEqual(tf.cfg.CORTE_MEDIO_ALTO_RADAR, 0.905)
+        self.assertEqual(tf.cfg.CORTE_BAJO_MEDIO_RADAR, 0.6885)
+        self.assertEqual(tf.cfg.CORTE_MEDIO_ALTO_RADAR, 0.8916)
         df = _corpus_sintetico()
-        valor = {"Antioquia": 0.91, "Caldas": 0.71, "Chocó": 0.72}
+        valor = {"Antioquia": 0.91, "Caldas": 0.68, "Chocó": 0.70}
         for col in tf.CalculadorRadar.COLUMNAS_BINARIAS:
             df[col] = df["departamento"].map(valor).astype(float)
         r = tf.CalculadorRadar().calcular(df).set_index("departamento")
         self.assertEqual(r.loc["Antioquia", "categoria_riesgo"], "Alto")
-        self.assertEqual(r.loc["Chocó", "categoria_riesgo"], "Medio")   # con el corte anterior (0.7572) sería Bajo
+        self.assertEqual(r.loc["Chocó", "categoria_riesgo"], "Medio")   # con el corte anterior (0.7138) sería Bajo
         self.assertEqual(r.loc["Caldas", "categoria_riesgo"], "Bajo")
 
 
@@ -605,7 +605,7 @@ _CHECKLIST = [
     ("Pre-filtro: solo mira la premisa visible del indicador",  "test_13"),
     ("procesar() multiplica solo los dos indicadores",          "test_14"),
     ("procesar() no agrega columnas de compuerta",              "test_15"),
-    ("Cortes del radar 0.7138/0.905",                           "test_16"),
+    ("Cortes del radar 0.6885/0.8916",                           "test_16"),
 ]
 
 

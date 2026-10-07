@@ -176,14 +176,15 @@ class PipelineTransformers:
             "reasentamiento": "Se realizó un reasentamiento o reubicación de población.",
             "protesta_social": "Hubo una protesta, manifestación, bloqueo o paro.",
             "amenaza_intimidacion": "Hubo amenazas, intimidación u hostigamiento contra personas.",
-            "conflicto_territorial": "Hay una disputa por el control, el uso o la propiedad de un territorio.",
+            "conflicto_territorial": "Dos o más actores disputan el control, uso o propiedad de un territorio.",
         }
 
         # Retirados el 2026-10-03 (reunión con el jefe, contexto/08_log_decisiones.md):
         # rechazo_proyecto, derechos_vulnerados, conflicto_activo, exclusion_comunidades,
         # incentivos_economicos_inequitativos, exclusion_beneficios_economicos.
+        # Retirados el 2026-10-06 (versión de 18): movimientos_sociales y exclusion_servicios_derechos.
         self.posturas = {
-            "resistencia_territorial": "Hay resistencia comunitaria en defensa del territorio o el medio ambiente.",
+            "resistencia_territorial": "Una comunidad realiza acciones para defender su territorio frente a proyectos, intervenciones o decisiones externas.",
         }
 
         self.indicadores = {
@@ -193,12 +194,10 @@ class PipelineTransformers:
             "danos_ambientales": "Hubo daños ambientales, contaminación o pérdida de biodiversidad.",
             "conflictos_socioambientales": "Hay un conflicto por el uso del territorio, el agua o los recursos naturales.",
             "violacion_derechos_humanos": "Se denunciaron violaciones de derechos humanos.",
-            "exclusion_servicios_derechos": "Hay población sin acceso a servicios básicos o a sus derechos.",
             "grupos_etnicos_existentes": "En este territorio hay comunidades étnicas o pueblos indígenas.",
-            "movimientos_sociales": "Hay movilizaciones u organizaciones sociales activas.",
             "poblacion_afectada": "Hay comunidades o familias afectadas.",
             "irregularidad_contractual": "Hubo irregularidades o corrupción en contratos públicos.",
-            "zonas_proteccion_alimentaria": "Hay cultivos, tierras de siembra o producción de alimentos.",
+            "zonas_proteccion_alimentaria": "El territorio tiene una figura de protección especial para la producción de alimentos.",
             "dano_territorios": "Hubo destrucción, ocupación ilegal o despojo de territorios.",
             # Score multiplicado por su compuerta de objeto (PREFILTRO_OBJETO) en procesar().
             "presencia_grupos_armados": "En este territorio hay presencia de grupos armados ilegales.",
@@ -210,7 +209,7 @@ class PipelineTransformers:
         # que puntúan alto contra CUALQUIER hipótesis, incluidas las
         # imposibles (contexto/04_hallazgos_revision_nli.md). Se estima ese
         # sesgo con 4 hipótesis nulas de dominios variados y se descuenta de
-        # los 20 indicadores reales (ver procesar()). Una 5ª nula
+        # los 18 indicadores reales (ver procesar()). Una 5ª nula
         # ("hay colonias de osos polares") queda reservada para evaluar el
         # control absurdo honestamente y NUNCA entra aquí (regla del proyecto).
         # ------------------------------------------------------------------
@@ -227,12 +226,12 @@ class PipelineTransformers:
         # 2 indicadores con estándar de plata (-0.053 y -0.027, IC95% excluye
         # cero) sin que el control absurdo lo explicara — ver
         # contexto/08_log_decisiones.md [2026-08-31]. Reevaluado bajo MAX el
-        # 2026-09-28 y sigue rechazado ([2026-09-28]). Los 20 indicadores se
+        # 2026-09-28 y sigue rechazado ([2026-09-28]). Los 18 indicadores se
         # puntúan sobre TODOS los artículos.
         # Lo que sí existe es un pre-filtro POR INDICADOR (PREFILTRO_OBJETO,
         # al inicio del módulo): solo presencia_grupos_armados y
         # desplazamiento_forzado exigen su objeto en la premisa visible, y se
-        # aplica en procesar() ([2026-09-29]). Los otros 18 no se filtran.
+        # aplica en procesar() ([2026-09-29]). Los otros 16 no se filtran.
         # ------------------------------------------------------------------
 
         # --- NER/entidades desactivado (2026-06-24) ---
@@ -409,7 +408,7 @@ class PipelineTransformers:
                 df[col] = 0.0
 
         # 1. Sesgo "si-decidor" por articulo: media de las 4 nulas de
-        #    calibracion (V2, ver __init__). Se descuenta de los 20
+        #    calibracion (V2, ver __init__). Se descuenta de los 18
         #    indicadores reales mas abajo -- nunca se usa la nula reservada.
         print(f"[batch] Calibrando sesgo por articulo (4 nulas)...")
         sesgo_nulas = [self._nli_batch(textos, h, batch_size) for h in self.nulas_calibracion]
@@ -451,7 +450,7 @@ class PipelineTransformers:
     def _crear_scores_dimension(self, df: pd.DataFrame) -> None:
         dim1 = ["irregularidad_contractual","deficit_participacion_comunitaria"]
         dim2 = ["debilidad_institucional"]
-        dim3 = ["protesta_social","exclusion_servicios_derechos","movimientos_sociales","poblacion_afectada"]
+        dim3 = ["protesta_social","poblacion_afectada"]
         dim4 = ["danos_ambientales","conflictos_socioambientales","reasentamiento","conflicto_territorial","resistencia_territorial","dano_territorios"]
         dim5 = ["desplazamiento_forzado","amenaza_intimidacion","violacion_derechos_humanos","presencia_grupos_armados","amenaza_lideres"]
         for c in dim1 + dim2 + dim3 + dim4 + dim5:

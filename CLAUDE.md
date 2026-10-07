@@ -114,6 +114,13 @@ terminó el 2026-09-23 con el modelo **rechazado** (informe 07; etiqueta `prueba
 para producción). Salida del radar con 4 bloques de 5 (`CalculadorRadar.BLOQUES`, solo descriptivos) y cortes
 recalibrados **0.7138/0.905** (clases 6/19/7 iguales; `08_log_decisiones.md` [2026-10-03]).
 
+**2026-10-06 (rama `radar-18ind`):** por orden del jefe quedan **18 indicadores** (se retiran `movimientos_sociales` y
+`exclusion_servicios_derechos`), bloques 5/5/4/4, cortes **0.6885/0.8916** (clases 6/19/7 iguales, ningún departamento cambia). Tres
+hipótesis nuevas del jefe (`conflicto_territorial`, `zonas_proteccion_alimentaria`, `resistencia_territorial`; solo la frase) con el
+**control absurdo fallido en 2** (conflicto y resistencia saturan; zonas falla en brecha): se reporta, no decide, el jefe elige. Quitado el
+blanqueo del Excel (valor y título del artículo MAX se muestran aunque el lugar sea Bajo). `test_integracion` 16/16. Donde este archivo dice 26
+o 20, léase 18. Informe 15; `08_log_decisiones.md` [2026-10-06]. Sin push ni merge.
+
 **Abierto:** ampliar el estándar de plata (cubre 2 de 26 — es la mayor debilidad, todas las
 conclusiones de calidad descansan en dos); los indicadores débiles (solo `danos_ambientales`
 queda en cero en P75 a escala nacional — la etiqueta "tres muertos" es del corpus de 5

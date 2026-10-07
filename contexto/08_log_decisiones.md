@@ -1992,3 +1992,30 @@ Se eligió 4x5 sobre la propuesta A–E porque A–E dejaba un bloque de 1 indic
 deja de puntuarlas; `score_dim*` sin los retirados; base del radar con las columnas nuevas), `src/config_pipeline.py` (cortes),
 `src/test_integracion.py` (16/16). Los `experimentos/` antiguos que leen `BLOQUES_PCA` o `bloque_A..E` no se tocan (históricos).
 **Abre:** avisar al front del cambio de columnas; cualquier `df_procesado` anterior trae las 6 columnas retiradas (se ignoran, no rompen).
+
+## [2026-10-06] Radar de 18 indicadores e hipótesis pedidas por el jefe — IMPLEMENTADO en `src/` (rama `radar-18ind`); control absurdo FALLA en 2 de 3
+
+**Decisión (orden del jefe, 2026-10-06/07):** se retiran `movimientos_sociales` y `exclusion_servicios_derechos` (20 -> 18; bloques 5/5/4/4 sin mover
+indicadores, `src/radar.py`). Se reescribe solo la frase (regla 15) de `conflicto_territorial` ("Dos o más actores disputan el control, uso o
+propiedad de un territorio."), `zonas_proteccion_alimentaria` ("El territorio tiene una figura de protección especial para la producción de
+alimentos.") y `resistencia_territorial` ("Una comunidad realiza acciones para defender su territorio frente a proyectos, intervenciones o
+decisiones externas."), en `src/Transformer_optimo.py`. Se quita el blanqueo del Excel (antes un lugar Bajo dejaba en blanco el valor y el título
+del artículo MAX; ahora se muestran siempre): `src/generar_max_articulos_por_departamento.py`, `src/pipeline_lugares.py`.
+**Cortes (regla 2):** 0.7138/0.905 -> **0.6885/0.8916** (`experimentos/exp_retiro_2ind_cortes.py` -> `experimentos/resultados/exp_retiro_2ind_cortes.csv`;
+sanidad con 20 reproduce 0.7138/0.905, 12 anclas intactas). Clases 6/19/7 iguales, 0 departamentos cambian, accuracy 0.344 igual; Spearman DANE
+-0.0861 -> -0.0975; tamaño +0.875 -> +0.879. Zona alta densa: 9 deptos entre 0.8856 y 0.9521, el corte cae ahí; Antioquia a 0.017. Tests 16/16
+(`src/test_integracion.py`, test 16 con valores sintéticos 0.68/0.70 alrededor de 0.6885).
+**Control absurdo (regla 1; osos polares, mismo formato; AUC no medible, sin estándar de plata):** `experimentos/exp_hipotesis_jefe_18ind.py` ->
+`experimentos/resultados/exp_hipotesis_jefe_18ind.csv`, `datos/scores/scores_hipotesis_jefe_18ind.pkl`. Corpus nacional.
+`conflicto_territorial`: nula cruda >0.9 en 78.7 % (antes 5.7 %), nula corregida media 0.517 (0.020), brecha real-nula por depto 0.005 (0.520), MAX por
+depto 0.909/0.996/0.998 (mín/mediana/máx): FALLA P1, P2, P3. `resistencia_territorial`: 44.8 %, 0.313, brecha 0.041 (0.347), MAX 0.948/0.996/0.999
+(antes 0.000/0.822/0.992): FALLA P1, P2, P3. `zonas_proteccion_alimentaria`: 2.5 %, 0.006 (pasa P1 y P2), brecha 0.225 (0.459): FALLA P3; MAX
+0.002/0.622/0.995; la frase real casi no se activa (ent media 0.12 vs 0.62).
+**Tabla del jefe:** `experimentos/resultados/tabla_antioquia_lugares_18ind.md` y `.xlsx` (`experimentos/exp_tabla_antioquia_lugares_18ind.py`):
+Antioquia 0.9192 -> 0.9084 Alto; Paraguachón 0.5809 -> 0.6053 Bajo; Maicao 0.9547 -> 0.9544 Alto; Oicatá 0.5215 -> 0.4891 Bajo; Güintiva 0 artículos.
+Ningún lugar cambia de clase.
+**Advertencia (no es rechazo):** se implementó por orden del jefe; el control absurdo se reporta y NO decide. Conflicto y resistencia saturan (el
+modelo afirma la estructura de la frase sea cual sea el contenido; suman casi una constante). Ejemplos: Oicatá `conflicto_territorial` 0.975 por un
+choque de camión de gas; `zonas_proteccion_alimentaria` 0.449 por una encuesta de voto; Paraguachón `resistencia_territorial` 0.000 -> 0.995 por una
+expulsión de migrante. **Abre:** el jefe decide mantener las frases o pedir otra redacción, que tendría que pasar el mismo control (informe 15,
+`informes/15_informe_radar_18ind_hipotesis_jefe.md`). Sin push ni merge.

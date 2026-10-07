@@ -1,0 +1,68 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1791345543.177629   33816 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1791345549.858244   33816 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+NLI cargado | device=cuda
+  id2label   : {0: 'entailment', 1: 'neutral', 2: 'contradiction'}
+  entailment=0  neutral=1  contradiction=2
+Verificacion V2 'presencia_grupos_armados': max|dif| = 9.77e-07 -> OK
+[nacional] conflicto_territorial listo
+[nacional] zonas_proteccion_alimentaria listo
+[nacional] resistencia_territorial listo
+[lugares] conflicto_territorial listo
+[lugares] zonas_proteccion_alimentaria listo
+[lugares] resistencia_territorial listo
+-> datos/scores/scores_hipotesis_jefe_18ind.pkl
+
+=== nacional ===
+indicador                     conflicto_territorial  zonas_proteccion_alimentaria  resistencia_territorial
+actual_real_ent_media                        0.5853                        0.6186                   0.2495
+actual_real_corr_media                       0.3030                        0.2646                   0.0684
+actual_real_corr_p_gt_05                     0.3187                        0.2048                   0.0463
+actual_nula_cruda_media                      0.2142                        0.2142                   0.2142
+actual_nula_cruda_prop_gt_09                 0.0567                        0.0567                   0.0567
+actual_nula_corr_media                       0.0203                        0.0203                   0.0203
+actual_radar_real_media                      0.9621                        0.9005                   0.7887
+actual_radar_nula_media                      0.4418                        0.4418                   0.4418
+actual_brecha_media                          0.5203                        0.4587                   0.3469
+actual_brecha_min                            0.1572                        0.1299                  -0.1908
+nueva_real_ent_media                         0.8894                        0.1197                   0.9793
+nueva_real_corr_media                        0.5402                        0.0167                   0.6277
+nueva_real_corr_p_gt_05                      0.6215                        0.0074                   0.7457
+nueva_nula_cruda_media                       0.8795                        0.0969                   0.6504
+nueva_nula_cruda_prop_gt_09                  0.7865                        0.0253                   0.4477
+nueva_nula_corr_media                        0.5174                        0.0057                   0.3133
+nueva_radar_real_media                       0.9903                        0.6033                   0.9935
+nueva_radar_nula_media                       0.9850                        0.3787                   0.9528
+nueva_brecha_media                           0.0053                        0.2246                   0.0407
+nueva_brecha_min                            -0.0022                       -0.2850                   0.0005
+
+=== lugares ===
+indicador                     conflicto_territorial  zonas_proteccion_alimentaria  resistencia_territorial
+actual_real_ent_media                        0.5240                        0.6269                   0.2262
+actual_real_corr_media                       0.2483                        0.2480                   0.0442
+actual_real_corr_p_gt_05                     0.2550                        0.1894                   0.0267
+actual_nula_cruda_media                      0.2336                        0.2336                   0.2336
+actual_nula_cruda_prop_gt_09                 0.0856                        0.0856                   0.0856
+actual_nula_corr_media                       0.0190                        0.0190                   0.0190
+actual_radar_real_media                      0.9709                        0.8734                   0.5942
+actual_radar_nula_media                      0.3469                        0.3469                   0.3469
+actual_brecha_media                          0.6240                        0.5265                   0.2473
+actual_brecha_min                            0.4239                        0.3485                  -0.0105
+nueva_real_ent_media                         0.8783                        0.1005                   0.9845
+nueva_real_corr_media                        0.5108                        0.0104                   0.6171
+nueva_real_corr_p_gt_05                      0.5811                        0.0043                   0.7158
+nueva_nula_cruda_media                       0.8612                        0.1261                   0.6718
+nueva_nula_cruda_prop_gt_09                  0.7577                        0.0474                   0.4772
+nueva_nula_corr_media                        0.4803                        0.0066                   0.3156
+nueva_radar_real_media                       0.9907                        0.7192                   0.9942
+nueva_radar_nula_media                       0.9919                        0.3271                   0.8909
+nueva_brecha_media                          -0.0012                        0.3921                   0.1033
+nueva_brecha_min                            -0.0127                       -0.0083                   0.0027
+
+=== PUERTAS (nacional; AUC: no medible, sin estándar de plata) ===
+                   indicador    P1    P2    P3
+       conflicto_territorial False False False
+zonas_proteccion_alimentaria  True  True False
+     resistencia_territorial False False False
+-> experimentos/resultados/exp_hipotesis_jefe_18ind.csv

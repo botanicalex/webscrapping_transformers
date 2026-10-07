@@ -1,5 +1,5 @@
 """
-Corre el pipeline NLI (20 hipótesis V2, sin pre-filtro social, sesgo
+Corre el pipeline NLI (18 hipótesis V2, sin pre-filtro social, sesgo
 descontado, score corregido) sobre el corpus combinado de 32 departamentos y
 genera UNA tabla de indicadores por articulo por cada departamento (mismo
 formato que el Excel de Antioquia).
