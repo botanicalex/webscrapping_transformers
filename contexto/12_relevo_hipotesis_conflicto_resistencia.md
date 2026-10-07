@@ -3,6 +3,13 @@
 Fecha: 2026-10-07. Worktree `pruebas`, rama local **`radar-18ind`** (commit `f4b2719`, sin push). Leer entero
 antes de actuar. Este archivo es el ancla de una conversación nueva cuyo papel es **orquestador científico**.
 
+## 0. REGLA DE MODELO (obligatoria, del usuario)
+
+**Todo subagente se lanza con Sonnet 5.5** (`model: "sonnet"` en la herramienta Agent; en un workflow, la opción de
+modelo de cada `agent()` en `sonnet`). **PROHIBIDO lanzar subagentes con Opus 5.5** (ni `opus`, ni omitir el modelo
+si eso hereda Opus del orquestador). Antes de cada lanzamiento, comprobar que el modelo está puesto explícitamente.
+Si una tarea parece exigir Opus, parar y preguntar al usuario.
+
 ## 1. Misión
 
 Encontrar, para cada uno de los dos indicadores, **una frase (hipótesis NLI) que muestre avance** sobre la
@@ -128,5 +135,5 @@ Iterar fases 1–3 si ninguna candidata pasa P1: la segunda ronda se diseña a p
 > §3–§6. TAREA ÚNICA: <…>. Archivos que puedes crear/editar: <lista>. PROHIBIDO: git add/commit/push/stash, tocar
 > `src/`, otros archivos, la GPU (salvo si eres el dueño de la cola). Entrega breve: <qué números/archivos>.
 
-Modelo recomendado para subagentes: Sonnet. Máximo ~4 en paralelo. El orquestador verifica cada entrega
+Modelo de subagentes: **Sonnet 5.5 obligatorio, Opus prohibido** (§0). Máximo ~4 en paralelo. El orquestador verifica cada entrega
 (re-leer números en los archivos de salida) antes de pasar de fase.
