@@ -97,11 +97,26 @@ MIN_ARTICULOS_RESPALDO = 50
 # los 32 no cambia (6/19/7) y ninguna ancla se rompe -- ver
 # contexto/08_log_decisiones.md [2026-10-03].
 #
+# Recalibrado de nuevo el 2026-10-06 (regla 2) al pasar a 18 indicadores (se
+# retiran movimientos_sociales y exclusion_servicios_derechos y se reescriben las
+# hipotesis de conflicto_territorial, zonas_proteccion_alimentaria y
+# resistencia_territorial): mismo procedimiento (experimentos/exp_retiro_2ind_cortes.py,
+# sanidad con los 20 anteriores -> 0.7138/0.905); 0.7138 -> 0.6885, 0.905 -> 0.8916.
+# La clasificacion de los 32 no cambia (6/19/7) y ninguna ancla se rompe. Salvedad:
+# conflicto_territorial y resistencia_territorial saturan (MAX por departamento
+# ~0.99 en casi todos), lo que desplaza el nivel del promedio y los cortes.
+#
+# Recalibrado el 2026-10-07 (regla 2) al cambiar las frases de conflicto_territorial
+# («Hay una invasión de predios.») y resistencia_territorial («Los habitantes rechazan
+# una hidroeléctrica o un megaproyecto.»), relevo 12: experimentos/exp_c21_r30_cortes.py,
+# sanidad con las frases del jefe -> 0.6885/0.8916; 0.6885 -> 0.6559, 0.8916 -> 0.8839.
+# Clases 6/19/7 iguales, ningun departamento cambia, ninguna ancla se rompe.
+#
 # Vive aqui (no en radar.py) para que metricas_y_calculo_de_error.py pueda
 # usar el mismo corte sin crear un import circular con radar.py (que ya
 # importa metricas_y_calculo_de_error).
-CORTE_BAJO_MEDIO_RADAR = 0.7138
-CORTE_MEDIO_ALTO_RADAR = 0.905
+CORTE_BAJO_MEDIO_RADAR = 0.6559
+CORTE_MEDIO_ALTO_RADAR = 0.8839
 
 # ── Rutas (relativas a la raiz de desarrollo/) ───────────────────────────────
 RUTA_CORPUS_PKL = "datos/corpus"        # entrada: df_corpus_*.pkl

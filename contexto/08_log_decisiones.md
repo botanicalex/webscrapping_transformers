@@ -1083,3 +1083,68 @@ importación real de `api.py` y render del dashboard en navegador contra un payl
 forma exacta de `/analizar` (4 bloques × 5 indicadores).
 **Cierra:** la laguna de la nota de arriba — esta rama ya refleja el cambio del
 2026-10-03 en `src/` y en el log.
+
+## [2026-10-13] Integración de los 18 indicadores (C21/R30) a `integracion-front-back`
+
+**Qué se trajo:** de `radar-18ind-c21-r30`, los mismos 7 archivos de `src/` que la vez
+anterior (`radar.py`, `Transformer_optimo.py`, `config_pipeline.py`, `pipeline_lugares.py`,
+`test_integracion.py`, `generar_max_articulos_por_departamento.py`,
+`generar_tablas_por_departamento.py`), con `git checkout <rama> -- <archivos>` en vez de
+merge completo, por el mismo motivo de siempre (no arrastrar `experimentos/`, `informes/`
+ni los agentes `juez-*`). Verificado que ninguno de los 7 importa nada de esas carpetas.
+
+**Qué cambió respecto al estado anterior (20 indicadores, `decf893`):**
+- **20 → 18 indicadores.** Se retiran `movimientos_sociales` y `exclusion_servicios_derechos`
+  (2026-10-06). `bloque_gobernanza_participacion` y `bloque_poblacion_condiciones_vida` quedan
+  con 4 indicadores cada uno en vez de 5 — los bloques ya **no son todos del mismo tamaño**
+  (reparto 5/5/4/4).
+- **Cortes recalibrados dos veces:** `0.7138/0.905` → `0.6885/0.8916` (al retirar los 2,
+  2026-10-06) → **`0.6559/0.8839`** (al ajustar las frases de abajo, 2026-10-07). El valor
+  vigente es este último.
+- **Tres hipótesis reescritas, no solo dos:**
+  - `conflicto_territorial`: *"Hay una disputa por el control, el uso o la propiedad de un
+    territorio."* → **"Hay una invasión de predios."** (candidata C21)
+  - `resistencia_territorial`: *"Hay resistencia comunitaria en defensa del territorio o el
+    medio ambiente."* → **"Los habitantes rechazan una hidroeléctrica o un megaproyecto."**
+    (candidata R30)
+  - `zonas_proteccion_alimentaria`: *"Hay cultivos, tierras de siembra o producción de
+    alimentos."* → **"El territorio tiene una figura de protección especial para la
+    producción de alimentos."** Este no es un ajuste de redacción: es un **cambio de
+    concepto** — pasa de medir actividad agrícola observable a medir una figura legal de
+    protección, que es un hecho mucho más raro y específico. No tocada de nuevo el 10-07.
+
+**Salvedad explícita que hay que conservar si esto se vuelve a integrar más adelante —
+no alcanza con decir "promovido a `src/`":** las candidatas C21 y R30 **pasan el control
+absurdo** (saturación con la nula de osos polares 2.9% y 0.3% respectivamente, contra 78.7%
+y 44.8% del primer intento de frases del jefe) **pero NO cumplen el criterio pre-registrado
+"precisión ≥ V2"**, medido por jueces ciegos sobre el artículo top de cada departamento
+(`radar-18ind-c21-r30`, `contexto/08_log_decisiones.md` [2026-10-07], kappa 0.91/0.88):
+- `conflicto_territorial`: V2 0.406 → C21 **0.312**
+- `resistencia_territorial`: V2 0.250 → R30 **0.156**
+
+Con n = 32 la diferencia no se distingue del ruido, pero el número bajó, no subió. Fue
+**una decisión consciente del usuario de esa rama** ("con la salvedad explícita de que no
+cumplen el criterio pre-registrado"), eligiendo mejor control sobre mejor precisión frente
+a la alternativa (mantener las frases del jefe, que fallaban el control de forma extrema).
+No es un error de integración ni algo que haya que corregir acá — es parte del estado que
+se está promoviendo, y tiene que seguir siendo visible para quien lo use después.
+
+**"Fin del blanqueo" (2026-10-06):** cambio de presentación en los Excel generados por
+`generar_max_articulos_por_departamento.py` y `pipeline_lugares.py` — antes un lugar
+clasificado "Bajo" dejaba en blanco el valor y el título del artículo de cada indicador;
+ahora se muestran siempre. No es un cambio de scoring y no toca `api.py` ni el dashboard
+(esos dos scripts no están en el camino en vivo de la API).
+
+**Ajustes necesarios en `api.py` y en el front: ninguno.** `BLOQUES_INDICADORES`/
+`BLOQUES_META` ya están keyed por nombre de bloque (no por tamaño) desde la integración
+anterior, y `_meta_bloque_fallback` ya existe — los bloques de 4 en vez de 5 no rompen nada.
+El subtítulo del dashboard ya deriva de `DATOS.bloques.reduce(...)`. Único ajuste aplicado:
+se retiran del diccionario `NOMBRES` de `docs/visualizacion_riesgo.html` las entradas de
+`movimientos_sociales` y `exclusion_servicios_derechos` (mismo criterio que la vez pasada:
+si no llegan de la API, no quedan en el diccionario).
+
+**Validado:** `python src/test_integracion.py` (16/16, incluye el corte 0.6559/0.8839),
+importación real de `api.py` (`BLOQUES_INDICADORES`: 5/5/4/4 = 18) y render del dashboard
+en navegador contra un payload con la forma exacta de `/analizar` (confirmado: "5
+indicadores" / "5 indicadores" / "4 indicadores" / "4 indicadores", subtítulo "Los 18
+indicadores...").

@@ -6,10 +6,10 @@ produjo ese maximo. Sin GPU: lee un df_procesado ya calculado.
 Reglas:
   - Clasificacion del depto = categoria por los CORTES FIJOS de esta rama
     (CORTE_BAJO_MEDIO_RADAR/CORTE_MEDIO_ALTO_RADAR en config_pipeline.py,
-    calibrados sobre la escala MAX) sobre el radar MAX (promedio de los 20
+    calibrados sobre la escala MAX) sobre el radar MAX (promedio de los 18
     maximos del depto).
-  - Solo se muestran los valores/titulos si el depto es Alto o Medio.
-  - Si el depto es Bajo, sus 2 columnas quedan en blanco.
+  - Valor y titulo se muestran SIEMPRE, tambien en deptos Bajo (2026-10-06: se quito
+    el blanqueo de los Bajo).
   - Por indicador se elige UN solo articulo: el del maximo absoluto.
   - Si el maximo de un indicador es 0, el titulo queda en blanco.
 
@@ -67,12 +67,8 @@ def main():
         resumen_clasif.append((depto, round(radar_max, 4), clas, len(g)))
 
         encabezado = f"{depto} — {clas} ({radar_max:.4f})"
-        if clas == "Bajo":
-            cols_data[(encabezado, "valor")] = ["" for _ in indicadores]
-            cols_data[(encabezado, "titulo")] = ["" for _ in indicadores]
-        else:
-            cols_data[(encabezado, "valor")] = [max_vals[c] for c in indicadores]
-            cols_data[(encabezado, "titulo")] = [max_tit[c] for c in indicadores]
+        cols_data[(encabezado, "valor")] = [max_vals[c] for c in indicadores]
+        cols_data[(encabezado, "titulo")] = [max_tit[c] for c in indicadores]
 
     df_out = pd.DataFrame(cols_data, index=indicadores)
     df_out.index.name = "Indicador"

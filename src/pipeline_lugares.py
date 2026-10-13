@@ -5,12 +5,12 @@ municipios).
 Pasos:
   1. Combina los pkl de corpus_lugares/ + las filas de Antioquia (2023) que ya
      estan en Ultimos_pkl/df_corpus_combinado_32deptos.pkl
-  2. Corre PipelineTransformers: 20 hipotesis NLI V2, sesgo descontado con las
+  2. Corre PipelineTransformers: 18 hipotesis NLI V2, sesgo descontado con las
      4 NULAS_CALIBRACION, score corregido clip(clip(ent-sesgo,0)*(1-neu),0,1)
   3. Guarda df_procesado (respaldo del trabajo GPU)
   4. Escribe una tabla de indicadores por articulo por cada lugar
   5. Escribe el Excel resumen MAX + articulo de origen, por lugar. Un lugar se
-     puntua igual que un departamento: MAX por indicador, promedio de los 20,
+     puntua igual que un departamento: MAX por indicador, promedio de los 18,
      cortes fijos de esta rama (CORTE_BAJO_MEDIO_RADAR/CORTE_MEDIO_ALTO_RADAR
      en config_pipeline.py).
 
@@ -144,12 +144,8 @@ def paso5_resumen(df_proc: pd.DataFrame) -> None:
         clasif.append((lugar, round(radar_max, 4), clas, len(g)))
 
         enc = f"{lugar} — {clas} ({radar_max:.4f})"
-        if clas == "Bajo":
-            cols_data[(enc, "valor")] = ["" for _ in indicadores]
-            cols_data[(enc, "titulo")] = ["" for _ in indicadores]
-        else:
-            cols_data[(enc, "valor")] = [max_vals[c] for c in indicadores]
-            cols_data[(enc, "titulo")] = [max_tit[c] for c in indicadores]
+        cols_data[(enc, "valor")] = [max_vals[c] for c in indicadores]
+        cols_data[(enc, "titulo")] = [max_tit[c] for c in indicadores]
 
     df_out = pd.DataFrame(cols_data, index=indicadores)
     df_out.index.name = "Indicador"
@@ -169,7 +165,7 @@ def main():
     df_corpus = paso1_combinar()
     print(f"      Total: {len(df_corpus)} articulos | {df_corpus['departamento'].nunique()} lugares")
 
-    print("\n[2/5] Corriendo pipeline NLI (20 hipotesis V2, sesgo descontado)...")
+    print("\n[2/5] Corriendo pipeline NLI (18 hipotesis V2, sesgo descontado)...")
     df_proc = PipelineTransformers().procesar(df_corpus)
 
     print("\n[3/5] Guardando respaldo...")
