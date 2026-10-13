@@ -63,7 +63,10 @@ import validacion_territorial as vt     # noqa: E402
 # Un articulo "apoya" un indicador si su score por articulo supera esto. Sirve
 # solo para contar `arts` y para poblar la lista `articulos`; el `score` del
 # indicador siempre es el MAX (agregacion de esta rama), sin este umbral.
-UMBRAL_ARTICULO = 0.10
+# Vive en config_pipeline.py (UMBRAL_INDICADOR_ACTIVO) para que
+# generar_max_articulos_por_departamento.py y pipeline_lugares.py usen el
+# mismo umbral al marcar su columna "activo", en vez de duplicarlo.
+UMBRAL_ARTICULO = cfg.UMBRAL_INDICADOR_ACTIVO
 # Maximo de articulos por indicador que se devuelven al front.
 MAX_ARTICULOS_POR_INDICADOR = 20
 

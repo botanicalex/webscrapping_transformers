@@ -1,19 +1,27 @@
 """
 Genera UN solo Excel para los 32 departamentos con, por cada indicador (fila),
-el valor MAXIMO del indicador en el departamento y el titulo del articulo que
-produjo ese maximo. Sin GPU: lee un df_procesado ya calculado.
+el valor MAXIMO del indicador en el departamento y el articulo (titulo + url)
+que produjo ese maximo. Sin GPU: lee un df_procesado ya calculado.
 
 Reglas:
   - Clasificacion del depto = categoria por los CORTES FIJOS de esta rama
     (CORTE_BAJO_MEDIO_RADAR/CORTE_MEDIO_ALTO_RADAR en config_pipeline.py,
     calibrados sobre la escala MAX) sobre el radar MAX (promedio de los 18
     maximos del depto).
-  - Valor y titulo se muestran SIEMPRE, tambien en deptos Bajo (2026-10-06: se quito
-    el blanqueo de los Bajo).
+  - Valor, titulo y url se muestran SIEMPRE, tambien en deptos Bajo
+    (2026-10-06: se quito el blanqueo de los Bajo) y tambien cuando el
+    articulo no supera el umbral de activacion (ver "activo" abajo) -- el
+    dato existe y sirve para verificar de donde sale el numero.
   - Por indicador se elige UN solo articulo: el del maximo absoluto.
-  - Si el maximo de un indicador es 0, el titulo queda en blanco.
+  - Si el maximo de un indicador es 0, titulo y url quedan en blanco (no hay
+    ningun articulo que destacar: todos empatan en 0).
+  - Columna "activo": "Si" si ese maximo supera UMBRAL_INDICADOR_ACTIVO
+    (config_pipeline.py, el mismo que usa api.py para marcar "real"/"arts"),
+    "No" si no -- para distinguir un enlace con evidencia real de un enlace
+    que solo es el mayor de un conjunto sin señal (2026-10-13).
 
-Salida (2 columnas por depto: valor + titulo, encabezado con clasificacion):
+Salida (4 columnas por depto: valor + titulo + url + activo, encabezado con
+clasificacion):
   tablas_indicadores_departamentos/resumen_indicadores_MAX_y_articulos_por_departamento.xlsx
 """
 import os
@@ -54,13 +62,15 @@ def main():
 
     for depto in deptos:
         g = df[df["departamento"] == depto]
-        max_vals, max_tit = {}, {}
+        max_vals, max_tit, max_url, max_activo = {}, {}, {}, {}
         for c in indicadores:
             serie = g[c].astype(float)
             idx = serie.idxmax()
             v = float(serie.loc[idx])
             max_vals[c] = round(v, 4)
             max_tit[c] = g.loc[idx, "titulo"] if v > 0 else ""
+            max_url[c] = g.loc[idx, "url"] if v > 0 else ""
+            max_activo[c] = "Si" if v >= cfg.UMBRAL_INDICADOR_ACTIVO else "No"
 
         radar_max = sum(max_vals.values()) / len(indicadores)
         clas = categoria(radar_max)
@@ -69,6 +79,8 @@ def main():
         encabezado = f"{depto} — {clas} ({radar_max:.4f})"
         cols_data[(encabezado, "valor")] = [max_vals[c] for c in indicadores]
         cols_data[(encabezado, "titulo")] = [max_tit[c] for c in indicadores]
+        cols_data[(encabezado, "url")] = [max_url[c] for c in indicadores]
+        cols_data[(encabezado, "activo")] = [max_activo[c] for c in indicadores]
 
     df_out = pd.DataFrame(cols_data, index=indicadores)
     df_out.index.name = "Indicador"

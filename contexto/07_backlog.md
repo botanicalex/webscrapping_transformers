@@ -420,6 +420,39 @@ pendiente.
 
 ---
 
+## 11. Excel descargado del dashboard muestra puntaje sin artículo de origen — PENDIENTE
+
+`descargarResumen()` en `docs/visualizacion_riesgo.html` (botón "⬇ Descargar resumen Excel")
+tiene el mismo problema que se corrigió el 2026-10-13 en
+`generar_max_articulos_por_departamento.py` y `pipeline_lugares.py` (ver
+`contexto/08_log_decisiones.md` [2026-10-13]): la columna de URL queda vacía cuando ningún
+artículo supera `UMBRAL_INDICADOR_ACTIVO` (0.10), pero la columna de score sigue mostrando
+el MAX sin origen visible — con un MAX de 0.01 a 0.06 eso se ve como un "1" a un "6" sin
+ningún link al lado, igual de confuso que en los Excel viejos.
+
+```js
+"Score (0-100)": Math.round(ind.score * 100),
+"URL artículo top": arts.length ? arts[0].url : ""
+```
+
+**La causa no está en el HTML, está en `api.py`.** `/analizar` filtra
+`apoyan = df_proc[df_proc[c] >= UMBRAL_ARTICULO]` **antes** de elegir el artículo de mayor
+score, así que cuando nada supera el umbral, `articulos[c]` llega vacío al front — el
+backend nunca calcula ni envía cuál fue el artículo de mayor puntaje en ese caso. Arreglarlo
+de verdad requiere que `/analizar` devuelva siempre el artículo top (con un flag de si
+activó o no), no solo tocar el JS del botón de descarga.
+
+**El modal del dashboard ("Haz clic en un indicador...") no tiene este problema**: cuando
+no hay activación muestra explícitamente *"No hay un artículo que active este indicador."*
+— no hay dato oculto detrás de un blanco, es honesto. El problema es solo del Excel
+descargado.
+
+**Por qué no se corrigió ya:** tocar `/analizar` en el mismo ciclo en que se acaba de
+integrar la rama de 18 indicadores es mezclar dos cambios (regla 7). Queda para una sesión
+aparte.
+
+---
+
 ## Trabajo perdido que conviene rehacer
 
 Un workflow de 10 agentes quedó a medias al apagar el equipo. Cubría: propuestas de keywords

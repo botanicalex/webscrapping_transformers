@@ -9,10 +9,11 @@ Pasos:
      4 NULAS_CALIBRACION, score corregido clip(clip(ent-sesgo,0)*(1-neu),0,1)
   3. Guarda df_procesado (respaldo del trabajo GPU)
   4. Escribe una tabla de indicadores por articulo por cada lugar
-  5. Escribe el Excel resumen MAX + articulo de origen, por lugar. Un lugar se
-     puntua igual que un departamento: MAX por indicador, promedio de los 18,
-     cortes fijos de esta rama (CORTE_BAJO_MEDIO_RADAR/CORTE_MEDIO_ALTO_RADAR
-     en config_pipeline.py).
+  5. Escribe el Excel resumen MAX + articulo de origen (titulo, url y si
+     supera el umbral de activacion), por lugar. Un lugar se puntua igual que
+     un departamento: MAX por indicador, promedio de los 18, cortes fijos de
+     esta rama (CORTE_BAJO_MEDIO_RADAR/CORTE_MEDIO_ALTO_RADAR en
+     config_pipeline.py).
 
 Requiere haber corrido antes: python scrape_lugares.py
 """
@@ -131,13 +132,15 @@ def paso5_resumen(df_proc: pd.DataFrame) -> None:
     clasif = []
     for lugar in lugares:
         g = df_proc[df_proc["departamento"].astype(str) == lugar]
-        max_vals, max_tit = {}, {}
+        max_vals, max_tit, max_url, max_activo = {}, {}, {}, {}
         for c in indicadores:
             serie = g[c].astype(float)
             idx = serie.idxmax()
             v = float(serie.loc[idx])
             max_vals[c] = round(v, 4)
             max_tit[c] = g.loc[idx, "titulo"] if v > 0 else ""
+            max_url[c] = g.loc[idx, "url"] if v > 0 else ""
+            max_activo[c] = "Si" if v >= cfg.UMBRAL_INDICADOR_ACTIVO else "No"
 
         radar_max = sum(max_vals.values()) / len(indicadores)
         clas = categoria(radar_max)
@@ -146,6 +149,8 @@ def paso5_resumen(df_proc: pd.DataFrame) -> None:
         enc = f"{lugar} — {clas} ({radar_max:.4f})"
         cols_data[(enc, "valor")] = [max_vals[c] for c in indicadores]
         cols_data[(enc, "titulo")] = [max_tit[c] for c in indicadores]
+        cols_data[(enc, "url")] = [max_url[c] for c in indicadores]
+        cols_data[(enc, "activo")] = [max_activo[c] for c in indicadores]
 
     df_out = pd.DataFrame(cols_data, index=indicadores)
     df_out.index.name = "Indicador"
