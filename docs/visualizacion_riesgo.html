@@ -425,22 +425,27 @@ function abrirModal(ind) {
 }
 
 // Excel del resumen general: una fila por indicador, con el artículo de
-// mayor score (primero del array, que la API ya ordena descendente).
+// mayor score. titulo_top/url_top vienen siempre de la API (aunque el
+// indicador no se haya activado); "real" ya es el flag de activación, igual
+// criterio y mismos valores "Si"/"No" que generar_max_articulos_por_departamento.py
+// y pipeline_lugares.py (contexto/07_backlog.md punto 11). Distinto de
+// DATOS.articulos, que sigue siendo solo para el modal.
 function descargarResumen() {
   const rows = [];
   DATOS.bloques.forEach(b => {
     b.indicadores.forEach(ind => {
-      const arts = (DATOS.articulos && DATOS.articulos[ind.col]) || [];
       rows.push({
         "Dimensión": `${b.id} — ${nombreBonito(b.nombre)}`,
         "Indicador": nombreBonito(ind.col),
         "Score (0-100)": Math.round(ind.score * 100),
-        "URL artículo top": arts.length ? arts[0].url : ""
+        "Título": ind.titulo_top || "",
+        "URL": ind.url_top || "",
+        "Activo": ind.real ? "Si" : "No"
       });
     });
   });
   const ws = XLSX.utils.json_to_sheet(rows, {
-    header: ["Dimensión", "Indicador", "Score (0-100)", "URL artículo top"]
+    header: ["Dimensión", "Indicador", "Score (0-100)", "Título", "URL", "Activo"]
   });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Resumen");

@@ -516,8 +516,18 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame,
     radar_propio = float(sum(max_por_indicador.values()) / len(indicadores))
     categoria = _categoria(radar_propio)
 
-    # articulos que apoyan cada indicador (score >= UMBRAL_ARTICULO), ordenados
+    # articulos que apoyan cada indicador (score >= UMBRAL_ARTICULO), ordenados.
+    # Esta lista alimenta el modal ("Haz clic en un indicador..."); se deja
+    # vacia cuando nada activa, A PROPOSITO -- el modal ya se comporta bien
+    # con eso ("No hay un articulo que active este indicador"). NO tocar.
     articulos, arts_por_indicador = {}, {}
+    # Articulo de mayor score por indicador, SIEMPRE presente aunque no supere
+    # UMBRAL_ARTICULO -- distinto de `articulos` de arriba. Lo necesita el
+    # Excel descargado del dashboard para no mostrar un puntaje sin url
+    # (contexto/07_backlog.md punto 11); mismo criterio que
+    # generar_max_articulos_por_departamento.py y pipeline_lugares.py: blanco
+    # solo si el maximo es exactamente 0 (ningun articulo lo menciona).
+    top_articulo = {}
     for c in indicadores:
         apoyan = df_proc[df_proc[c].astype(float) >= UMBRAL_ARTICULO]
         arts_por_indicador[c] = int(len(apoyan))
@@ -532,6 +542,12 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame,
             }
             for _, r in top.iterrows()
         ]
+
+        if max_por_indicador[c] > 0:
+            r_top = df_proc.loc[df_proc[c].astype(float).idxmax()]
+            top_articulo[c] = {"titulo": str(r_top.get("titulo") or ""), "url": str(r_top.get("url") or "")}
+        else:
+            top_articulo[c] = {"titulo": "", "url": ""}
 
     bloques = []
     for clave in BLOQUES_INDICADORES:
@@ -550,6 +566,8 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame,
                     "score": float(round(max_por_indicador[c], 4)),
                     "arts": int(arts_por_indicador.get(c, 0)),
                     "real": bool(arts_por_indicador.get(c, 0) > 0),
+                    "titulo_top": top_articulo[c]["titulo"],
+                    "url_top": top_articulo[c]["url"],
                 }
                 for c in BLOQUES_INDICADORES[clave]
             ],
