@@ -19,6 +19,10 @@ Reglas:
     (config_pipeline.py, el mismo que usa api.py para marcar "real"/"arts"),
     "No" si no -- para distinguir un enlace con evidencia real de un enlace
     que solo es el mayor de un conjunto sin señal (2026-10-13).
+  - Las filas (indicadores) se ordenan por el PROMEDIO de su valor MAX entre
+    todos los departamentos, de mayor a menor -- no por el pico de uno solo
+    (2026-10-13). El orden es unico para toda la hoja: no se puede ordenar
+    distinto por departamento, son columnas del mismo eje de filas.
 
 Salida (4 columnas por depto: valor + titulo + url + activo, encabezado con
 clasificacion):
@@ -57,8 +61,8 @@ def main():
     deptos = sorted(df["departamento"].unique())
     print(f"Articulos: {len(df)} | Indicadores: {len(indicadores)} | Deptos: {len(deptos)}")
 
-    cols_data = {}
     resumen_clasif = []
+    datos_por_depto = {}
 
     for depto in deptos:
         g = df[df["departamento"] == depto]
@@ -75,14 +79,26 @@ def main():
         radar_max = sum(max_vals.values()) / len(indicadores)
         clas = categoria(radar_max)
         resumen_clasif.append((depto, round(radar_max, 4), clas, len(g)))
+        datos_por_depto[depto] = (max_vals, max_tit, max_url, max_activo, clas, radar_max)
 
+    # Orden de filas: por el PROMEDIO del valor MAX de cada indicador entre
+    # todos los departamentos, de mayor a menor -- "que tan fuerte es este
+    # indicador en general" (decision del usuario, 2026-10-13: el maximo
+    # haria subir un indicador que se dispara en un solo departamento y
+    # esta en cero en los otros 31).
+    promedio = {c: sum(datos_por_depto[d][0][c] for d in deptos) / len(deptos) for c in indicadores}
+    indicadores_ordenados = sorted(indicadores, key=lambda c: promedio[c], reverse=True)
+
+    cols_data = {}
+    for depto in deptos:
+        max_vals, max_tit, max_url, max_activo, clas, radar_max = datos_por_depto[depto]
         encabezado = f"{depto} — {clas} ({radar_max:.4f})"
-        cols_data[(encabezado, "valor")] = [max_vals[c] for c in indicadores]
-        cols_data[(encabezado, "titulo")] = [max_tit[c] for c in indicadores]
-        cols_data[(encabezado, "url")] = [max_url[c] for c in indicadores]
-        cols_data[(encabezado, "activo")] = [max_activo[c] for c in indicadores]
+        cols_data[(encabezado, "valor")] = [max_vals[c] for c in indicadores_ordenados]
+        cols_data[(encabezado, "titulo")] = [max_tit[c] for c in indicadores_ordenados]
+        cols_data[(encabezado, "url")] = [max_url[c] for c in indicadores_ordenados]
+        cols_data[(encabezado, "activo")] = [max_activo[c] for c in indicadores_ordenados]
 
-    df_out = pd.DataFrame(cols_data, index=indicadores)
+    df_out = pd.DataFrame(cols_data, index=indicadores_ordenados)
     df_out.index.name = "Indicador"
     df_out.columns = pd.MultiIndex.from_tuples(df_out.columns)
 

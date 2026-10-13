@@ -301,20 +301,24 @@ function renderDashboard() {
   // la lista de indicadores, este texto no se desactualiza como paso con "26".
   const totalIndicadores = DATOS.bloques.reduce((n, b) => n + b.indicadores.length, 0);
   document.getElementById("resumen-sub").textContent =
-    `Los ${totalIndicadores} indicadores agrupados por dimensión · score 0–100`;
+    `Los ${totalIndicadores} indicadores, ordenados por puntaje · score 0–100`;
   const tbody = document.getElementById("resumen-body");
-  DATOS.bloques.forEach(b => {
-    b.indicadores.slice().sort((x, y) => y.score - x.score).forEach(ind => {
-      const s100 = Math.round(ind.score * 100);
-      const c = colorRiesgo100(s100);
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><span class="rb-id" style="background:${b.color}">${esc(b.id)}</span> ${esc(nombreBonito(b.nombre))}</td>
-        <td>${esc(nombreBonito(ind.col))}</td>
-        <td class="num" style="color:${c}">${s100}</td>
-      `;
-      tbody.appendChild(tr);
-    });
+  // Ranking general: todos los indicadores de todos los bloques, de mayor a
+  // menor puntaje -- no agrupado por dimensión (la columna Dimensión se
+  // conserva, solo cambia el orden de las filas).
+  const filasOrdenadas = DATOS.bloques
+    .flatMap(b => b.indicadores.map(ind => ({ b, ind })))
+    .sort((x, y) => y.ind.score - x.ind.score);
+  filasOrdenadas.forEach(({ b, ind }) => {
+    const s100 = Math.round(ind.score * 100);
+    const c = colorRiesgo100(s100);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="rb-id" style="background:${b.color}">${esc(b.id)}</span> ${esc(nombreBonito(b.nombre))}</td>
+      <td>${esc(nombreBonito(ind.col))}</td>
+      <td class="num" style="color:${c}">${s100}</td>
+    `;
+    tbody.appendChild(tr);
   });
 
   // ── Footer ──
@@ -431,19 +435,20 @@ function abrirModal(ind) {
 // y pipeline_lugares.py (contexto/07_backlog.md punto 11). Distinto de
 // DATOS.articulos, que sigue siendo solo para el modal.
 function descargarResumen() {
-  const rows = [];
-  DATOS.bloques.forEach(b => {
-    b.indicadores.forEach(ind => {
-      rows.push({
-        "Dimensión": `${b.id} — ${nombreBonito(b.nombre)}`,
-        "Indicador": nombreBonito(ind.col),
-        "Score (0-100)": Math.round(ind.score * 100),
-        "Título": ind.titulo_top || "",
-        "URL": ind.url_top || "",
-        "Activo": ind.real ? "Si" : "No"
-      });
-    });
-  });
+  // Mismo ranking general que la tabla en pantalla: todos los indicadores de
+  // mayor a menor puntaje, sin agrupar por dimensión (la columna Dimensión
+  // se conserva, solo cambia el orden de las filas).
+  const rows = DATOS.bloques
+    .flatMap(b => b.indicadores.map(ind => ({ b, ind })))
+    .sort((x, y) => y.ind.score - x.ind.score)
+    .map(({ b, ind }) => ({
+      "Dimensión": `${b.id} — ${nombreBonito(b.nombre)}`,
+      "Indicador": nombreBonito(ind.col),
+      "Score (0-100)": Math.round(ind.score * 100),
+      "Título": ind.titulo_top || "",
+      "URL": ind.url_top || "",
+      "Activo": ind.real ? "Si" : "No"
+    }));
   const ws = XLSX.utils.json_to_sheet(rows, {
     header: ["Dimensión", "Indicador", "Score (0-100)", "Título", "URL", "Activo"]
   });

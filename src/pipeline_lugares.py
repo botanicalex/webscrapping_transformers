@@ -13,7 +13,9 @@ Pasos:
      supera el umbral de activacion), por lugar. Un lugar se puntua igual que
      un departamento: MAX por indicador, promedio de los 18, cortes fijos de
      esta rama (CORTE_BAJO_MEDIO_RADAR/CORTE_MEDIO_ALTO_RADAR en
-     config_pipeline.py).
+     config_pipeline.py). Las filas (indicadores) se ordenan por el PROMEDIO
+     de su valor MAX entre todos los lugares, de mayor a menor -- el orden es
+     unico para toda la hoja (2026-10-13).
 
 Requiere haber corrido antes: python scrape_lugares.py
 """
@@ -128,8 +130,8 @@ def paso5_resumen(df_proc: pd.DataFrame) -> None:
     indicadores = [c for c in CalculadorRadar.COLUMNAS_BINARIAS if c in df_proc.columns]
     lugares = sorted(df_proc["departamento"].astype(str).unique())
 
-    cols_data = {}
     clasif = []
+    datos_por_lugar = {}
     for lugar in lugares:
         g = df_proc[df_proc["departamento"].astype(str) == lugar]
         max_vals, max_tit, max_url, max_activo = {}, {}, {}, {}
@@ -145,14 +147,24 @@ def paso5_resumen(df_proc: pd.DataFrame) -> None:
         radar_max = sum(max_vals.values()) / len(indicadores)
         clas = categoria(radar_max)
         clasif.append((lugar, round(radar_max, 4), clas, len(g)))
+        datos_por_lugar[lugar] = (max_vals, max_tit, max_url, max_activo, clas, radar_max)
 
+    # Orden de filas: por el PROMEDIO del valor MAX de cada indicador entre
+    # todos los lugares, de mayor a menor -- mismo criterio que
+    # generar_max_articulos_por_departamento.py (2026-10-13).
+    promedio = {c: sum(datos_por_lugar[l][0][c] for l in lugares) / len(lugares) for c in indicadores}
+    indicadores_ordenados = sorted(indicadores, key=lambda c: promedio[c], reverse=True)
+
+    cols_data = {}
+    for lugar in lugares:
+        max_vals, max_tit, max_url, max_activo, clas, radar_max = datos_por_lugar[lugar]
         enc = f"{lugar} — {clas} ({radar_max:.4f})"
-        cols_data[(enc, "valor")] = [max_vals[c] for c in indicadores]
-        cols_data[(enc, "titulo")] = [max_tit[c] for c in indicadores]
-        cols_data[(enc, "url")] = [max_url[c] for c in indicadores]
-        cols_data[(enc, "activo")] = [max_activo[c] for c in indicadores]
+        cols_data[(enc, "valor")] = [max_vals[c] for c in indicadores_ordenados]
+        cols_data[(enc, "titulo")] = [max_tit[c] for c in indicadores_ordenados]
+        cols_data[(enc, "url")] = [max_url[c] for c in indicadores_ordenados]
+        cols_data[(enc, "activo")] = [max_activo[c] for c in indicadores_ordenados]
 
-    df_out = pd.DataFrame(cols_data, index=indicadores)
+    df_out = pd.DataFrame(cols_data, index=indicadores_ordenados)
     df_out.index.name = "Indicador"
     df_out.columns = pd.MultiIndex.from_tuples(df_out.columns)
     df_out.to_excel(RESUMEN_XLSX)
