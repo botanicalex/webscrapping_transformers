@@ -9,13 +9,14 @@ Pasos:
      4 NULAS_CALIBRACION, score corregido clip(clip(ent-sesgo,0)*(1-neu),0,1)
   3. Guarda df_procesado (respaldo del trabajo GPU)
   4. Escribe una tabla de indicadores por articulo por cada lugar
-  5. Escribe el Excel resumen MAX + articulo de origen (titulo, url y si
-     supera el umbral de activacion), por lugar. Un lugar se puntua igual que
-     un departamento: MAX por indicador, promedio de los 18, cortes fijos de
-     esta rama (CORTE_BAJO_MEDIO_RADAR/CORTE_MEDIO_ALTO_RADAR en
-     config_pipeline.py). Las filas (indicadores) se ordenan por el PROMEDIO
-     de su valor MAX entre todos los lugares, de mayor a menor -- el orden es
-     unico para toda la hoja (2026-10-13).
+  5. Escribe el Excel resumen MAX + articulo de origen (titulo, url; texto
+     SIN_ARTICULO en vez de blanco si ningun articulo lo menciona), por
+     lugar. Un lugar se puntua igual que un departamento: MAX por indicador,
+     promedio de los 18, cortes fijos de esta rama
+     (CORTE_BAJO_MEDIO_RADAR/CORTE_MEDIO_ALTO_RADAR en config_pipeline.py).
+     Las filas (indicadores) se ordenan por el PROMEDIO de su valor MAX entre
+     todos los lugares, de mayor a menor -- el orden es unico para toda la
+     hoja (2026-10-13).
 
 Requiere haber corrido antes: python scrape_lugares.py
 """
@@ -48,6 +49,12 @@ FUENTE_ANTIOQUIA = os.path.join(DIR_PROYECTO, "datos", "corpus", "df_corpus_comb
 ETIQUETA_ANTIOQUIA = "Antioquia (2023)"
 
 COLS_BASE = ["periodico", "titulo", "fecha", "texto", "url", "departamento"]
+
+# Texto para titulo/url cuando el maximo de un indicador es 0 (ningun
+# articulo lo menciona) -- mismo texto en los tres lugares que muestran este
+# resumen (ver docs/visualizacion_riesgo.html y
+# generar_max_articulos_por_departamento.py).
+SIN_ARTICULO = "No se activó este indicador"
 
 
 def slug(txt: str) -> str:
@@ -134,20 +141,19 @@ def paso5_resumen(df_proc: pd.DataFrame) -> None:
     datos_por_lugar = {}
     for lugar in lugares:
         g = df_proc[df_proc["departamento"].astype(str) == lugar]
-        max_vals, max_tit, max_url, max_activo = {}, {}, {}, {}
+        max_vals, max_tit, max_url = {}, {}, {}
         for c in indicadores:
             serie = g[c].astype(float)
             idx = serie.idxmax()
             v = float(serie.loc[idx])
             max_vals[c] = round(v, 4)
-            max_tit[c] = g.loc[idx, "titulo"] if v > 0 else ""
-            max_url[c] = g.loc[idx, "url"] if v > 0 else ""
-            max_activo[c] = "Si" if v >= cfg.UMBRAL_INDICADOR_ACTIVO else "No"
+            max_tit[c] = g.loc[idx, "titulo"] if v > 0 else SIN_ARTICULO
+            max_url[c] = g.loc[idx, "url"] if v > 0 else SIN_ARTICULO
 
         radar_max = sum(max_vals.values()) / len(indicadores)
         clas = categoria(radar_max)
         clasif.append((lugar, round(radar_max, 4), clas, len(g)))
-        datos_por_lugar[lugar] = (max_vals, max_tit, max_url, max_activo, clas, radar_max)
+        datos_por_lugar[lugar] = (max_vals, max_tit, max_url, clas, radar_max)
 
     # Orden de filas: por el PROMEDIO del valor MAX de cada indicador entre
     # todos los lugares, de mayor a menor -- mismo criterio que
@@ -157,12 +163,11 @@ def paso5_resumen(df_proc: pd.DataFrame) -> None:
 
     cols_data = {}
     for lugar in lugares:
-        max_vals, max_tit, max_url, max_activo, clas, radar_max = datos_por_lugar[lugar]
+        max_vals, max_tit, max_url, clas, radar_max = datos_por_lugar[lugar]
         enc = f"{lugar} — {clas} ({radar_max:.4f})"
         cols_data[(enc, "valor")] = [max_vals[c] for c in indicadores_ordenados]
         cols_data[(enc, "titulo")] = [max_tit[c] for c in indicadores_ordenados]
         cols_data[(enc, "url")] = [max_url[c] for c in indicadores_ordenados]
-        cols_data[(enc, "activo")] = [max_activo[c] for c in indicadores_ordenados]
 
     df_out = pd.DataFrame(cols_data, index=indicadores_ordenados)
     df_out.index.name = "Indicador"

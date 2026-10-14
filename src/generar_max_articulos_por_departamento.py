@@ -9,22 +9,15 @@ Reglas:
     calibrados sobre la escala MAX) sobre el radar MAX (promedio de los 18
     maximos del depto).
   - Valor, titulo y url se muestran SIEMPRE, tambien en deptos Bajo
-    (2026-10-06: se quito el blanqueo de los Bajo) y tambien cuando el
-    articulo no supera el umbral de activacion (ver "activo" abajo) -- el
-    dato existe y sirve para verificar de donde sale el numero.
+    (2026-10-06: se quito el blanqueo de los Bajo) -- el dato existe y sirve
+    para verificar de donde sale el numero.
   - Por indicador se elige UN solo articulo: el del maximo absoluto.
-  - Si el maximo de un indicador es 0, titulo y url quedan en blanco (no hay
-    ningun articulo que destacar: todos empatan en 0).
-  - Columna "activo": "Si" si ese maximo supera UMBRAL_INDICADOR_ACTIVO
-    (config_pipeline.py, el mismo que usa api.py para marcar "real"/"arts"),
-    "No" si no -- para distinguir un enlace con evidencia real de un enlace
-    que solo es el mayor de un conjunto sin señal (2026-10-13).
-  - Las filas (indicadores) se ordenan por el PROMEDIO de su valor MAX entre
-    todos los departamentos, de mayor a menor -- no por el pico de uno solo
-    (2026-10-13). El orden es unico para toda la hoja: no se puede ordenar
-    distinto por departamento, son columnas del mismo eje de filas.
+  - Si el maximo de un indicador es 0 (ningun articulo lo menciona), titulo y
+    url muestran el texto SIN_ARTICULO en vez de quedar en blanco
+    (2026-10-14: antes quedaban vacios, lo que se confundia con una celda sin
+    completar).
 
-Salida (4 columnas por depto: valor + titulo + url + activo, encabezado con
+Salida (3 columnas por depto: valor + titulo + url, encabezado con
 clasificacion):
   tablas_indicadores_departamentos/resumen_indicadores_MAX_y_articulos_por_departamento.xlsx
 """
@@ -43,6 +36,11 @@ from radar import CalculadorRadar
 DIR_TABLAS = os.path.join(DIR_PROYECTO, "resultados", "tablas_departamentos")
 ENTRADA = os.path.join(DIR_TABLAS, "df_procesado_32deptos.pkl")
 SALIDA = os.path.join(DIR_TABLAS, "resumen_indicadores_MAX_y_articulos_por_departamento.xlsx")
+
+# Texto para titulo/url cuando el maximo de un indicador es 0 (ningun
+# articulo lo menciona) -- mismo texto en los tres lugares que muestran este
+# resumen (ver docs/visualizacion_riesgo.html y pipeline_lugares.py).
+SIN_ARTICULO = "No se activó este indicador"
 
 
 def categoria(valor: float) -> str:
@@ -66,20 +64,19 @@ def main():
 
     for depto in deptos:
         g = df[df["departamento"] == depto]
-        max_vals, max_tit, max_url, max_activo = {}, {}, {}, {}
+        max_vals, max_tit, max_url = {}, {}, {}
         for c in indicadores:
             serie = g[c].astype(float)
             idx = serie.idxmax()
             v = float(serie.loc[idx])
             max_vals[c] = round(v, 4)
-            max_tit[c] = g.loc[idx, "titulo"] if v > 0 else ""
-            max_url[c] = g.loc[idx, "url"] if v > 0 else ""
-            max_activo[c] = "Si" if v >= cfg.UMBRAL_INDICADOR_ACTIVO else "No"
+            max_tit[c] = g.loc[idx, "titulo"] if v > 0 else SIN_ARTICULO
+            max_url[c] = g.loc[idx, "url"] if v > 0 else SIN_ARTICULO
 
         radar_max = sum(max_vals.values()) / len(indicadores)
         clas = categoria(radar_max)
         resumen_clasif.append((depto, round(radar_max, 4), clas, len(g)))
-        datos_por_depto[depto] = (max_vals, max_tit, max_url, max_activo, clas, radar_max)
+        datos_por_depto[depto] = (max_vals, max_tit, max_url, clas, radar_max)
 
     # Orden de filas: por el PROMEDIO del valor MAX de cada indicador entre
     # todos los departamentos, de mayor a menor -- "que tan fuerte es este
@@ -91,12 +88,11 @@ def main():
 
     cols_data = {}
     for depto in deptos:
-        max_vals, max_tit, max_url, max_activo, clas, radar_max = datos_por_depto[depto]
+        max_vals, max_tit, max_url, clas, radar_max = datos_por_depto[depto]
         encabezado = f"{depto} — {clas} ({radar_max:.4f})"
         cols_data[(encabezado, "valor")] = [max_vals[c] for c in indicadores_ordenados]
         cols_data[(encabezado, "titulo")] = [max_tit[c] for c in indicadores_ordenados]
         cols_data[(encabezado, "url")] = [max_url[c] for c in indicadores_ordenados]
-        cols_data[(encabezado, "activo")] = [max_activo[c] for c in indicadores_ordenados]
 
     df_out = pd.DataFrame(cols_data, index=indicadores_ordenados)
     df_out.index.name = "Indicador"

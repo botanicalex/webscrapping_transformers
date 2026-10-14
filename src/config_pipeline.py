@@ -72,12 +72,13 @@ GRUPOS_DEPARTAMENTOS = [
 MIN_ARTICULOS_RESPALDO = 50
 
 # Umbral de evidencia: un articulo "apoya"/"activa" un indicador si su score
-# por articulo lo supera. Por debajo del umbral, el MAX de un departamento o
-# lugar puede seguir siendo > 0 sin que ningun articulo lo haya activado --
-# el articulo de mayor score igual se muestra (titulo/url), pero marcado como
-# no activado, para no dar la impresion de un puntaje sin origen (2026-10-13).
-# Vive aqui (no en api.py) para que api.py, generar_max_articulos_por_departamento.py
-# y pipeline_lugares.py usen el mismo umbral sin duplicarlo.
+# por articulo lo supera. Lo usa api.py para "arts"/"real" (cuantos articulos
+# activan un indicador, para el badge "Activado"/"Sin activacion" del
+# dashboard). Vive aqui (no en api.py) por si algo mas necesita el mismo
+# valor. 2026-10-14: generar_max_articulos_por_departamento.py y
+# pipeline_lugares.py dejaron de usarlo -- sus Excel ya no distinguen
+# "activo"/"no activo", solo si hay o no un articulo detras (ver
+# SIN_ARTICULO en cada uno).
 UMBRAL_INDICADOR_ACTIVO = 0.10
 
 # ── Cortes fijos Bajo/Medio/Alto del radar V2 ───────────────────────────────

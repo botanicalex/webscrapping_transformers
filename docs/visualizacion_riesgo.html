@@ -429,11 +429,13 @@ function abrirModal(ind) {
 }
 
 // Excel del resumen general: una fila por indicador, con el artículo de
-// mayor score. titulo_top/url_top vienen siempre de la API (aunque el
-// indicador no se haya activado); "real" ya es el flag de activación, igual
-// criterio y mismos valores "Si"/"No" que generar_max_articulos_por_departamento.py
-// y pipeline_lugares.py (contexto/07_backlog.md punto 11). Distinto de
-// DATOS.articulos, que sigue siendo solo para el modal.
+// mayor score. titulo_top/url_top vienen siempre de la API; cuando el
+// indicador no tiene ningún artículo detrás (score 0 exacto), esas celdas
+// muestran un texto en vez de quedar vacías -- mismo criterio que
+// generar_max_articulos_por_departamento.py y pipeline_lugares.py
+// (contexto/07_backlog.md punto 11). Distinto de DATOS.articulos, que sigue
+// siendo solo para el modal.
+const SIN_ARTICULO = "No se activó este indicador";
 function descargarResumen() {
   // Mismo ranking general que la tabla en pantalla: todos los indicadores de
   // mayor a menor puntaje, sin agrupar por dimensión (la columna Dimensión
@@ -445,12 +447,11 @@ function descargarResumen() {
       "Dimensión": `${b.id} — ${nombreBonito(b.nombre)}`,
       "Indicador": nombreBonito(ind.col),
       "Score (0-100)": Math.round(ind.score * 100),
-      "Título": ind.titulo_top || "",
-      "URL": ind.url_top || "",
-      "Activo": ind.real ? "Si" : "No"
+      "Título": ind.titulo_top || SIN_ARTICULO,
+      "URL": ind.url_top || SIN_ARTICULO
     }));
   const ws = XLSX.utils.json_to_sheet(rows, {
-    header: ["Dimensión", "Indicador", "Score (0-100)", "Título", "URL", "Activo"]
+    header: ["Dimensión", "Indicador", "Score (0-100)", "Título", "URL"]
   });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Resumen");
