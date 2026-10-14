@@ -151,3 +151,6 @@ en el repo, `/lugares` (autocompletado) y la validación no dependen de ninguna 
 Ver [`CLAUDE.md`](CLAUDE.md) (reglas duras del proyecto e historial reciente) y la carpeta
 `contexto/` (documentación numerada, a demanda — empezar por `00_estado_actual.md`).
 Validar cualquier cambio con `python src/test_integracion.py` (16 tests, sin GPU).
+
+<!-- deploy trigger: el run de Pages para 7b014e1 quedó atascado en Queued del lado de GitHub -->
+
