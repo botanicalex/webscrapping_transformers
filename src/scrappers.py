@@ -2406,8 +2406,20 @@ class ScraperElTiempo(ScraperPeriodico):
         propia sesion global de requests)."""
         i, link = info
         try:
+            # ARREGLO PUNTUAL 2026-10-22 (botanicalex, sobre codigo de Santiago,
+            # autorizado como excepcion): `requests_params` solo existe en
+            # newspaper4k. Con newspaper3k (el que instala colab_setup.ipynb) esta
+            # linea lanzaba AttributeError antes de descargar, el `except:` de
+            # abajo lo tragaba y El Tiempo devolvia 0 articulos en TODAS las
+            # corridas desde Colab ("99 timeouts" en el log). Ahora funciona con
+            # las dos versiones: newspaper4k sigue igual que antes; newspaper3k usa
+            # la misma config que la clase base (_NEWSPAPER_CONFIG, ver a943793).
+            # Ver contexto/08_log_decisiones.md [2026-10-22].
             config = Config()
-            config.requests_params = {**config.requests_params, "verify": False}
+            if hasattr(config, "requests_params"):   # newspaper4k
+                config.requests_params = {**config.requests_params, "verify": False}
+            else:                                     # newspaper3k
+                config = _NEWSPAPER_CONFIG
             article = Article(link, config=config)
             article.download()
             article.parse()

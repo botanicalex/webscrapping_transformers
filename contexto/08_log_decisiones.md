@@ -1389,3 +1389,83 @@ enlaces clicables), Chrome 147 con `window.print()` real a "Guardar como PDF" (O
 archivo `radar_Oicata_Boyaca_2026-10-22.pdf`, 15 enlaces, texto extraíble, sin el aviso ni el
 botón en el PDF),
 `python src/test_integracion.py` 16/16.
+
+## [2026-10-22] El Tiempo devolvía 0 artículos en TODAS las corridas desde Colab — CORREGIDO (excepción autorizada sobre `scrappers.py`)
+
+**Afecta a todas las corridas anteriores hechas desde Colab, no solo al lote de hoy.** Todo
+resultado producido por la API en Colab (dashboard, demos, consultas) se calculó **sin
+ningún artículo de El Tiempo**, sin ningún error visible. Hay que avisarle al equipo.
+
+**Qué pasaba.** `ScraperElTiempo._descargar_articulo_individual` (`src/scrappers.py`) hacía
+`config.requests_params = {**config.requests_params, "verify": False}`. `requests_params`
+solo existe en newspaper4k; `colab_setup.ipynb` instala **newspaper3k==0.2.8**, donde esa
+línea lanza `AttributeError` antes de descargar. El `except:` sin tipo del método lo tragaba
+y devolvía `None`, y el contador lo reportaba como "timeouts". La búsqueda sí funcionaba
+(5–11 páginas, ~100 enlaces por consulta): fallaba el 100% de las descargas.
+
+**Evidencia:**
+- Log de la API en Colab, lote de hoy (Puerto Gaitán, Meta, 2025-09-01 a 2026-09-01):
+  `Total de links únicos: 99` → `0 artículos descargados exitosamente (0.0%) (99 timeouts)`;
+  el resultado salió solo con Llano al Mundo (52 artículos).
+- Reproducido con newspaper3k 0.2.8 (venv aparte): `AttributeError: 'Configuration' object
+  has no attribute 'requests_params'`.
+- Por qué no se vio antes: el 2026-09-08 (`a943793`) se corrigió el mismo problema en la
+  configuración común `_NEWSPAPER_CONFIG` (la usan todos los demás scrapers), pero el
+  método propio de El Tiempo, que arma su propia `Config()`, quedó con el código anterior.
+  Antes de `a943793`, con newspaper3k fallaba la importación de `scrappers.py` entera.
+  Conclusión: El Tiempo no descargó en ninguna corrida desde Colab. Las corridas locales con
+  newspaper4k no deberían estar afectadas (inferido del código, no medido: no se sabe con
+  qué versión se scrapeó cada corpus local).
+
+**Alcance:** El Tiempo está en los 36 territorios de `MAPA_TERRITORIO_PERIODICOS` de
+`src/api.py`, y es la **única** fuente de 8 departamentos (Amazonas, Atlántico, Bolívar,
+Guainía, Putumayo, San Andrés, Vaupés, Vichada): en Colab esos daban 0 artículos y la API
+respondía "No se encontraron noticias". En los demás, la cobertura quedaba solo con la
+prensa local.
+
+**Arreglo** (mínimo, comentado en el código como arreglo puntual con fecha): si `Config()`
+tiene `requests_params` (newspaper4k) se hace exactamente lo de antes; si no (newspaper3k)
+se usa `_NEWSPAPER_CONFIG`, igual que la clase base. Funciona con las dos versiones, porque
+no se sabe con cuál corre Santiago en su equipo. No cambia ningún otro scraper: es el único
+otro uso de `requests_params` en el archivo.
+
+**Verificado:**
+- Descarga del artículo "Restitución de tierras en Puerto Gaitán…" (El Tiempo, 2026-02-10)
+  con newspaper3k 0.2.8 y con newspaper4k 0.9.6: OK en ambas.
+- De punta a punta con newspaper3k: `scrape_municipio("Puerto Gaitán", …,
+  periodicos=["eltiempo"])` → descargas 99.4–100%, **52 artículos relevantes** en 291 s
+  (antes: 0).
+- `py_compile` de `scrappers.py` y `python src/test_integracion.py` 16/16 (la suite no
+  cubre el scraping).
+
+**Costo para el lote:** con El Tiempo cada territorio tarda unos 5 minutos más (291 s solo
+para El Tiempo en Puerto Gaitán). Puerto Gaitán se vuelve a correr desde cero.
+
+**Causa de fondo, también corregida: newspaper no estaba fijado.** `colab_setup.ipynb`
+instalaba `newspaper3k==0.2.8` por su cuenta y `requirements.txt` no fijaba ninguna versión
+(aunque sí fija las dependencias exactas de newspaper4k —`brotli`, `w3lib`,
+`lxml-html-clean`, `tldextract`, `feedparser`, desde `0524705`—, lo que sugiere que el
+entorno de Santiago tiene newspaper4k; no confirmado). Dos entornos con código distinto para
+el mismo archivo: es lo que dejó pasar esto. Se fija **`newspaper3k==0.2.8`** en
+`requirements.txt`:
+- **Por qué 3k y no 4k:** ninguna es claramente mejor. A favor de 4k: está mantenida y el
+  código del método se escribió para ella. A favor de 3k: es la que corre Colab (donde se
+  usa de verdad), está verificada ahí hoy, y sumarla no cambia ninguna dependencia
+  instalada (`pip install --dry-run`: solo agrega cssselect, defusedxml, feedfinder2,
+  jieba3k, nltk y tinysegmenter); 4k en cambio baja `python-dateutil` de 3.0.0 a 2.9.0 y no
+  está probada en Colab. Criterio de desempate de la usuaria: la del entorno donde se corre.
+  Contra 3k: su última versión es de 2018 (sin mantenimiento).
+- **Compatibilidad del código:** `scrappers.py` solo usa `Article(link[, config])`,
+  `.download()`, `.parse()`, `.title`, `.text`, `.publish_date` y
+  `Config().request_timeout`; con el arreglo de arriba funciona con las dos versiones.
+- **Riesgo para el entorno de Santiago:** newspaper3k y newspaper4k instalan el mismo
+  paquete `newspaper` y no pueden convivir. Si tiene 4k, antes de `pip install -r
+  requirements.txt` tiene que hacer `pip uninstall newspaper4k` (queda escrito en el
+  comentario de `requirements.txt`). Si no lo hace, los archivos de las dos se mezclan.
+- **Verificado con la versión fijada** (`.venv` del proyecto, sin entornos aparte): `pip
+  check` sin conflictos, ningún pin cambió, suite 16/16, y El Tiempo para Puerto Gaitán
+  con descargas al 100% y 52 artículos relevantes en 292 s.
+
+**Abre:** avisar al equipo (y a Santiago, por lo del `pip uninstall newspaper4k`); decidir
+si se re-corren consultas hechas antes en Colab. `colab_setup.ipynb` sigue instalando
+`newspaper3k==0.2.8` por su cuenta: si algún día cambia el pin, hay que cambiar los dos.

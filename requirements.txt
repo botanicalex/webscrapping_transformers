@@ -1,4 +1,11 @@
 requests==2.33.0
+# Descarga de articulos (Article/Config en src/scrappers.py). Fijado el 2026-10-22
+# a la version que instala colab_setup.ipynb: sin fijar, Colab (3k) y los entornos
+# locales podian correr versiones distintas, y El Tiempo fallo en silencio en
+# todas las corridas desde Colab (contexto/08_log_decisiones.md [2026-10-22]).
+# newspaper3k y newspaper4k instalan el MISMO paquete `newspaper`: no pueden
+# convivir. Con newspaper4k instalado, antes: pip uninstall newspaper4k
+newspaper3k==0.2.8
 beautifulsoup4==4.14.3
 lxml==6.0.2
 lxml-html-clean==0.4.4
