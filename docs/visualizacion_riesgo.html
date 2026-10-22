@@ -19,21 +19,38 @@
     background: white; padding: 18px 20px;
     border-bottom: 1px solid #E5E7EB; margin-bottom: 20px;
   }
+  /* Una fila centrada verticalmente: territorio (crece) | indice | boton PDF.
+     En pantalla angosta el territorio ocupa la primera fila y el indice y el
+     boton comparten la segunda. */
   .header-inner {
     max-width: 1100px; margin: 0 auto;
-    display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+    display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 16px 28px;
+  }
+  .header-left { min-width: 0; }
+  .pdf-accion { justify-self: end; max-width: 230px; }
+  .pdf-aviso { font-size: 10.5px; color: #6B7280; line-height: 1.35; margin-top: 6px; }
+  @media screen and (max-width: 820px) {
+    .header-inner { grid-template-columns: 1fr auto; }
+    .header-left { grid-column: 1 / -1; }
+  }
+  /* Telefono: indice en su fila y boton a todo el ancho debajo. */
+  @media screen and (max-width: 480px) {
+    .header-inner { grid-template-columns: 1fr; }
+    .pdf-accion { justify-self: stretch; max-width: none; }
+    .pdf-accion .btn-pdf { width: 100%; }
   }
   .header-left .cap { font-size: 12px; color: #6B7280; }
   .header-left h1 { font-size: 22px; font-weight: 700; margin: 3px 0; }
   .header-left .meta { font-size: 12px; color: #6B7280; }
+  .indice { display: flex; align-items: center; gap: 12px; }
+  .indice-cap { font-size: 11px; color: #6B7280; white-space: nowrap; }
+  .indice-label { font-size: 14px; font-weight: 700; margin-top: 2px; white-space: nowrap; }
   .badge {
-    width: 70px; height: 70px; border-radius: 50%;
+    width: 70px; height: 70px; border-radius: 50%; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     flex-direction: column; color: white; font-weight: 700; font-size: 22px;
   }
   .badge span { font-size: 10px; font-weight: 400; }
-  .nota-aprox { font-size: 11px; color: #4B5563; background: white; border-left: 3px solid #9CA3AF; border-radius: 6px; padding: 9px 12px; margin-bottom: 18px; line-height: 1.45; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-  .cortes { font-size: 10px; color: #6B7280; margin-top: 4px; line-height: 1.4; white-space: nowrap; }
 
   .container { max-width: 1100px; margin: 0 auto; padding: 0 20px 30px; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
@@ -98,7 +115,6 @@
   .btn-excel:hover { background: #047857; }
   .btn-pdf { background: #1B4F72; color: white; border: none; border-radius: 7px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
   .btn-pdf:hover { background: #154360; }
-  .header-right { display: flex; align-items: center; gap: 18px; }
   .art-scroll { max-height: 400px; overflow-y: auto; }
   .footer-note { text-align: center; font-size: 10px; color: #9CA3AF; margin-top: 10px; }
 
@@ -122,7 +138,6 @@
     .grid-2 { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
     .card { box-shadow: none; border: 1px solid #E5E7EB; padding: 12px; margin-bottom: 12px !important; }
     .grid-2 .card { break-inside: avoid; }
-    .nota-aprox { box-shadow: none; border: 1px solid #E5E7EB; border-left: 3px solid #9CA3AF; margin-bottom: 12px; break-inside: avoid; }
     canvas#radar { display: none !important; }
     img#radar-print { display: block; width: 100%; max-width: 320px; margin: 0 auto; }
     table.resumen tr { break-inside: avoid; }
@@ -154,14 +169,16 @@
         <div class="meta" id="h-fechas"></div>
         <div class="meta" id="h-fuentes"></div>
       </div>
-      <div class="header-right">
-        <button class="btn-pdf no-print" onclick="descargarPDF()">⬇ Descargar reporte PDF</button>
-        <div style="text-align:center">
-          <div class="badge" id="h-badge"></div>
-          <div style="font-size:11px;color:#6B7280;margin-top:5px">Índice Riesgo Social</div>
-          <div style="font-size:12px;font-weight:700" id="h-badge-label"></div>
-          <div class="cortes" id="h-cortes"></div>
+      <div class="indice">
+        <div class="badge" id="h-badge"></div>
+        <div>
+          <div class="indice-cap">Índice Riesgo Social</div>
+          <div class="indice-label" id="h-badge-label"></div>
         </div>
+      </div>
+      <div class="pdf-accion no-print">
+        <button class="btn-pdf" onclick="descargarPDF()">⬇ Descargar reporte PDF</button>
+        <div class="pdf-aviso">Elige “Guardar como PDF” como destino. Con “Microsoft Print to PDF” los enlaces no funcionan.</div>
       </div>
     </div>
   </div>
@@ -180,8 +197,6 @@
         <div id="bloques-list"></div>
       </div>
     </div>
-
-    <div class="nota-aprox" id="nota-colores"></div>
 
     <!-- DESACTIVADO 2026-10-21 (reporte PDF): detalle de una dimension al hacer
          clic en ella. Se conserva comentado por si se necesita despues; ver
@@ -300,9 +315,9 @@ if (!DATOS || !Array.isArray(DATOS.bloques)) {
 // cortes (DATOS.cortes), como APROXIMACION declarada: estan calibrados para el
 // indice global (promedio de los 18), no para una dimension o un indicador
 // suelto, y no hay cortes calibrados por dimension (contexto/07_backlog.md
-// punto 12). La nota #nota-colores lo dice en pantalla y en el PDF. El color
-// se elige con el mismo entero que se muestra, para que lo que se lee y su
-// color coincidan. Sin DATOS.cortes (API anterior) no hay semaforo: gris.
+// punto 12). La explicacion va en el manual de usuario, no en el dashboard
+// (la nota que lo decia se quito el 2026-10-22). El color se elige con el
+// mismo entero que se muestra, para que lo que se lee y su color coincidan. Sin DATOS.cortes (API anterior) no hay semaforo: gris.
 // COLOR_NIVEL/COLOR_SIN_CORTES estan declarados arriba, antes de renderDashboard().
 function colorAproximado(s100) {
   if (!DATOS.cortes) return COLOR_SIN_CORTES;
@@ -312,15 +327,6 @@ function colorAproximado(s100) {
   return COLOR_NIVEL.Alto;
 }
 
-// Indice 0-100 con 2 decimales TRUNCADOS (no redondeados): con cortes de 4
-// decimales, truncar garantiza que el numero mostrado quede del mismo lado
-// del corte que el valor real (0.65589 -> 65.58, nunca 65.59).
-function indice100(v) {
-  return (Math.floor(v * 10000 + 1e-9) / 100).toFixed(2);
-}
-function corte100(v) {
-  return (v * 100).toFixed(2);
-}
 // Parte un texto largo en varias líneas (Chart.js renderiza un array como multilínea).
 function wrapLabel(txt, max) {
   max = max || 16;
@@ -332,6 +338,14 @@ function wrapLabel(txt, max) {
   });
   if (linea) lineas.push(linea);
   return lineas;
+}
+
+// Texto -> parte de nombre de archivo: quita tildes y dieresis (NFD) en vez de
+// cortar en ellas ("Oicatá, Boyacá" -> "Oicata_Boyaca", "Nariño" -> "Narino").
+// Mismo criterio que slug() en los scripts de src/, pero conserva mayusculas.
+function nombreArchivo(s) {
+  const txt = String(s || "resultado").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return txt.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "resultado";
 }
 
 function esc(s) {
@@ -359,34 +373,8 @@ function renderDashboard() {
   const lbl = document.getElementById("h-badge-label");
   lbl.textContent = DATOS.badge_label;
   lbl.style.color = DATOS.badge_color;
-  // Cortes con los que se clasifico, para que en papel se entienda la
-  // categoria aunque el entero redondeado quede junto a un corte. Si la API
-  // es anterior y no los manda, la linea no se muestra.
-  const cortesEl = document.getElementById("h-cortes");
-  if (DATOS.cortes && typeof DATOS.radar_propio === "number") {
-    const c = DATOS.cortes;
-    cortesEl.innerHTML =
-      `Índice ${indice100(DATOS.radar_propio)}<br>` +
-      `Bajo &lt; ${corte100(c.bajo_medio)} ≤ Medio &lt; ${corte100(c.medio_alto)} ≤ Alto`;
-  } else {
-    cortesEl.hidden = true;
-  }
-
-  // Nota de la aproximacion de colores (pantalla y PDF). Sin cortes no hay
-  // semaforo que explicar: la nota no se muestra.
-  const notaEl = document.getElementById("nota-colores");
-  const nInd = DATOS.bloques.reduce((n, b) => n + b.indicadores.length, 0);  // no un "18" fijo
-  if (DATOS.cortes) {
-    notaEl.innerHTML =
-      `<b>Sobre los colores de dimensiones e indicadores.</b> El verde, ámbar y rojo de las ` +
-      `dimensiones, los puntos del radar y los puntajes de los indicadores usan, de forma ` +
-      `orientativa, los cortes del índice global (Bajo &lt; ${corte100(DATOS.cortes.bajo_medio)} ≤ ` +
-      `Medio &lt; ${corte100(DATOS.cortes.medio_alto)} ≤ Alto). Esos cortes están calibrados para ` +
-      `el índice global, que es el promedio de los ${nInd} indicadores; no hay cortes calibrados por ` +
-      `dimensión ni por indicador. La única clasificación oficial es la del índice global.`;
-  } else {
-    notaEl.hidden = true;
-  }
+  // La explicacion de los cortes va en el manual de usuario, no en el
+  // encabezado (decision del 2026-10-22).
 
   // ── Lista de bloques ──
   const list = document.getElementById("bloques-list");
@@ -478,7 +466,7 @@ function renderDashboard() {
       // Resolucion alta del canvas: el radar es lo unico del PDF que va como
       // imagen, y a la densidad de pantalla sale borroso en papel.
       devicePixelRatio: Math.max(window.devicePixelRatio || 1, 3),
-      scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 9 } }, pointLabels: { font: { size: 11 } }, grid: { color: "#E5E7EB" } } },
+      scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 9 } }, pointLabels: { font: { size: 11, weight: "600" }, color: c => DATOS.bloques[c.index].color }, grid: { color: "#E5E7EB" } } },
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: {
@@ -491,13 +479,18 @@ function renderDashboard() {
 }
 
 // ── Reporte PDF ──
-// Impresion del navegador (el usuario elige "Guardar como PDF"): texto
-// seleccionable y enlaces reales. El titulo de la pagina es el nombre de
-// archivo que propone el navegador.
+// Impresion del navegador: texto seleccionable y enlaces reales SOLO con el
+// destino "Guardar como PDF" (con "Microsoft Print to PDF" se pierden; ver
+// contexto/08_log_decisiones.md [2026-10-22]). El titulo de la pagina es el
+// nombre de archivo que propone "Guardar como PDF":
+// radar_<territorio>_<fecha de generacion>, p. ej. radar_Oicata_Boyaca_2026-10-22.
+function fechaHoy() {
+  const d = new Date();  // fecha local de quien genera el reporte
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 async function descargarPDF() {
-  const lugar = (DATOS.lugar || "resultado").replace(/[^A-Za-z0-9]+/g, "_");
   TITULO_PANTALLA = document.title;
-  document.title = `reporte_radar_${lugar}`;
+  document.title = `radar_${nombreArchivo(DATOS.lugar)}_${fechaHoy()}`;
   // La imagen del radar se genera y se decodifica ANTES de abrir la
   // impresion: si se generara recien en beforeprint, el navegador podria
   // imprimir antes de tenerla lista.
@@ -642,7 +635,7 @@ function descargarResumen() {
   });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Resumen");
-  const lugar = (DATOS.lugar || "resultado").replace(/[^A-Za-z0-9]+/g, "_");
+  const lugar = nombreArchivo(DATOS.lugar);
   XLSX.writeFile(wb, `radar_resumen_${lugar}.xlsx`);
 }
 </script>

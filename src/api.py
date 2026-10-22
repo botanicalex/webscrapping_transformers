@@ -75,16 +75,18 @@ MAX_ARTICULOS_POR_INDICADOR = 20
 # el front). Las claves son las de CalculadorRadar.BLOQUES (radar-20ind-bloques,
 # contexto/08_log_decisiones.md [2026-10-03]); id/nombre/color son de
 # presentacion, no vienen de ahi -- Santiago solo definio las claves tecnicas.
-# Colores de identidad de cada dimension (insignia CA/TA/GP/PV). A proposito
-# FUERA de verde/ambar/rojo: en el dashboard esos tres significan nivel de
-# riesgo (BADGE abajo, y los cortes globales aplicados como aproximacion a
-# dimensiones e indicadores). Hasta el 2026-10-21 CA era rojo, TA verde y GP
-# ambar, y una insignia roja junto a una barra verde se leia como contradiccion.
+# Colores de identidad de cada dimension (insignia CA/TA/GP/PV y nombre en el
+# radar). Vivos y bien distintos entre si, y FUERA de verde/ambar/rojo: en el
+# dashboard esos tres significan nivel de riesgo (BADGE abajo, y los cortes
+# globales aplicados como aproximacion a dimensiones e indicadores). Hasta el
+# 2026-10-21 CA era rojo, TA verde y GP ambar (una insignia roja junto a una
+# barra verde se leia como contradiccion); el 2026-10-21/22 se probo azul,
+# cian, violeta y pizarra, descartada por parecerse demasiado entre si.
 BLOQUES_META = {
-    "bloque_conflicto_armado_derechos":  {"id": "CA", "nombre": "Conflicto armado y derechos",      "color": "#1D4ED8"},
-    "bloque_territorio_ambiente":        {"id": "TA", "nombre": "Territorio y ambiente",             "color": "#0891B2"},
-    "bloque_gobernanza_participacion":   {"id": "GP", "nombre": "Gobernanza y participación",        "color": "#7C3AED"},
-    "bloque_poblacion_condiciones_vida": {"id": "PV", "nombre": "Población y condiciones de vida",   "color": "#475569"},
+    "bloque_conflicto_armado_derechos":  {"id": "CA", "nombre": "Conflicto armado y derechos",      "color": "#2563EB"},
+    "bloque_territorio_ambiente":        {"id": "TA", "nombre": "Territorio y ambiente",             "color": "#DB2777"},
+    "bloque_gobernanza_participacion":   {"id": "GP", "nombre": "Gobernanza y participación",        "color": "#92400E"},
+    "bloque_poblacion_condiciones_vida": {"id": "PV", "nombre": "Población y condiciones de vida",   "color": "#8B5CF6"},
 }
 # No asumir cantidad ni nombres de bloques: leer lo que CalculadorRadar.BLOQUES
 # tenga realmente (regla del backlog: api.py no se puede desincronizar de
@@ -590,11 +592,10 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame,
         "badge_score": int(round(radar_propio * 100)),
         "badge_label": BADGE[categoria]["label"],
         "badge_color": BADGE[categoria]["color"],
-        # Valor sin redondear y cortes con los que se clasifico: el dashboard
-        # los imprime debajo del indice para que un 66 "Riesgo bajo" (radar
-        # 0.6556 < 0.6559) no parezca una contradiccion. Los cortes salen de
+        # Cortes con los que se clasifico el indice. El dashboard los usa para
+        # colorear dimensiones, indicadores y puntos del radar (aproximacion
+        # declarada, ver contexto/07_backlog.md punto 12). Salen de
         # config_pipeline, asi el front se entera solo si se recalibran.
-        "radar_propio": float(radar_propio),
         "cortes": {
             "bajo_medio": cfg.CORTE_BAJO_MEDIO_RADAR,
             "medio_alto": cfg.CORTE_MEDIO_ALTO_RADAR,

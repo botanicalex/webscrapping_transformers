@@ -130,24 +130,28 @@ verificar de dónde sale un número bajo—. Varios indicadores pueden compartir
 artículo: con agregación por máximo, un artículo fuerte activa varios.
 
 **Reporte PDF:** el botón "Descargar reporte PDF" del dashboard usa la impresión del
-navegador ("Guardar como PDF"), así que el texto queda seleccionable y los enlaces son
-hipervínculos reales. El radar se imprime como imagen; botones y navegación no salen en el
+navegador, así que el texto queda seleccionable y los enlaces son hipervínculos reales
+**solo si el destino es "Guardar como PDF"**. Con "Microsoft Print to PDF" (la impresora
+de Windows, que Chrome propone si es la predeterminada) se pierden los enlaces y el texto
+deja de ser seleccionable; un aviso junto al botón (solo en pantalla) lo advierte. El
+archivo se propone como `radar_<territorio>_<fecha>.pdf`, sin tildes. El radar se imprime como imagen; botones y navegación no salen en el
 papel. El detalle interactivo (clic en una dimensión o en un indicador para ver su
 artículo) está desactivado desde el 2026-10-21 y queda comentado en
 `docs/visualizacion_riesgo.html`.
 
 **La categoría del índice la calcula la API, no el front.** El dashboard muestra la
-etiqueta y el color que manda `/analizar` (cortes oficiales de `src/config_pipeline.py`) e
-imprime debajo el índice sin redondear y los cortes con que se clasificó, por ejemplo
-*"Índice 57.30 · Bajo < 65.59 ≤ Medio < 88.39 ≤ Alto"*. Hasta el 2026-10-21 el dashboard
+etiqueta y el color que manda `/analizar` (cortes oficiales de `src/config_pipeline.py`).
+El encabezado muestra solo el número, "Índice Riesgo Social" y la categoría; la
+explicación de los cortes va en el manual de usuario. Hasta el 2026-10-21 el dashboard
 reclasificaba el índice con cortes propios de 50/70 (ver `contexto/08_log_decisiones.md`
 [2026-10-21]).
 
 **El verde/ámbar/rojo de dimensiones e indicadores es una aproximación.** Usan esos mismos
 cortes globales de forma orientativa —el front no tiene cortes propios—, pero están
 calibrados para el índice global (promedio de los 18), no para una dimensión o un
-indicador suelto: no hay cortes calibrados por dimensión. El dashboard y el PDF lo dicen en
-una nota. Calibrarlos queda pendiente (`contexto/07_backlog.md` punto 12).
+indicador suelto: no hay cortes calibrados por dimensión. La explicación va en el manual de
+usuario. Calibrarlos queda pendiente (`contexto/07_backlog.md` punto 12). Los puntos del
+radar se colorean por nivel; el color propio de cada dimensión solo la identifica.
 
 **Orden de las salidas:** el dashboard y su Excel descargado ordenan los 18 indicadores de
 mayor a menor puntaje, cruzando los 4 bloques (no agrupados por bloque). Los Excel que

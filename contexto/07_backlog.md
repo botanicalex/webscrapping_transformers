@@ -457,8 +457,9 @@ aparte.
 
 Desde el 2026-10-21 el dashboard colorea dimensiones, puntos del radar e indicadores
 (verde/ámbar/rojo) con los **cortes del índice global** que manda `/analizar`
-(`Bajo < 0.6559 <= Medio < 0.8839 <= Alto`), como **aproximación declarada**: una nota en
-pantalla y en el PDF lo dice. Esos cortes están calibrados para el índice global (promedio
+(`Bajo < 0.6559 <= Medio < 0.8839 <= Alto`), como **aproximación declarada**; la
+explicación va en el manual de usuario (la nota que lo decía en el dashboard se quitó el
+2026-10-22). Esos cortes están calibrados para el índice global (promedio
 de los 18 indicadores bajo MAX), no para el promedio de 4–5 indicadores de una dimensión ni
 para el MAX de un indicador suelto, que tienen otra distribución (regla 2). Ver
 `08_log_decisiones.md` [2026-10-21].

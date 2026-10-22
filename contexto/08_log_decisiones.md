@@ -1328,3 +1328,64 @@ commitear).** Al revisar el PDF apareció que el dashboard decía "Riesgo medio"
 
 **Cierra:** el pedido del reporte PDF y los cortes 50/70 del front.
 **Abre:** cortes calibrados por dimensión (`07_backlog.md` punto 12).
+
+## [2026-10-22] Ajustes al reporte del dashboard: encabezado, paleta, nombres de archivo — ADOPTADA
+
+Pedido de la usuaria tras revisar el cambio del [2026-10-21] (`f1a5c9d`, sin pushear).
+
+- **Encabezado realineado** (`docs/visualizacion_riesgo.html`): una grilla de una fila,
+  centrada en vertical (territorio | índice | botón PDF). El índice va en horizontal
+  (círculo + "Índice Riesgo Social" y la categoría al lado). Debajo de 820 px el
+  territorio ocupa la primera fila y el índice y el botón la segunda; debajo de 480 px el
+  botón va a todo el ancho. Verificado a 1200, 760 y 390 px y en el PDF.
+- **Se quitan del encabezado la línea de cortes y la del índice con decimales** que se
+  habían agregado el [2026-10-21]: queda solo el número, "Índice Riesgo Social" y la
+  categoría. La explicación de los cortes irá en un manual de usuario aparte. Por eso
+  `/analizar` deja de mandar `radar_propio` (nadie lo usa); `cortes` se queda porque lo
+  usan los colores aproximados de dimensiones e indicadores y su nota, que no cambian.
+- **Paleta de `BLOQUES_META` (`src/api.py`) otra vez:** la de azul, cian, violeta y pizarra
+  del [2026-10-21] se parecía demasiado entre sí. Nueva: CA `#2563EB` (azul), TA `#DB2777`
+  (fucsia), GP `#92400E` (café), PV `#8B5CF6` (violeta, su color original). Criterio:
+  primero que se distingan entre ellas, y fuera de verde/ámbar/rojo (el café es oscuro y el
+  fucsia rosado, no se confunden con ámbar ni rojo). Los nombres de las dimensiones en el
+  radar se pintan ahora con ese color, igual que las insignias del panel y las tablas.
+- **Nombres de archivo con tildes o ñ:** el Excel del dashboard cortaba en la tilde
+  ("Oicatá" → `radar_resumen_Oicat_…`). Nuevo `nombreArchivo()` en el front: quita
+  diacríticos con NFD en vez de reemplazarlos (`Oicata_Boyaca`, `Narino`,
+  `San_Andres_y_Providencia`, `Guican_de_la_Sierra`). Lo usan el Excel y el título que
+  propone el PDF. **Los scripts de Python no tenían el problema:** `slug()` en
+  `generar_tablas_por_departamento.py`, `pipeline_lugares.py` y `scrape_lugares.py`, y
+  `_slug()` en `api.py`, ya normalizan con NFD/NFKD (probados con los mismos nombres:
+  `oicata`, `guican`, `narino`, `san_andres_y_providencia`).
+
+- **Se elimina la nota "Sobre los colores de dimensiones e indicadores"** (HTML, CSS de
+  pantalla e impresión, JS y `corte100()`): la explicación de los cortes orientativos va en
+  el manual de usuario. La aproximación sigue igual y sigue registrada en el
+  [2026-10-21] y en `07_backlog.md` punto 12.
+- **Puntos del radar = nivel, verificado:** se pintan con `colorAproximado()` del puntaje
+  de la dimensión, no con su color propio (prueba: CA 92 rojo, TA 70 ámbar, GP 40 verde,
+  PV 66 ámbar). El color de la dimensión queda para identificarla: insignias del panel y
+  las tablas, y el nombre en el radar.
+- **Enlaces que "no funcionaban" en el PDF de Chrome — diagnosticado, no es un defecto del
+  dashboard.** El PDF de la prueba de la usuaria (`Downloads/reporte.pdf`, 2026-10-21
+  23:36, título `reporte_radar_Oicat_`) tiene productor `Microsoft: Print To PDF`, 0
+  enlaces y 0 caracteres de texto: salió por la impresora de Windows, que es la única
+  impresora del equipo y la predeterminada, así que es el destino que Chrome propone. Ese
+  driver rasteriza: pierde enlaces y texto seleccionable, y pide el nombre a mano. Con
+  Chrome 147 por la ruta real (`window.print()` desde el botón, destino "Guardar como
+  PDF"): productor `Skia/PDF m147`, 15 enlaces con su rectángulo sobre "Ver noticia ↗",
+  texto extraíble y nombre por defecto `reporte_radar_Maicao_La_Guajira.pdf` (del
+  `document.title`). Generar el PDF en la API (Chromium sin ventana) daría la garantía sin
+  depender del destino que se elija, pero no hace falta para que funcione.
+- **Nombre por defecto del PDF:** `radar_<territorio>_<fecha de generación>` (p. ej.
+  `radar_Oicata_Boyaca_2026-10-22.pdf`), vía `document.title` y `nombreArchivo()`. Solo lo
+  usa "Guardar como PDF"; con la impresora de Windows ningún navegador puede proponerlo.
+- **Aviso junto al botón, solo en pantalla** (`.no-print`): "Elige 'Guardar como PDF' como
+  destino. Con 'Microsoft Print to PDF' los enlaces no funcionan." Dice por qué importa,
+  para que no se ignore. La opción B (PDF en la API) queda descartada por ahora.
+
+**Validado:** Edge headless (encabezado en 3 anchos, nombres de Excel en 5 casos, PDF con 15
+enlaces clicables), Chrome 147 con `window.print()` real a "Guardar como PDF" (Oicatá:
+archivo `radar_Oicata_Boyaca_2026-10-22.pdf`, 15 enlaces, texto extraíble, sin el aviso ni el
+botón en el PDF),
+`python src/test_integracion.py` 16/16.
