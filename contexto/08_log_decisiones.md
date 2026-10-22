@@ -1148,3 +1148,67 @@ importación real de `api.py` (`BLOQUES_INDICADORES`: 5/5/4/4 = 18) y render del
 en navegador contra un payload con la forma exacta de `/analizar` (confirmado: "5
 indicadores" / "5 indicadores" / "4 indicadores" / "4 indicadores", subtítulo "Los 18
 indicadores...").
+
+## [2026-10-21] `PREFILTRO_OBJETO` (compuerta de objeto por indicador) — REGISTRO de algo ya en `src/`
+
+**Por qué esta entrada:** el mecanismo corre en `src/` de esta rama desde `decf893`
+(2026-10-04, integración de los 20 indicadores), pero llegó dentro del traslado selectivo de
+`src/Transformer_optimo.py` sin entrada propia en este log. Ni la entrada [2026-10-04] ni la
+[2026-10-13] lo mencionan, y afecta el score de dos indicadores. No es una decisión nueva: se
+registra lo que ya está corriendo.
+
+**Qué hace** (`src/Transformer_optimo.py`, `PREFILTRO_OBJETO`, `compuerta_objeto()`,
+`premisa_visible()`, dentro de `procesar()`): para cada indicador con lista, toma la parte del
+artículo que el NLI ve realmente junto a la hipótesis de ese indicador (cuerpo recortado a
+`512 − 3 − tokens(hipótesis)`), la pasa a minúsculas y sin tildes, y busca el objeto del
+indicador con una regex. Si aparece, el score corregido `clip(clip(ent − sesgo, 0) · (1 − neu),
+0, 1)` se conserva; si no, se multiplica por 0. Los indicadores sin lista pasan sin filtro. No
+agrega columnas a la salida (la compuerta se calcula por dentro y no se guarda en `df`).
+
+**A cuáles afecta — solo dos de los 18:**
+- `presencia_grupos_armados`: exige nombrar un grupo armado organizado (ELN, FARC,
+  disidencias, Clan del Golfo/AGC/EGC, autodefensas, ACSN, Pachenca, paramilitares,
+  guerrilla, Segunda Marquetalia, EMC, "frente N"...). Deja fuera a propósito "combo",
+  "banda", "Los Costeños" y "Tren de Aragua" (delincuencia común según el codebook).
+- `desplazamiento_forzado`: exige "desplaz-", formas de "huir", "éxodo" o "abandonar sus
+  casas/hogares/tierras/veredas".
+
+Las dos listas son copias literales de `REGEX_F5` (ronda 1 del plan 5ind MAX), congeladas.
+Los tests 11–15 de `src/test_integracion.py` fijan su contenido exacto, que solo haya dos
+indicadores, que la compuerta mire solo la premisa visible y que no aparezcan columnas nuevas.
+
+**En qué commit entró:**
+- **Origen:** `d249bba` (Santiago Mendoza, 2026-09-29, rama `radar-20ind-bloques`,
+  "Promocion a src/ del pre-filtro por indicador (configuracion A aprobada por el usuario)").
+  La evidencia completa está en el `08` de esa rama, entradas [2026-09-29] "Pre-filtro por
+  indicador (listas de objeto) bajo MAX, etapa 1" y "Promoción a `src/` del pre-filtro por
+  indicador (configuración A)". Pre-registro: `experimentos/PREREG_prefiltro_indicador.md`
+  (no existe en esta rama, regla 5).
+- **En esta rama:** `decf893` (2026-10-04), con el `git checkout radar-20ind-bloques --
+  src/Transformer_optimo.py` del traslado de los 20 indicadores. Antes de ese commit esta rama
+  no tenía ninguna compuerta (la F8 `REGEX_COMPUERTA_GRUPOS_ARMADOS` de `radar-max_Septiembre`
+  se revirtió allá en `e1546fb` y nunca llegó aquí).
+
+**Evidencia resumida** (de la entrada de origen, 26 indicadores, MAX nacional): ambas listas
+pasaron la regla de inclusión pre-registrada (holdout +0.300 en grupos armados y +0.200 en
+desplazamiento; control absurdo sin empeorar; 0 violaciones M3 nuevas). Con las dos listas y
+cortes recalibrados a 0.7572/0.9233: 0 anclas rotas, Spearman contra el DANE −0.1653 → −0.0913,
+Spearman con el tamaño del corpus +0.8842 → +0.8640, clasificación 6/19/7 sin cambios. La lista
+de `conflicto_territorial` se probó y quedó FUERA (falló el control absurdo y M3).
+
+**Salvedades que siguen vigentes:**
+- `desplazamiento_forzado` pasa el control absurdo por no empeorar, no por mejorar: su gemela
+  absurda sigue con MAX 0.86–0.99 con y sin filtro.
+- La mejora del Spearman (+0.074) está por debajo del ~0.15 que se distingue del ruido con n=32.
+- Las listas se diseñaron con los lugares de la ronda 1; el holdout (3 departamentos) es la
+  única comprobación fuera de muestra.
+- Alcance de la excepción (regla 15 de esa rama, que el `CLAUDE.md` de esta rama no tiene):
+  solo esas dos listas congeladas. Cualquier lista nueva o compuerta ad hoc exige pre-registro
+  y confirmación expresa.
+- Todos los cortes posteriores (0.7138/0.905 con 20, 0.6885/0.8916 y 0.6559/0.8839 con 18) se
+  calibraron con el mecanismo activo: quitarlo exige recalibrar (regla 2).
+
+**Decisión:** ninguna nueva. Queda documentado como parte del estado vigente de `src/`.
+**Cierra:** la laguna de documentación del traslado `decf893`.
+**Abre:** nada nuevo. La etapa 2 (listas para los otros indicadores) sigue siendo solo un
+borrador en `radar-20ind-bloques`.
