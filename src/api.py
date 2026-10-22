@@ -75,11 +75,16 @@ MAX_ARTICULOS_POR_INDICADOR = 20
 # el front). Las claves son las de CalculadorRadar.BLOQUES (radar-20ind-bloques,
 # contexto/08_log_decisiones.md [2026-10-03]); id/nombre/color son de
 # presentacion, no vienen de ahi -- Santiago solo definio las claves tecnicas.
+# Colores de identidad de cada dimension (insignia CA/TA/GP/PV). A proposito
+# FUERA de verde/ambar/rojo: en el dashboard esos tres significan nivel de
+# riesgo (BADGE abajo, y los cortes globales aplicados como aproximacion a
+# dimensiones e indicadores). Hasta el 2026-10-21 CA era rojo, TA verde y GP
+# ambar, y una insignia roja junto a una barra verde se leia como contradiccion.
 BLOQUES_META = {
-    "bloque_conflicto_armado_derechos":  {"id": "CA", "nombre": "Conflicto armado y derechos",      "color": "#EF4444"},
-    "bloque_territorio_ambiente":        {"id": "TA", "nombre": "Territorio y ambiente",             "color": "#10B981"},
-    "bloque_gobernanza_participacion":   {"id": "GP", "nombre": "Gobernanza y participación",        "color": "#F59E0B"},
-    "bloque_poblacion_condiciones_vida": {"id": "PV", "nombre": "Población y condiciones de vida",   "color": "#8B5CF6"},
+    "bloque_conflicto_armado_derechos":  {"id": "CA", "nombre": "Conflicto armado y derechos",      "color": "#1D4ED8"},
+    "bloque_territorio_ambiente":        {"id": "TA", "nombre": "Territorio y ambiente",             "color": "#0891B2"},
+    "bloque_gobernanza_participacion":   {"id": "GP", "nombre": "Gobernanza y participación",        "color": "#7C3AED"},
+    "bloque_poblacion_condiciones_vida": {"id": "PV", "nombre": "Población y condiciones de vida",   "color": "#475569"},
 }
 # No asumir cantidad ni nombres de bloques: leer lo que CalculadorRadar.BLOQUES
 # tenga realmente (regla del backlog: api.py no se puede desincronizar de
@@ -585,6 +590,15 @@ def _construir_respuesta(sol: SolicitudAnalisis, df_proc: pd.DataFrame,
         "badge_score": int(round(radar_propio * 100)),
         "badge_label": BADGE[categoria]["label"],
         "badge_color": BADGE[categoria]["color"],
+        # Valor sin redondear y cortes con los que se clasifico: el dashboard
+        # los imprime debajo del indice para que un 66 "Riesgo bajo" (radar
+        # 0.6556 < 0.6559) no parezca una contradiccion. Los cortes salen de
+        # config_pipeline, asi el front se entera solo si se recalibran.
+        "radar_propio": float(radar_propio),
+        "cortes": {
+            "bajo_medio": cfg.CORTE_BAJO_MEDIO_RADAR,
+            "medio_alto": cfg.CORTE_MEDIO_ALTO_RADAR,
+        },
         "bloques": bloques,
         "articulos": articulos,
     }

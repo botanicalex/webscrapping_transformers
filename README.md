@@ -123,11 +123,31 @@ el corpus es chico.
   indicador"* en vez de un enlace vacío.
 
 **Todo puntaje mayor a 0 es trazable al artículo que lo produjo**, tanto en el dashboard
-como en los dos Excel de `src/`. Una diferencia a tener presente: el **modal** del
-dashboard (clic en un indicador) solo muestra el artículo cuando superó el umbral de 0.10
-—si no lo superó, dice honestamente que no hay un artículo que active ese indicador—,
-mientras que los **Excel** van más allá: muestran el artículo de mayor puntaje aunque esté
-por debajo del umbral, justamente para poder verificar de dónde sale un número bajo.
+como en los dos Excel de `src/`. La tabla **"Noticias base del reporte"** del dashboard y su
+Excel descargado muestran, para cada uno de los 18 indicadores, el artículo de mayor
+puntaje con su enlace, aunque esté por debajo del umbral de 0.10 —justamente para poder
+verificar de dónde sale un número bajo—. Varios indicadores pueden compartir el mismo
+artículo: con agregación por máximo, un artículo fuerte activa varios.
+
+**Reporte PDF:** el botón "Descargar reporte PDF" del dashboard usa la impresión del
+navegador ("Guardar como PDF"), así que el texto queda seleccionable y los enlaces son
+hipervínculos reales. El radar se imprime como imagen; botones y navegación no salen en el
+papel. El detalle interactivo (clic en una dimensión o en un indicador para ver su
+artículo) está desactivado desde el 2026-10-21 y queda comentado en
+`docs/visualizacion_riesgo.html`.
+
+**La categoría del índice la calcula la API, no el front.** El dashboard muestra la
+etiqueta y el color que manda `/analizar` (cortes oficiales de `src/config_pipeline.py`) e
+imprime debajo el índice sin redondear y los cortes con que se clasificó, por ejemplo
+*"Índice 57.30 · Bajo < 65.59 ≤ Medio < 88.39 ≤ Alto"*. Hasta el 2026-10-21 el dashboard
+reclasificaba el índice con cortes propios de 50/70 (ver `contexto/08_log_decisiones.md`
+[2026-10-21]).
+
+**El verde/ámbar/rojo de dimensiones e indicadores es una aproximación.** Usan esos mismos
+cortes globales de forma orientativa —el front no tiene cortes propios—, pero están
+calibrados para el índice global (promedio de los 18), no para una dimensión o un
+indicador suelto: no hay cortes calibrados por dimensión. El dashboard y el PDF lo dicen en
+una nota. Calibrarlos queda pendiente (`contexto/07_backlog.md` punto 12).
 
 **Orden de las salidas:** el dashboard y su Excel descargado ordenan los 18 indicadores de
 mayor a menor puntaje, cruzando los 4 bloques (no agrupados por bloque). Los Excel que

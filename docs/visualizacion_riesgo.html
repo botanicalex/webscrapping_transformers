@@ -32,6 +32,8 @@
     flex-direction: column; color: white; font-weight: 700; font-size: 22px;
   }
   .badge span { font-size: 10px; font-weight: 400; }
+  .nota-aprox { font-size: 11px; color: #4B5563; background: white; border-left: 3px solid #9CA3AF; border-radius: 6px; padding: 9px 12px; margin-bottom: 18px; line-height: 1.45; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .cortes { font-size: 10px; color: #6B7280; margin-top: 4px; line-height: 1.4; white-space: nowrap; }
 
   .container { max-width: 1100px; margin: 0 auto; padding: 0 20px 30px; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
@@ -43,9 +45,12 @@
   .bloque-row {
     display: flex; align-items: center; gap: 10px;
     padding: 9px 10px; border-radius: 8px; margin-bottom: 7px;
-    cursor: pointer; border: 2px solid transparent; transition: all 0.15s;
+    border: 2px solid transparent; transition: all 0.15s;
+    /* DESACTIVADO 2026-10-21 (reporte PDF): la fila ya no es clicable.
+    cursor: pointer; */
   }
-  .bloque-row:hover { background: #F9FAFB; }
+  /* DESACTIVADO 2026-10-21 (reporte PDF): sin resaltado, la fila ya no es clicable.
+  .bloque-row:hover { background: #F9FAFB; } */
   .bloque-row.active { border-color: var(--color); background: color-mix(in srgb, var(--color) 8%, white); }
   .bloque-id { width: 24px; height: 24px; border-radius: 6px; background: var(--color); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
   .bloque-name { flex: 1; font-size: 12px; font-weight: 500; line-height: 1.3; }
@@ -73,6 +78,9 @@
   table.resumen .rb-bar-wrap { width: 120px; height: 5px; background: #E5E7EB; border-radius: 3px; }
   table.resumen .rb-bar-fill { height: 100%; border-radius: 3px; }
   table.resumen td.num { font-weight: 700; text-align: right; width: 40px; }
+  table.resumen td.sin-art { color: #9CA3AF; font-style: italic; }
+  table.resumen a.ver-noticia { color: #2563EB; text-decoration: none; white-space: nowrap; }
+  table.resumen a.ver-noticia:hover { text-decoration: underline; }
 
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
@@ -88,6 +96,9 @@
   .empty-msg { font-size: 12px; color: #6B7280; font-style: italic; padding: 10px 0; }
   .btn-excel { background: #059669; color: white; border: none; border-radius: 7px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: 12px; }
   .btn-excel:hover { background: #047857; }
+  .btn-pdf { background: #1B4F72; color: white; border: none; border-radius: 7px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-pdf:hover { background: #154360; }
+  .header-right { display: flex; align-items: center; gap: 18px; }
   .art-scroll { max-height: 400px; overflow-y: auto; }
   .footer-note { text-align: center; font-size: 10px; color: #9CA3AF; margin-top: 10px; }
 
@@ -96,6 +107,27 @@
   .nodata p { font-size: 13px; color: #64748B; margin-bottom: 18px; }
   .nodata a { display: inline-block; background: #1B4F72; color: white; text-decoration: none; border-radius: 8px; padding: 10px 18px; font-size: 13px; font-weight: 600; }
   [hidden] { display: none !important; }
+  .print-only { display: none; }
+
+  /* Reporte PDF: "Descargar reporte PDF" usa la impresion del navegador
+     (window.print), no una captura de pantalla, asi el texto queda
+     seleccionable y los enlaces quedan como hipervinculos reales. */
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: white; }
+    .no-print, .topbar, .modal-overlay, #detalle-card { display: none !important; }
+    .header { padding: 0 0 10px; margin-bottom: 12px; }
+    .header-inner, .container { max-width: none; padding: 0; }
+    .grid-2 { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .card { box-shadow: none; border: 1px solid #E5E7EB; padding: 12px; margin-bottom: 12px !important; }
+    .grid-2 .card { break-inside: avoid; }
+    .nota-aprox { box-shadow: none; border: 1px solid #E5E7EB; border-left: 3px solid #9CA3AF; margin-bottom: 12px; break-inside: avoid; }
+    canvas#radar { display: none !important; }
+    img#radar-print { display: block; width: 100%; max-width: 320px; margin: 0 auto; }
+    table.resumen tr { break-inside: avoid; }
+    table.resumen thead { display: table-header-group; }
+  }
 </style>
 </head>
 <body>
@@ -122,10 +154,14 @@
         <div class="meta" id="h-fechas"></div>
         <div class="meta" id="h-fuentes"></div>
       </div>
-      <div style="text-align:center">
-        <div class="badge" id="h-badge"></div>
-        <div style="font-size:11px;color:#6B7280;margin-top:5px">Índice Riesgo Social</div>
-        <div style="font-size:12px;font-weight:700" id="h-badge-label"></div>
+      <div class="header-right">
+        <button class="btn-pdf no-print" onclick="descargarPDF()">⬇ Descargar reporte PDF</button>
+        <div style="text-align:center">
+          <div class="badge" id="h-badge"></div>
+          <div style="font-size:11px;color:#6B7280;margin-top:5px">Índice Riesgo Social</div>
+          <div style="font-size:12px;font-weight:700" id="h-badge-label"></div>
+          <div class="cortes" id="h-cortes"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -134,37 +170,54 @@
     <div class="grid-2">
       <div class="card">
         <h2>Índice Riesgo Social por dimensión</h2>
-        <div class="sub">Pasa el cursor sobre cada punto para ver nombre completo y score</div>
+        <div class="sub no-print">Pasa el cursor sobre cada punto para ver nombre completo y score</div>
         <canvas id="radar" height="260"></canvas>
+        <img id="radar-print" class="print-only" alt="Radar del Índice Riesgo Social por dimensión">
       </div>
       <div class="card">
         <h2>Dimensiones sociales</h2>
-        <div class="sub">Haz clic en una dimensión para ver sus indicadores</div>
+        <div class="sub">Puntaje de cada dimensión · 0–100</div>
         <div id="bloques-list"></div>
       </div>
     </div>
 
+    <div class="nota-aprox" id="nota-colores"></div>
+
+    <!-- DESACTIVADO 2026-10-21 (reporte PDF): detalle de una dimension al hacer
+         clic en ella. Se conserva comentado por si se necesita despues; ver
+         tambien toggleBloque()/mostrarDetalle() en el script.
     <div class="card" id="detalle-card" style="display:none; margin-bottom:18px">
       <h2 id="detalle-titulo"></h2>
       <div class="sub" id="detalle-sub"></div>
       <div class="indicadores-grid" id="detalle-grid"></div>
     </div>
+    -->
 
     <div class="card" style="margin-bottom:18px">
-      <h2>Resumen — todos los indicadores</h2>
+      <h2>Ampliación de indicadores</h2>
       <div class="sub" id="resumen-sub"></div>
-      <button class="btn-excel" onclick="descargarResumen()">⬇ Descargar resumen Excel</button>
       <table class="resumen">
         <thead><tr><th>Dimensión</th><th>Indicador</th><th class="num">Score</th></tr></thead>
         <tbody id="resumen-body"></tbody>
       </table>
     </div>
 
+    <div class="card" style="margin-bottom:18px">
+      <h2>Noticias base del reporte</h2>
+      <div class="sub">Artículo de mayor puntaje de cada indicador. Un mismo artículo puede ser el de mayor puntaje de varios indicadores.</div>
+      <table class="resumen">
+        <thead><tr><th>Indicador</th><th>Título de la noticia</th><th>Enlace</th></tr></thead>
+        <tbody id="noticias-body"></tbody>
+      </table>
+      <button class="btn-excel no-print" style="margin:14px 0 0" onclick="descargarResumen()">⬇ Descargar resumen Excel</button>
+    </div>
+
     <div class="footer-note" id="footer-note"></div>
   </div>
 </div>
 
-<!-- Modal artículos -->
+<!-- DESACTIVADO 2026-10-21 (reporte PDF): modal con el articulo de un indicador
+     al hacer clic en el. Se conserva comentado; ver abrirModal()/cerrarModal().
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div class="modal-header">
@@ -177,6 +230,7 @@
     <div id="modal-body"></div>
   </div>
 </div>
+-->
 
 <script>
 "use strict";
@@ -207,6 +261,18 @@ const NOMBRES = {
 };
 function nombreBonito(s) { return NOMBRES[s] || s; }
 
+// Texto para un indicador sin ningun articulo detras (score 0 exacto), en la
+// tabla de noticias y en el Excel. Declarado aca arriba por la misma razon que
+// NOMBRES: renderDashboard() lo usa al cargar.
+const SIN_ARTICULO = "No se activó este indicador";
+// El grafico del radar, para redimensionarlo al imprimir. Tambien antes de
+// renderDashboard(), que lo asigna.
+let RADAR_CHART = null;
+// Colores por nivel (los mismos de BADGE en src/api.py). Solo colores, no
+// cortes: los cortes llegan de /analizar. Ver colorAproximado().
+const COLOR_NIVEL = { Bajo: "#10B981", Medio: "#F59E0B", Alto: "#EF4444" };
+const COLOR_SIN_CORTES = "#9CA3AF";
+
 // ── Cargar resultado desde sessionStorage ─────────────────────────────────
 let DATOS = null;
 try {
@@ -225,17 +291,35 @@ if (!DATOS || !Array.isArray(DATOS.bloques)) {
   renderDashboard();
 }
 
-// Nivel de riesgo (score 0–100): verde <50, naranja 50–70, rojo >=70.
-// Se usa para TODO el dashboard, incluido el badge principal (no los cortes de la API).
-function colorRiesgo100(s) {
-  if (s >= 70) return "#EF4444";
-  if (s >= 50) return "#F59E0B";
-  return "#10B981";
+// El front NO tiene cortes propios. La categoria del indice global (etiqueta y
+// color) llega calculada de la API con los cortes oficiales de
+// config_pipeline.py (badge_label/badge_color). Hasta el 2026-10-21 aca habia
+// una regla 50/70 propia que reclasificaba el indice e ignoraba la de la API.
+//
+// Dimensiones, indicadores y puntos del radar se colorean con ESOS MISMOS
+// cortes (DATOS.cortes), como APROXIMACION declarada: estan calibrados para el
+// indice global (promedio de los 18), no para una dimension o un indicador
+// suelto, y no hay cortes calibrados por dimension (contexto/07_backlog.md
+// punto 12). La nota #nota-colores lo dice en pantalla y en el PDF. El color
+// se elige con el mismo entero que se muestra, para que lo que se lee y su
+// color coincidan. Sin DATOS.cortes (API anterior) no hay semaforo: gris.
+// COLOR_NIVEL/COLOR_SIN_CORTES estan declarados arriba, antes de renderDashboard().
+function colorAproximado(s100) {
+  if (!DATOS.cortes) return COLOR_SIN_CORTES;
+  const v = s100 / 100;
+  if (v < DATOS.cortes.bajo_medio) return COLOR_NIVEL.Bajo;
+  if (v < DATOS.cortes.medio_alto) return COLOR_NIVEL.Medio;
+  return COLOR_NIVEL.Alto;
 }
-function labelRiesgo100(s) {
-  if (s >= 70) return "Riesgo alto";
-  if (s >= 50) return "Riesgo medio";
-  return "Riesgo bajo";
+
+// Indice 0-100 con 2 decimales TRUNCADOS (no redondeados): con cortes de 4
+// decimales, truncar garantiza que el numero mostrado quede del mismo lado
+// del corte que el valor real (0.65589 -> 65.58, nunca 65.59).
+function indice100(v) {
+  return (Math.floor(v * 10000 + 1e-9) / 100).toFixed(2);
+}
+function corte100(v) {
+  return (v * 100).toFixed(2);
 }
 // Parte un texto largo en varias líneas (Chart.js renderiza un array como multilínea).
 function wrapLabel(txt, max) {
@@ -256,8 +340,10 @@ function esc(s) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+/* DESACTIVADO 2026-10-21 (reporte PDF): estado del detalle y del modal.
 let bloqueActivo = null;
 let indActivo = null;
+*/
 
 function renderDashboard() {
   // ── Header ──
@@ -266,13 +352,41 @@ function renderDashboard() {
   document.getElementById("h-fuentes").textContent =
     (DATOS.fuentes && DATOS.fuentes.length) ? `Fuentes: ${DATOS.fuentes.join(", ")}` : "";
 
+  // Categoria oficial, tal como la clasifica la API (no se recalcula aca).
   const badge = document.getElementById("h-badge");
-  const badgeColor = colorRiesgo100(DATOS.badge_score);  // regla 50/70, no los cortes de la API
-  badge.style.background = badgeColor;
+  badge.style.background = DATOS.badge_color;
   badge.innerHTML = `${DATOS.badge_score}<span>/100</span>`;
   const lbl = document.getElementById("h-badge-label");
-  lbl.textContent = labelRiesgo100(DATOS.badge_score);
-  lbl.style.color = badgeColor;
+  lbl.textContent = DATOS.badge_label;
+  lbl.style.color = DATOS.badge_color;
+  // Cortes con los que se clasifico, para que en papel se entienda la
+  // categoria aunque el entero redondeado quede junto a un corte. Si la API
+  // es anterior y no los manda, la linea no se muestra.
+  const cortesEl = document.getElementById("h-cortes");
+  if (DATOS.cortes && typeof DATOS.radar_propio === "number") {
+    const c = DATOS.cortes;
+    cortesEl.innerHTML =
+      `Índice ${indice100(DATOS.radar_propio)}<br>` +
+      `Bajo &lt; ${corte100(c.bajo_medio)} ≤ Medio &lt; ${corte100(c.medio_alto)} ≤ Alto`;
+  } else {
+    cortesEl.hidden = true;
+  }
+
+  // Nota de la aproximacion de colores (pantalla y PDF). Sin cortes no hay
+  // semaforo que explicar: la nota no se muestra.
+  const notaEl = document.getElementById("nota-colores");
+  const nInd = DATOS.bloques.reduce((n, b) => n + b.indicadores.length, 0);  // no un "18" fijo
+  if (DATOS.cortes) {
+    notaEl.innerHTML =
+      `<b>Sobre los colores de dimensiones e indicadores.</b> El verde, ámbar y rojo de las ` +
+      `dimensiones, los puntos del radar y los puntajes de los indicadores usan, de forma ` +
+      `orientativa, los cortes del índice global (Bajo &lt; ${corte100(DATOS.cortes.bajo_medio)} ≤ ` +
+      `Medio &lt; ${corte100(DATOS.cortes.medio_alto)} ≤ Alto). Esos cortes están calibrados para ` +
+      `el índice global, que es el promedio de los ${nInd} indicadores; no hay cortes calibrados por ` +
+      `dimensión ni por indicador. La única clasificación oficial es la del índice global.`;
+  } else {
+    notaEl.hidden = true;
+  }
 
   // ── Lista de bloques ──
   const list = document.getElementById("bloques-list");
@@ -281,7 +395,7 @@ function renderDashboard() {
     row.className = "bloque-row";
     row.style.setProperty("--color", b.color);
     row.dataset.id = b.id;
-    const sc = colorRiesgo100(b.score);
+    const sc = colorAproximado(b.score);  // aproximacion, ver colorAproximado()
     row.innerHTML = `
       <div class="bloque-id">${esc(b.id)}</div>
       <div style="flex:1">
@@ -291,7 +405,8 @@ function renderDashboard() {
       <div class="bar-wrap"><div class="bar-fill" style="width:${b.score}%; background:${sc}"></div></div>
       <div class="score-val" style="color:${sc}">${b.score}</div>
     `;
-    row.addEventListener("click", () => toggleBloque(b));
+    // DESACTIVADO 2026-10-21 (reporte PDF): clic en la dimension -> detalle.
+    // row.addEventListener("click", () => toggleBloque(b));
     list.appendChild(row);
   });
 
@@ -311,14 +426,31 @@ function renderDashboard() {
     .sort((x, y) => y.ind.score - x.ind.score);
   filasOrdenadas.forEach(({ b, ind }) => {
     const s100 = Math.round(ind.score * 100);
-    const c = colorRiesgo100(s100);
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><span class="rb-id" style="background:${b.color}">${esc(b.id)}</span> ${esc(nombreBonito(b.nombre))}</td>
       <td>${esc(nombreBonito(ind.col))}</td>
-      <td class="num" style="color:${c}">${s100}</td>
+      <td class="num" style="color:${colorAproximado(s100)}">${s100}</td>
     `;
     tbody.appendChild(tr);
+  });
+
+  // ── Tabla de noticias ──
+  // Mismo orden que la tabla de arriba. titulo_top/url_top: el articulo de
+  // mayor score de cada indicador, el mismo que lleva el Excel. Varios
+  // indicadores pueden compartir articulo (con MAX, un articulo fuerte
+  // activa varios); no es un error.
+  const tbodyNot = document.getElementById("noticias-body");
+  filasOrdenadas.forEach(({ ind }) => {
+    const tr = document.createElement("tr");
+    const titulo = ind.titulo_top
+      ? `<td>${esc(ind.titulo_top)}</td>`
+      : `<td class="sin-art">${SIN_ARTICULO}</td>`;
+    const enlace = ind.url_top
+      ? `<td><a class="ver-noticia" href="${esc(ind.url_top)}" target="_blank" rel="noopener">Ver noticia ↗</a></td>`
+      : `<td class="sin-art">${SIN_ARTICULO}</td>`;
+    tr.innerHTML = `<td>${esc(nombreBonito(ind.col))}</td>${titulo}${enlace}`;
+    tbodyNot.appendChild(tr);
   });
 
   // ── Footer ──
@@ -327,7 +459,7 @@ function renderDashboard() {
 
   // ── Radar ──
   const ctx = document.getElementById("radar").getContext("2d");
-  new Chart(ctx, {
+  RADAR_CHART = new Chart(ctx, {
     type: "radar",
     data: {
       labels: DATOS.bloques.map(b => wrapLabel(nombreBonito(b.nombre))),
@@ -337,12 +469,15 @@ function renderDashboard() {
         borderColor: "#6B7280",
         backgroundColor: "rgba(107,114,128,0.1)",
         borderWidth: 2,
-        pointBackgroundColor: DATOS.bloques.map(b => colorRiesgo100(b.score)),
+        pointBackgroundColor: DATOS.bloques.map(b => colorAproximado(b.score)),
         pointRadius: 5,
       }]
     },
     options: {
       responsive: true,
+      // Resolucion alta del canvas: el radar es lo unico del PDF que va como
+      // imagen, y a la densidad de pantalla sale borroso en papel.
+      devicePixelRatio: Math.max(window.devicePixelRatio || 1, 3),
       scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 9 } }, pointLabels: { font: { size: 11 } }, grid: { color: "#E5E7EB" } } },
       plugins: {
         legend: { display: false },
@@ -354,6 +489,52 @@ function renderDashboard() {
     }
   });
 }
+
+// ── Reporte PDF ──
+// Impresion del navegador (el usuario elige "Guardar como PDF"): texto
+// seleccionable y enlaces reales. El titulo de la pagina es el nombre de
+// archivo que propone el navegador.
+async function descargarPDF() {
+  const lugar = (DATOS.lugar || "resultado").replace(/[^A-Za-z0-9]+/g, "_");
+  TITULO_PANTALLA = document.title;
+  document.title = `reporte_radar_${lugar}`;
+  // La imagen del radar se genera y se decodifica ANTES de abrir la
+  // impresion: si se generara recien en beforeprint, el navegador podria
+  // imprimir antes de tenerla lista.
+  radarParaImprimir();
+  try { await document.getElementById("radar-print").decode(); } catch (e) { /* se imprime igual */ }
+  window.print();
+}
+let TITULO_PANTALLA = null;
+
+// Chart.js no se redimensiona bien al imprimir: su ResizeObserver vuelve a
+// fijar el ancho de pantalla y el canvas se corta en la columna del PDF. En
+// vez de depender de ese orden, antes de imprimir se dibuja el radar al ancho
+// de la tarjeta impresa (a resolucion alta, ver devicePixelRatio), se copia a
+// una <img> que solo se ve en papel, y el canvas vuelve a su tamaño. Solo el
+// radar va como imagen (un canvas ya lo es); el resto del PDF es texto.
+const ANCHO_RADAR_IMPRESO = 320;
+function radarParaImprimir() {
+  if (!RADAR_CHART) return;
+  RADAR_CHART.resize(ANCHO_RADAR_IMPRESO, ANCHO_RADAR_IMPRESO);
+  const img = document.getElementById("radar-print");
+  img.src = RADAR_CHART.toBase64Image();
+  RADAR_CHART.resize();
+}
+function radarParaPantalla() {
+  document.getElementById("radar-print").removeAttribute("src");
+  if (TITULO_PANTALLA) { document.title = TITULO_PANTALLA; TITULO_PANTALLA = null; }
+}
+// Respaldo para Ctrl+P (no pasa por descargarPDF): si la imagen no esta, se genera aca.
+window.addEventListener("beforeprint", () => {
+  if (!document.getElementById("radar-print").hasAttribute("src")) radarParaImprimir();
+});
+window.addEventListener("afterprint", radarParaPantalla);
+
+/* DESACTIVADO 2026-10-21 (reporte PDF): detalle de dimension y modal de
+   articulo al hacer clic. Se conserva comentado por si se necesita despues;
+   para reactivarlo, descomentar tambien el HTML de #detalle-card y #modal,
+   bloqueActivo/indActivo y el addEventListener de la fila de dimension.
 
 function toggleBloque(b) {
   const rows = document.querySelectorAll(".bloque-row");
@@ -380,7 +561,7 @@ function mostrarDetalle(b) {
   grid.innerHTML = "";
   b.indicadores.forEach(ind => {
     const s100 = Math.round(ind.score * 100);
-    const badgeColor = colorRiesgo100(s100);
+    const badgeColor = colorAproximado(s100);  // antes colorRiesgo100 (50/70), eliminado el 2026-10-21
     const card = document.createElement("div");
     card.className = "ind-card";
     card.style.setProperty("--color", b.color);
@@ -428,14 +609,20 @@ function abrirModal(ind) {
   document.getElementById("modal").classList.add("open");
 }
 
+function cerrarModal() {
+  document.getElementById("modal").classList.remove("open");
+}
+document.getElementById("modal").addEventListener("click", e => {
+  if (e.target.id === "modal") cerrarModal();
+});
+*/
+
 // Excel del resumen general: una fila por indicador, con el artículo de
 // mayor score. titulo_top/url_top vienen siempre de la API; cuando el
 // indicador no tiene ningún artículo detrás (score 0 exacto), esas celdas
-// muestran un texto en vez de quedar vacías -- mismo criterio que
+// muestran SIN_ARTICULO en vez de quedar vacías -- mismo criterio que
 // generar_max_articulos_por_departamento.py y pipeline_lugares.py
-// (contexto/07_backlog.md punto 11). Distinto de DATOS.articulos, que sigue
-// siendo solo para el modal.
-const SIN_ARTICULO = "No se activó este indicador";
+// (contexto/07_backlog.md punto 11).
 function descargarResumen() {
   // Mismo ranking general que la tabla en pantalla: todos los indicadores de
   // mayor a menor puntaje, sin agrupar por dimensión (la columna Dimensión
@@ -458,13 +645,6 @@ function descargarResumen() {
   const lugar = (DATOS.lugar || "resultado").replace(/[^A-Za-z0-9]+/g, "_");
   XLSX.writeFile(wb, `radar_resumen_${lugar}.xlsx`);
 }
-
-function cerrarModal() {
-  document.getElementById("modal").classList.remove("open");
-}
-document.getElementById("modal").addEventListener("click", e => {
-  if (e.target.id === "modal") cerrarModal();
-});
 </script>
 </body>
 </html>

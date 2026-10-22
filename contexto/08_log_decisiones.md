@@ -1212,3 +1212,119 @@ de `conflicto_territorial` se probó y quedó FUERA (falló el control absurdo y
 **Cierra:** la laguna de documentación del traslado `decf893`.
 **Abre:** nada nuevo. La etapa 2 (listas para los otros indicadores) sigue siendo solo un
 borrador en `radar-20ind-bloques`.
+
+## [2026-10-21] Reporte PDF del dashboard, tabla "Noticias base del reporte", detalle interactivo desactivado y fin de los cortes 50/70 del front — ADOPTADA
+
+**Pedido de la usuaria:** poder descargar todo el reporte en PDF. Solo toca
+`docs/visualizacion_riesgo.html`, `README.md`, `contexto/07_backlog.md` y, por la corrección
+de la clasificación (abajo), `src/api.py` (agrega `radar_propio` y `cortes` a `/analizar` y
+cambia la paleta de `BLOQUES_META`).
+
+**Cambios:**
+- **Botón "Descargar reporte PDF"** en el encabezado: impresión del navegador
+  (`window.print()`) más una hoja `@media print`, **no** una librería que convierta la
+  pantalla en imagen, para que el texto sea seleccionable y los enlaces queden como
+  hipervínculos reales. En papel se ocultan los dos botones, la barra "← Nueva consulta" y
+  el subtítulo "Pasa el cursor…".
+- **Radar en el PDF:** Chart.js no se redimensiona bien al imprimir (su ResizeObserver
+  vuelve a fijar el ancho de pantalla después de `chart.resize()`, medido). Por eso, antes de
+  imprimir, el radar se dibuja a 320 px con `devicePixelRatio` 3, se copia a una `<img>` que
+  solo se ve en impresión y el canvas vuelve a su tamaño. El botón espera a que la imagen
+  esté decodificada antes de llamar a `window.print()`; `beforeprint` la genera como respaldo
+  para Ctrl+P. Es el único elemento del PDF que va como imagen (un canvas ya lo es).
+- **Detalle interactivo desactivado, COMENTADO, no borrado:** clic en una dimensión (tarjeta
+  de detalle) y en un indicador (modal con el artículo). Marcas `DESACTIVADO 2026-10-21
+  (reporte PDF)` en el HTML, el CSS y el script. El subtítulo "Haz clic en una dimensión…"
+  pasó a "Puntaje de cada dimensión · 0–100". El tooltip del radar al pasar el cursor se
+  conserva.
+- **Tabla de resumen:** título "Ampliación de indicadores"; sin el botón de Excel.
+- **Tabla nueva "Noticias base del reporte":** Indicador, Título de la noticia y Enlace, los
+  18 indicadores en el mismo orden por puntaje que la tabla de arriba. Usa `titulo_top`/
+  `url_top` de `/analizar` (el mismo artículo que el Excel). Sin artículo (MAX = 0 exacto):
+  "No se activó este indicador", igual que el Excel, sin columna de activación. El enlace es
+  el texto corto "Ver noticia ↗", no la URL completa (pedido de la usuaria: con 18 filas, la
+  URL entera dominaría la tabla).
+- **Botón de Excel** debajo de la tabla nueva. `descargarResumen()` no cambia.
+
+**Varios indicadores comparten artículo:** con agregación por máximo un artículo fuerte es
+el de mayor puntaje en varios indicadores. Es esperado, no un error de generación; el
+subtítulo de la tabla lo dice.
+
+**Desaparece la diferencia modal/Excel** que describía el README: el modal solo mostraba el
+artículo si superaba 0.10. Un arreglo para que lo mostrara siempre se perdió sin pushear y
+no se rehízo, porque este cambio desactiva el modal.
+
+**Validado** (Edge headless vía Playwright, con un payload armado por la
+`_construir_respuesta` real de `src/api.py` sobre un `df_proc` sintético: 18 indicadores, un
+artículo como top de 6 y otro de 4, 3 en 0 exacto y 2 bajo el umbral):
+- Pantalla: sin errores JS; el clic en una dimensión no abre nada; tabla de noticias con 18
+  filas, 15 enlaces y 3 filas sin artículo.
+- PDF (A4, 3 páginas): 15 anotaciones de enlace clicables y sus URI coinciden con las 5
+  URL distintas del payload; texto extraíble; no aparecen botones, "Nueva consulta" ni
+  "Pasa el cursor"; el radar entra como imagen de 960×960 px, completo y nítido.
+- Excel: 18 filas, columnas Dimensión/Indicador/Score/Título/URL, igual que antes.
+- `python src/test_integracion.py`: 16/16 (no cubre el front).
+- **No validado:** la impresión real desde el diálogo de Chrome (el PDF de prueba simula
+  la impresión con `emulate_media` + `beforeprint`). La usuaria la hace antes del push.
+
+**Corrección de la clasificación del índice (mismo cambio, pedido de la usuaria antes de
+commitear).** Al revisar el PDF apareció que el dashboard decía "Riesgo medio" para un
+índice que la metodología oficial clasifica "Bajo" (57 en la prueba). Causa:
+- **El dashboard venía usando cortes propios de 50/70 sin documentar desde `aade104`**
+  (2026-09-08, primera versión de `docs/visualizacion_riesgo.html`): `colorRiesgo100()` /
+  `labelRiesgo100()`, con el comentario "incluido el badge principal (no los cortes de la
+  API)". Ningún commit, entrada de este log ni punto del backlog explica por qué.
+- **La API siempre mandó la categoría oficial** (`badge_label`/`badge_color`, calculados
+  por `_categoria()` con `CORTE_BAJO_MEDIO_RADAR`/`CORTE_MEDIO_ALTO_RADAR` de
+  `config_pipeline.py`, desde `d94ed12`), y la pantalla de resultados anterior
+  (`busqueda_pipeline.html`) la usaba. **El dashboard la ignoraba**: tomaba solo
+  `badge_score` y lo reclasificaba con 50/70.
+- Efecto: todo índice en [50, 65.59) se mostraba "Medio" siendo "Bajo", y todo índice en
+  [70, 88.39) "Alto" siendo "Medio". Con MAX es el rango donde caen la mayoría de los
+  índices. Cuántos departamentos cambiaban: no medido (los scores nacionales no están en
+  esta máquina).
+- Los mismos 50/70 pintaban de verde/ámbar/rojo dimensiones, puntos del radar e
+  indicadores. **No existen cortes oficiales para una dimensión o un indicador suelto**: los
+  oficiales están calibrados para el índice global (promedio de los 18), y aplicarlos a otra
+  distribución choca con la regla 2.
+
+**Arreglo:**
+- El índice toma etiqueta y color de `badge_label`/`badge_color`. Se borraron
+  `colorRiesgo100()`/`labelRiesgo100()`: el front no tiene cortes propios.
+- **Dimensiones, puntos del radar e indicadores: los cortes oficiales como APROXIMACIÓN
+  declarada, no como calibración** (decisión de la usuaria). Se reemplazaron los 50/70
+  sin documentar por los mismos cortes que manda `/analizar` (0.6559/0.8839) para elegir
+  verde/ámbar/rojo del puntaje de cada dimensión y de cada indicador (`colorAproximado()`,
+  con el mismo entero que se muestra, para que número y color coincidan). Ya no queda
+  ningún corte escrito a mano en el front. Es una aproximación porque esos cortes están
+  calibrados para el índice global (promedio de los 18), no para una dimensión o un
+  indicador suelto (regla 2): una nota visible debajo del radar, que también sale en el
+  PDF, dice que los colores usan los cortes globales de forma orientativa y que no hay
+  cortes calibrados por dimensión ni por indicador. Sin `cortes` en la respuesta (API
+  anterior) no hay semáforo: todo en gris y la nota oculta.
+- **Pendiente:** calcular cortes propios por dimensión (y, si se justifica, por
+  indicador). Requiere los scores nacionales de los 32 departamentos con los 18
+  indicadores, que hoy no existen (`scores_v2_32deptos.pkl` es de los 26, y ni siquiera
+  está en esta máquina). `contexto/07_backlog.md` punto 12.
+- **Paleta de `BLOQUES_META` (`src/api.py`) cambiada** a colores fuera del semáforo:
+  CA `#EF4444`→`#1D4ED8` (azul), TA `#10B981`→`#0891B2` (cian), GP `#F59E0B`→`#7C3AED`
+  (violeta), PV `#8B5CF6`→`#475569` (pizarra). Con los colores de nivel de vuelta en
+  barras y puntajes, una insignia CA roja junto a una barra verde se leía como
+  contradicción. Verde/ámbar/rojo quedan solo para nivel de riesgo.
+- `/analizar` manda además `radar_propio` (sin redondear) y `cortes` (`bajo_medio`,
+  `medio_alto`, de `config_pipeline.py`, igual que `/health`). Debajo del índice se imprime
+  "Índice 57.30 · Bajo < 65.59 ≤ Medio < 88.39 ≤ Alto", para que un 66 "Riesgo bajo"
+  (radar 0.6556) no parezca una contradicción en papel. El índice se muestra **truncado** a
+  2 decimales, no redondeado: con cortes de 4 decimales eso garantiza que el número quede
+  del mismo lado del corte que el valor real. Si la API es anterior y no manda los campos,
+  la línea no se muestra (la página no se rompe).
+- Validado con casos de borde (Edge headless): 0.65589 → "66 · Riesgo bajo · Índice 65.58";
+  0.6559 → "66 · Riesgo medio · Índice 65.59"; 0.8839 → "Riesgo alto · Índice 88.39"; payload
+  sin `cortes` → línea oculta, sin errores JS. Colores aproximados en el borde: indicador
+  65 verde, 66 ámbar, 88 ámbar, 89 rojo; dimensión 65 verde, 66 ámbar, 89 rojo. La nota
+  sale en el PDF (texto extraíble).
+- **Despliegue:** el front llega con el push (Pages); la línea de cortes necesita además que
+  la API de Colab corra este `api.py` (el notebook clona el repo al arrancar).
+
+**Cierra:** el pedido del reporte PDF y los cortes 50/70 del front.
+**Abre:** cortes calibrados por dimensión (`07_backlog.md` punto 12).

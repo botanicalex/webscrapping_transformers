@@ -453,6 +453,27 @@ aparte.
 
 ---
 
+## 12. Cortes calibrados por dimensión (y por indicador) — PENDIENTE
+
+Desde el 2026-10-21 el dashboard colorea dimensiones, puntos del radar e indicadores
+(verde/ámbar/rojo) con los **cortes del índice global** que manda `/analizar`
+(`Bajo < 0.6559 <= Medio < 0.8839 <= Alto`), como **aproximación declarada**: una nota en
+pantalla y en el PDF lo dice. Esos cortes están calibrados para el índice global (promedio
+de los 18 indicadores bajo MAX), no para el promedio de 4–5 indicadores de una dimensión ni
+para el MAX de un indicador suelto, que tienen otra distribución (regla 2). Ver
+`08_log_decisiones.md` [2026-10-21].
+
+**Qué haría falta:** cortes propios por dimensión, calibrados igual que los globales
+(`elegir_cortes`, anclas de validez aparente), y decidir si por indicador tiene sentido.
+Cuando existan, `/analizar` los mandaría junto a `cortes` y el front dejaría de aproximar.
+
+**Bloqueo:** requiere los scores nacionales de los 32 departamentos con los 18 indicadores
+vigentes (frases C21/R30, `PREFILTRO_OBJETO`). Hoy no existen: `scores_v2_32deptos.pkl` es
+de los 26 indicadores (y no está en esta máquina). Depende de re-puntuar el corpus nacional
+(~4 h GPU, ver punto 2).
+
+---
+
 ## Trabajo perdido que conviene rehacer
 
 Un workflow de 10 agentes quedó a medias al apagar el equipo. Cubría: propuestas de keywords
