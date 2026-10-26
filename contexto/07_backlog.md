@@ -475,6 +475,47 @@ de los 26 indicadores (y no está en esta máquina). Depende de re-puntuar el co
 
 ---
 
+## 13. Fix del modal de indicador sin commitear al desactivarse — PORTAR SI SE REACTIVA
+
+El 2026-10-19 se corrigió una inconsistencia en el modal "Haz clic en un indicador"
+(`docs/visualizacion_riesgo.html`, función `abrirModal()`): cuando un indicador no activaba
+(ningún artículo superaba `UMBRAL_INDICADOR_ACTIVO`, 0.10) pero sí tenía un artículo detrás
+con score > 0, el modal solo mostraba *"No hay un artículo que active este indicador"* sin
+enlace, mientras que el Excel descargado ya mostraba igual el artículo de mayor puntaje
+(`titulo_top`/`url_top`, ver punto 11) — las dos salidas quedaban inconsistentes.
+
+**El arreglo nunca se commiteó**: entre que se escribió y que se iba a confirmar, se
+desactivó todo el modal (quedó comentado en el HTML/JS, reemplazado por el reporte PDF,
+ver `08_log_decisiones.md` [2026-10-21]) — mismo trabajo, otro equipo, por el cambio de
+máquina de la usuaria. El cambio quedó en un `git stash` y se descarta ahora para no
+depender de que sobreviva a otro cambio de equipo; queda anotado acá en su lugar.
+
+**Solo aplica si se reactiva la interacción de "clic en un indicador"** tal como estaba
+(no al reporte PDF actual, que no la usa). El cambio exacto, para portar cuando
+corresponda — dentro de `abrirModal()`, rama `arts.length === 0`:
+
+```diff
+   if (arts.length === 0) {
+-    body.innerHTML = `<div class="empty-msg">No hay un artículo que active este indicador.</div>`;
++    let html = `<div class="empty-msg">No hay un artículo que active este indicador.</div>`;
++    if (ind.titulo_top) {
++      html += `
++        <div class="art-card">
++          <div class="art-title">${ind.url_top
++            ? `<a href="${esc(ind.url_top)}" target="_blank" rel="noopener" style="color:#2563EB;text-decoration:none">${esc(ind.titulo_top)} ↗</a>`
++            : esc(ind.titulo_top)}</div>
++          <span class="art-score">Score: ${ind.score}</span>
++        </div>`;
++    }
++    body.innerHTML = html;
+   } else {
+```
+
+Si el score es 0 exacto (`titulo_top` vacío), queda solo el mensaje, sin tarjeta — sin
+cambios respecto del comportamiento actual.
+
+---
+
 ## Trabajo perdido que conviene rehacer
 
 Un workflow de 10 agentes quedó a medias al apagar el equipo. Cubría: propuestas de keywords

@@ -209,7 +209,7 @@
     -->
 
     <div class="card" style="margin-bottom:18px">
-      <h2>Ampliación de indicadores</h2>
+      <h2>Indicadores de cada dimensión</h2>
       <div class="sub" id="resumen-sub"></div>
       <table class="resumen">
         <thead><tr><th>Dimensión</th><th>Indicador</th><th class="num">Score</th></tr></thead>
@@ -218,8 +218,8 @@
     </div>
 
     <div class="card" style="margin-bottom:18px">
-      <h2>Noticias base del reporte</h2>
-      <div class="sub">Artículo de mayor puntaje de cada indicador. Un mismo artículo puede ser el de mayor puntaje de varios indicadores.</div>
+      <h2>Noticias base para el cálculo de los indicadores</h2>
+      <div class="sub">A continuación se listan los artículos que dieron lugar al cálculo de los indicadores. Un mismo artículo puede ser la base de varios indicadores.</div>
       <table class="resumen">
         <thead><tr><th>Indicador</th><th>Título de la noticia</th><th>Enlace</th></tr></thead>
         <tbody id="noticias-body"></tbody>
@@ -404,14 +404,16 @@ function renderDashboard() {
   // la lista de indicadores, este texto no se desactualiza como paso con "26".
   const totalIndicadores = DATOS.bloques.reduce((n, b) => n + b.indicadores.length, 0);
   document.getElementById("resumen-sub").textContent =
-    `Los ${totalIndicadores} indicadores, ordenados por puntaje · score 0–100`;
+    `Los ${totalIndicadores} indicadores, agrupados por dimensión · score 0–100`;
   const tbody = document.getElementById("resumen-body");
-  // Ranking general: todos los indicadores de todos los bloques, de mayor a
-  // menor puntaje -- no agrupado por dimensión (la columna Dimensión se
-  // conserva, solo cambia el orden de las filas).
-  const filasOrdenadas = DATOS.bloques
-    .flatMap(b => b.indicadores.map(ind => ({ b, ind })))
-    .sort((x, y) => y.ind.score - x.ind.score);
+  // Agrupado por dimensión (orden de DATOS.bloques) y, dentro de cada
+  // dimensión, de mayor a menor puntaje -- vuelve al agrupado (decisión del
+  // usuario, 2026-10-26, contexto/08_log_decisiones.md): reemplaza el
+  // ranking global cruzando dimensiones que había introducido fd1aa52 el
+  // 2026-10-13. Usada también por la tabla de noticias de abajo, mismo orden.
+  const filasOrdenadas = DATOS.bloques.flatMap(b =>
+    b.indicadores.slice().sort((x, y) => y.score - x.score).map(ind => ({ b, ind }))
+  );
   filasOrdenadas.forEach(({ b, ind }) => {
     const s100 = Math.round(ind.score * 100);
     const tr = document.createElement("tr");
@@ -617,12 +619,11 @@ document.getElementById("modal").addEventListener("click", e => {
 // generar_max_articulos_por_departamento.py y pipeline_lugares.py
 // (contexto/07_backlog.md punto 11).
 function descargarResumen() {
-  // Mismo ranking general que la tabla en pantalla: todos los indicadores de
-  // mayor a menor puntaje, sin agrupar por dimensión (la columna Dimensión
-  // se conserva, solo cambia el orden de las filas).
+  // Mismo orden que las tablas en pantalla: agrupado por dimensión y, dentro
+  // de cada dimensión, de mayor a menor puntaje (2026-10-26) -- para que esta
+  // salida no quede distinta de lo que se ve en pantalla.
   const rows = DATOS.bloques
-    .flatMap(b => b.indicadores.map(ind => ({ b, ind })))
-    .sort((x, y) => y.ind.score - x.ind.score)
+    .flatMap(b => b.indicadores.slice().sort((x, y) => y.score - x.score).map(ind => ({ b, ind })))
     .map(({ b, ind }) => ({
       "Dimensión": `${b.id} — ${nombreBonito(b.nombre)}`,
       "Indicador": nombreBonito(ind.col),

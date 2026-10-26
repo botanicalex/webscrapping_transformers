@@ -1469,3 +1469,30 @@ el mismo archivo: es lo que dejó pasar esto. Se fija **`newspaper3k==0.2.8`** e
 **Abre:** avisar al equipo (y a Santiago, por lo del `pip uninstall newspaper4k`); decidir
 si se re-corren consultas hechas antes en Colab. `colab_setup.ipynb` sigue instalando
 `newspaper3k==0.2.8` por su cuenta: si algún día cambia el pin, hay que cambiar los dos.
+
+## [2026-10-26] Dashboard: la tabla de indicadores vuelve a agruparse por dimensión
+
+**Decisión del usuario, explícita y deliberada — no una regresión.** El 2026-10-13
+(`fd1aa52`) se había cambiado la tabla "Resumen — todos los indicadores" (hoy "Indicadores
+de cada dimensión") de agrupada-por-bloque a un ranking global cruzando dimensiones. Esta
+entrada revierte ese cambio: se vuelve a agrupar por dimensión (orden de `DATOS.bloques`) y,
+dentro de cada una, de mayor a menor puntaje. Si alguien ve este archivo y se pregunta por
+qué el orden "cambió otra vez", la respuesta es esta: fue pedido así, dos veces, en
+sentidos opuestos, y esto es lo vigente desde hoy.
+
+**Alcance:** las dos tablas en pantalla de `docs/visualizacion_riesgo.html`
+("Indicadores de cada dimensión" y "Noticias base para el cálculo de los indicadores",
+esta última ya dependía del mismo array `filasOrdenadas` y queda igual sin tocarla aparte)
+y el Excel que arma `descargarResumen()`. Las tres salidas comparten ahora el mismo orden
+—decisión explícita para que no queden distintas entre sí, la misma razón por la que el
+2026-10-13 se había alineado el Excel al ranking global que hoy se revierte.
+
+**Títulos actualizados de paso** (pedido junto con el reordenamiento, no una decisión
+aparte): "Ampliación de indicadores" → "Indicadores de cada dimensión"; "Noticias base del
+reporte" → "Noticias base para el cálculo de los indicadores", con su subtítulo reescrito
+para decir explícitamente que lista los artículos que dieron lugar al cálculo (conservando
+la aclaración de que un mismo artículo puede ser la base de varios indicadores).
+
+**Validado:** navegador real con indicadores de distinto puntaje mezclados a propósito
+entre 3 bloques — confirmado que las dos tablas y el Excel quedan agrupados por dimensión,
+descendente dentro de cada una, sin errores de consola.
