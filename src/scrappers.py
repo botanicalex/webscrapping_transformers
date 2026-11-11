@@ -56,6 +56,20 @@ GRUPOS_DEPARTAMENTOS = cfg.GRUPOS_DEPARTAMENTOS
 MIN_ARTICULOS_RESPALDO = cfg.MIN_ARTICULOS_RESPALDO
 RUTA_CORPUS_PKL = cfg.RUTA_CORPUS_PKL
 
+
+def _solo_territorio(termino: str) -> str:
+    """Quita el tema final (conflicto/comunidades/...) de un termino tipo
+    '<territorio> <tema>'. Lo usan los scrapers cuyo buscador no hace
+    matching OR multi-palabra: una consulta de dos palabras no coincide con
+    nada aunque el territorio solo si tenga resultados (confirmado 2026-11-11
+    en diariodelcauca.com.co y diariodelsur.com.co, ver
+    contexto/08_log_decisiones.md)."""
+    for tema in TEMAS_BUSQUEDA:
+        sufijo = f" {tema}"
+        if termino.endswith(sufijo):
+            return termino[: -len(sufijo)]
+    return termino
+
 # ── BUCLE DE EJECUCIÓN ────────────────────────────────────────────────────────
 # Descomenta y ejecuta este bloque para correr todos los departamentos:
 #
@@ -100,6 +114,12 @@ if hasattr(_NEWSPAPER_CONFIG, "verify"):
 
 class ScraperPeriodico(ABC):
     """Clase base abs para webscrapping de periódicos"""
+
+    # Parser de BeautifulSoup para las paginas de busqueda/listado (scrape() y
+    # _recolectar_links() de esta clase). 'html.parser' por defecto; un scraper
+    # puntual lo pisa si el HTML del sitio lo requiere (ver ScraperElTiempo:
+    # su HTML actual no es parseable con html.parser, contexto/08_log_decisiones.md).
+    PARSER = 'html.parser'
 
     def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str):
         """
@@ -154,7 +174,7 @@ class ScraperPeriodico(ABC):
             # ni de rate-limiting), asi que 10s fallaba por pura estrechez, no por
             # un problema real. Mas generoso, nunca perjudica a un sitio rapido.
             r = self.session.get(url_inicial, timeout=20)
-            soup = BeautifulSoup(r.content, 'html.parser')
+            soup = BeautifulSoup(r.content, self.PARSER)
             total_paginas = self._obtener_total_paginas(soup)
             print(f"Total de páginas: {total_paginas}")
         except Exception as e:
@@ -183,7 +203,7 @@ class ScraperPeriodico(ABC):
             try:
                 url = self._construir_url_busqueda(pagina)
                 r = self.session.get(url, timeout=10)
-                soup = BeautifulSoup(r.content, 'html.parser')
+                soup = BeautifulSoup(r.content, self.PARSER)
                 links_pagina = self._extraer_links_pagina(soup)
                 links.extend(links_pagina)
                 time.sleep(0.5)  # Rate limiting
@@ -971,19 +991,24 @@ class ScraperDiarioOccidente(ScraperPeriodico):
         print(f"Total de links únicos: {len(links)}")
         return links
 
-import warnings
-try:
-    from bs4 import XMLParsedAsHTMLWarning
-    warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
-except ImportError:
-    pass  # bs4 < 4.12.0 no tiene esta advertencia
-
 class ScraperDiarioDelSur(ScraperPeriodico):
+    """
+    Scraper para Diario del Sur (diariodelsur.com.co).
+
+    El sitio migro de WordPress a una plataforma nueva (Next.js; misma
+    estructura e imagenes de gec.hsbnoticias.com que Diario del Cauca y El
+    Pilon) en algun momento antes del 2026-11-11, cuando se detecto que el
+    feed RSS viejo (/feed/?s=...) devuelve 404 contra el sitio actual.
+    Reescrito contra /buscar?q=... : resultados server-side-rendered en
+    HTML plano (no requiere Playwright), sin paginacion -- un solo listado
+    con el tope que imponga el sitio. Ver contexto/08_log_decisiones.md.
+    """
     REGION = "suroccidente"
     BASE_URL = "https://www.diariodelsur.com.co"
 
     def __init__(self, termino, fecha_desde, fecha_hasta):
         super().__init__(termino, fecha_desde, fecha_hasta)
+        self._fechas: Dict[str, Optional[datetime]] = {}
         original_get = self.session.get
         def get_con_timeout(*args, **kwargs):
             kwargs.setdefault('timeout', 30)
@@ -995,118 +1020,83 @@ class ScraperDiarioDelSur(ScraperPeriodico):
         return "Diario del Sur"
 
     def _construir_url_busqueda(self, pagina: int = 1) -> str:
-        return f"{self.BASE_URL}/feed/?s={self.termino}&paged={pagina}"
+        # El sitio nuevo no pagina la busqueda ('pagina' se ignora) y no hace
+        # matching OR multi-palabra: se busca solo por el territorio, sin el
+        # tema que le agrega _buscar_multi_termino (ver _solo_territorio).
+        return f"{self.BASE_URL}/buscar?q={_solo_territorio(self.termino)}"
 
     def _obtener_total_paginas(self, soup: BeautifulSoup) -> int:
-        try:
-            nav = soup.find('nav', class_='pagination')
-            if nav:
-                nums = []
-                for a in nav.find_all('a'):
-                    try:
-                        nums.append(int(a.get_text(strip=True)))
-                    except ValueError:
-                        continue
-                if nums:
-                    return max(nums)
-        except Exception:
-            pass
         return 1
 
-    def _parsear_fecha_articulo(self, texto_fecha: str) -> Optional[datetime]:
-        if not texto_fecha:
-            return None
-        try:
-            from email.utils import parsedate_to_datetime
-            return parsedate_to_datetime(texto_fecha.strip()).replace(tzinfo=None)
-        except Exception:
-            pass
-        return None
-
     def _extraer_links_pagina(self, soup: BeautifulSoup) -> List[str]:
-        # Requerido por la clase base pero no se usa — la lógica está en _recolectar_links
-        return []
-
-    def _recolectar_links(self, total_paginas: int) -> List[str]:
+        # Misma estructura que Diario del Cauca: <article><p>Categoria ·
+        # DD/MM/YYYY</p><h2><a href="/noticias/slug">Titulo</a></h2>...
+        # </article>. Se busca por la etiqueta <article>, no por la clase
+        # CSS (hash de build de Next.js: puede cambiar en cada despliegue).
         links = []
-        fecha_desde_dt = datetime.strptime(self.fecha_desde, '%Y-%m-%d')
-        fecha_hasta_dt = datetime.strptime(self.fecha_hasta, '%Y-%m-%d')
-
-        try:
-            r_html = self.session.get(f"{self.BASE_URL}/?s={self.termino}", timeout=30)
-            soup_html = BeautifulSoup(r_html.content, 'html.parser')
-            total_paginas = self._obtener_total_paginas(soup_html)
-            print(f"Total de páginas: {total_paginas}")
-        except Exception as e:
-            print(f"Error obteniendo total páginas: {e}")
-            total_paginas = 1
-
-        for pagina in range(1, total_paginas + 1):
-            if pagina % 5 == 0 or pagina == 1:
-                print(f"Recolectando links: página {pagina}/{total_paginas}")
-
-            try:
-                r = self.session.get(self._construir_url_busqueda(pagina), timeout=30)
-                soup = BeautifulSoup(r.content, 'lxml-xml')
-
-                items = soup.find_all('item')
-                if not items:
-                    print(f"  Sin artículos en página {pagina}, deteniendo")
-                    break
-
-                parar = False
-                for item in items:
-                    pub_date = item.find('pubDate')
-                    fecha_art = self._parsear_fecha_articulo(pub_date.get_text() if pub_date else '')
-
-                    guid = item.find('guid')
-                    href = guid.get_text(strip=True) if guid else ''
-                    if not href or not href.startswith(self.BASE_URL):
-                        continue
-
-                    if fecha_art is None:
-                        links.append(href)
-                    elif fecha_art > fecha_hasta_dt:
-                        continue
-                    elif fecha_desde_dt <= fecha_art <= fecha_hasta_dt:
-                        links.append(href)
-                    elif fecha_art < fecha_desde_dt:
-                        print(f"  Artículos anteriores a {self.fecha_desde}, deteniendo en página {pagina}")
-                        parar = True
-                        break
-
-                if parar:
-                    break
-
-                # Sin sleep en el camino exitoso — el sitio aguanta bien sin throttling.
-                # Solo esperamos ante errores para no saturar tras un fallo.
-
-            except Exception as e:
-                print(f"Error en página {pagina}: {e}")
-                time.sleep(2)
+        for art in soup.find_all('article'):
+            h2 = art.find('h2')
+            a = h2.find('a', href=True) if h2 else None
+            if not a:
                 continue
+            href = a['href']
+            link = href if href.startswith('http') else self.BASE_URL + href
 
-        links = list(dict.fromkeys(links))
-        print(f"Total de links únicos: {len(links)}")
+            fecha = None
+            p = art.find('p')
+            if p:
+                m = re.search(r'(\d{2})/(\d{2})/(\d{4})', p.get_text())
+                if m:
+                    dia, mes, anio = (int(x) for x in m.groups())
+                    try:
+                        fecha = datetime(anio, mes, dia)
+                    except ValueError:
+                        fecha = None
+            self._fechas[link] = fecha
+            links.append(link)
         return links
 
-    def scrape(self) -> pd.DataFrame:
-        print(f"WEBSCRAPING {self.nombre_periodico.upper()}")
-        links = self._recolectar_links(999)
-        if not links:
-            print("No se encontraron links")
-            return pd.DataFrame()
-        return self._descargar_articulos(links)
+    def _descargar_articulo_individual(self, info: tuple) -> Optional[Dict]:
+        # Igual que la base, pero preferimos la fecha de la pagina de
+        # busqueda (self._fechas) sobre article.publish_date.
+        i, link = info
+        try:
+            article = Article(link, config=_NEWSPAPER_CONFIG)
+            article.download()
+            article.parse()
+
+            if i % 50 == 0:
+                print(f"  Descargados: {i} artículos")
+
+            return {
+                "periodico": self.nombre_periodico,
+                "url": link,
+                "titulo": article.title,
+                "fecha": self._fechas.get(link) or article.publish_date,
+                "texto": article.text,
+            }
+        except Exception:
+            return None
 
 class ScraperDiarioDelCauca(ScraperPeriodico):
+    """
+    Scraper para Diario del Cauca (diariodelcauca.com.co).
+
+    El sitio migro de WordPress a una plataforma nueva (Next.js; comparte
+    estructura e imagenes de gec.hsbnoticias.com con El Pilon y Diario del
+    Sur) en algun momento antes del 2026-11-11, cuando se detecto que la
+    API REST vieja (wp-json/wp/v2/posts) devuelve 404 contra el sitio
+    actual. Reescrito contra /buscar?q=... : resultados server-side-rendered
+    en HTML plano (no requiere Playwright), sin paginacion -- un solo
+    listado con el tope que imponga el sitio (~20 para terminos activos,
+    confirmado 2026-11-11). Ver contexto/08_log_decisiones.md.
+    """
     REGION = "suroccidente"
     BASE_URL = "https://diariodelcauca.com.co"
-    API_URL = "https://diariodelcauca.com.co/wp-json/wp/v2/posts"
-    PER_PAGE = 100
 
     def __init__(self, termino, fecha_desde, fecha_hasta):
         super().__init__(termino, fecha_desde, fecha_hasta)
-        self._fechas = {}
+        self._fechas: Dict[str, Optional[datetime]] = {}
         original_get = self.session.get
         def get_con_timeout(*args, **kwargs):
             kwargs.setdefault('timeout', 30)
@@ -1118,101 +1108,51 @@ class ScraperDiarioDelCauca(ScraperPeriodico):
         return "Diario del Cauca"
 
     def _construir_url_busqueda(self, pagina: int = 1) -> str:
-        return f"{self.BASE_URL}/?s={self.termino}"
+        # El sitio nuevo no pagina la busqueda ('pagina' se ignora) y no hace
+        # matching OR multi-palabra: se busca solo por el territorio, sin el
+        # tema que le agrega _buscar_multi_termino (ver _solo_territorio).
+        return f"{self.BASE_URL}/buscar?q={_solo_territorio(self.termino)}"
 
     def _obtener_total_paginas(self, soup: BeautifulSoup) -> int:
-        return 999
+        return 1
 
     def _extraer_links_pagina(self, soup: BeautifulSoup) -> List[str]:
-        # Requerido por la clase base pero no se usa — la lógica está en _recolectar_links
-        return []
-
-    def _recolectar_links(self, total_paginas: int) -> List[str]:
+        # Estructura del sitio nuevo: <article><p>Categoria · DD/MM/YYYY</p>
+        # <h2><a href="/noticias/slug">Titulo</a></h2>...</article>. Se busca
+        # por la etiqueta <article>, no por la clase CSS (hash de build de
+        # Next.js: puede cambiar en cada despliegue del sitio).
         links = []
+        for art in soup.find_all('article'):
+            h2 = art.find('h2')
+            a = h2.find('a', href=True) if h2 else None
+            if not a:
+                continue
+            href = a['href']
+            link = href if href.startswith('http') else self.BASE_URL + href
 
-        # Concurrencia con asyncio y aiohttp
-        async def fetch_wp_pages():
-            # Mismo MITM de Norton que ScraperElTiempo ya parchaba (ver contexto/
-            # 08_log_decisiones.md, 2026-08-30). Sin esto, aiohttp falla con
-            # CERTIFICATE_VERIFY_FAILED igual que requests sin verify=False.
-            conector = aiohttp.TCPConnector(ssl=False)
-            async with aiohttp.ClientSession(connector=conector) as session:
-                # Primera página para obtener X-WP-TotalPages
-                try:
-                    params = {
-                        "search": self.termino, "per_page": self.PER_PAGE, "page": 1,
-                        "orderby": "date", "order": "desc",
-                        "after": f"{self.fecha_desde}T00:00:00", "before": f"{self.fecha_hasta}T23:59:59"
-                    }
-                    async with session.get(self.API_URL, params=params, timeout=15) as r:
-                        if r.status != 200:
-                            return []
-                        total_pags = int(r.headers.get('X-WP-TotalPages', 1))
-                        data = await r.json()
-                        links_pagina = [post.get('link') for post in data if post.get('link')]
-                        # Cache fechas
-                        for post in data:
-                            if post.get('link') and post.get('date'):
-                                try:
-                                    self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                except Exception:
-                                    pass
-                        links_todas = []
-                        links_todas.extend(links_pagina)
-
-                        if total_pags > 1:
-                            print(f"Recolectando links de {total_pags} páginas concurrentemente...")
-
-                            async def fetch_page(p):
-                                try:
-                                    p_params = params.copy()
-                                    p_params["page"] = p
-                                    async with session.get(self.API_URL, params=p_params, timeout=15) as rp:
-                                        if rp.status == 200:
-                                            p_data = await rp.json()
-                                            for post in p_data:
-                                                if post.get('link') and post.get('date'):
-                                                    try:
-                                                        self._fechas[post['link']] = datetime.fromisoformat(post['date'])
-                                                    except:
-                                                        pass
-                                            return [post.get('link') for post in p_data if post.get('link')]
-                                except Exception:
-                                    pass
-                                return []
-
-                            tareas = [fetch_page(p) for p in range(2, total_pags + 1)]
-                            res = await asyncio.gather(*tareas)
-                            for r_pag in res:
-                                links_todas.extend(r_pag)
-
-                        return links_todas
-                except Exception as e:
-                    print(f"Error inicial: {e}")
-                    return []
-
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            links = loop.run_until_complete(fetch_wp_pages())
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-        links = list(dict.fromkeys(links))
-        print(f"Total de links únicos: {len(links)}")
+            fecha = None
+            p = art.find('p')
+            if p:
+                m = re.search(r'(\d{2})/(\d{2})/(\d{4})', p.get_text())
+                if m:
+                    dia, mes, anio = (int(x) for x in m.groups())
+                    try:
+                        fecha = datetime(anio, mes, dia)
+                    except ValueError:
+                        fecha = None
+            self._fechas[link] = fecha
+            links.append(link)
         return links
 
-    async def _descargar_articulo_async(self, session: aiohttp.ClientSession, info: tuple) -> Optional[Dict]:
+    def _descargar_articulo_individual(self, info: tuple) -> Optional[Dict]:
+        # Igual que la base, pero preferimos la fecha de la pagina de
+        # busqueda (self._fechas) sobre article.publish_date: muchos sitios
+        # de prensa local no traen metadato de fecha confiable en el <head>.
         i, link = info
         try:
-            async with session.get(link, timeout=15) as response:
-                html = await response.text()
-
-            from newspaper import Article
-            article = Article(link)
-            article.html = html
-            article.download_state = 2
-            article.parse()  # sync — article.parse es CPU-bound (~1-10ms), no IO; evita RuntimeError con ProactorEventLoop en threads secundarios (Python 3.14)
+            article = Article(link, config=_NEWSPAPER_CONFIG)
+            article.download()
+            article.parse()
 
             if i % 50 == 0:
                 print(f"  Descargados: {i} artículos")
@@ -1221,58 +1161,11 @@ class ScraperDiarioDelCauca(ScraperPeriodico):
                 "periodico": self.nombre_periodico,
                 "url": link,
                 "titulo": article.title,
-                "fecha": self._fechas.get(link, article.publish_date) if hasattr(self, '_fechas') else article.publish_date,
-                "texto": article.text
+                "fecha": self._fechas.get(link) or article.publish_date,
+                "texto": article.text,
             }
-        except (asyncio.TimeoutError, TimeoutError):
-            _registrar_error(self.nombre_periodico, "TimeoutError")
+        except Exception:
             return None
-        except Exception as e:
-            print(f"  ⚠ Error [{type(e).__name__}]: {e}")
-            _registrar_error(self.nombre_periodico, type(e).__name__)
-            return None
-
-    async def _ejecutar_descargas_async(self, links: List[str]):
-        links_enumerados = [(i, link) for i, link in enumerate(links, 1)]
-        connector = aiohttp.TCPConnector(limit=10, ssl=False)  # Norton MITM, ver 08_log_decisiones.md 2026-08-30
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tareas = [self._descargar_articulo_async(session, info) for info in links_enumerados]
-            resultados = await asyncio.gather(*tareas)
-        return resultados
-
-    def _descargar_articulos(self, links: List[str]) -> pd.DataFrame:
-        print(f"\nDescargando {len(links)} artículos (Optimizados con Asincronía)...")
-        if not links:
-            return pd.DataFrame()
-
-        loop = asyncio.ProactorEventLoop() if sys.platform == 'win32' else asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            resultados = loop.run_until_complete(self._ejecutar_descargas_async(links))
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-
-        data = [r for r in resultados if r is not None]
-        fallos = len(links) - len(data)
-        nota_t = f" ({fallos} timeouts)" if fallos else ""
-        print(f"{len(data)} artículos descargados exitosamente ({len(data)/len(links)*100:.1f}%){nota_t}")
-        df = pd.DataFrame(data)
-
-        if not df.empty and 'fecha' in df.columns:
-            df['fecha'] = pd.to_datetime(df['fecha'], errors='coerce', utc=True).dt.tz_convert(None)
-            fecha_desde_dt = pd.Timestamp(self.fecha_desde)
-            fecha_hasta_dt = pd.Timestamp(self.fecha_hasta) + pd.Timedelta(hours=23, minutes=59, seconds=59)
-            mask = (
-                df['fecha'].isna() |
-                ((df['fecha'] >= fecha_desde_dt) & (df['fecha'] <= fecha_hasta_dt))
-            )
-            fuera_rango = (~mask).sum()
-            if fuera_rango > 0:
-                print(f"  Filtro fecha: {fuera_rango} artículos fuera de rango eliminados")
-                df = df[mask].reset_index(drop=True)
-
-        return df
 
 class ScraperChoco7Dias(ScraperPeriodico):
     REGION = "suroccidente"
@@ -2348,6 +2241,14 @@ class ScraperMiPutumayo(ScraperPeriodico):
 class ScraperElTiempo(ScraperPeriodico):
     REGION = "central"
     """Scraper específico para El Tiempo"""
+
+    # html.parser ya no encuentra <article class="c-article"> ni
+    # <nav class="c-pagination"> en el HTML actual de eltiempo.com (devolvia
+    # "Total de paginas: 1" y 0 links con contenido real presente en la
+    # respuesta); lxml si los encuentra. Confirmado 2026-11-10/11, ver
+    # contexto/08_log_decisiones.md. Solo este scraper: los otros 19 probados
+    # dan resultados identicos con los dos parsers.
+    PARSER = 'lxml'
 
     def __init__(self, termino: str, fecha_desde: str, fecha_hasta: str):
         super().__init__(termino, fecha_desde, fecha_hasta)
